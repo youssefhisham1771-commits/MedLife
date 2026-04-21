@@ -1,0 +1,15 @@
+{
+  "projects": {
+    "default": "my-store-cc10"
+  },
+  "targets": {
+    "my-store-cc10": {
+      "hosting": {
+        "medlife": [
+          "medlife-eg"
+        ]
+      }
+    }
+  },
+  "etags": {}
+}

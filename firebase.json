@@ -1,0 +1,54 @@
+{
+  "hosting": {
+    "target": "medlife",
+    "public": "build/web",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ],
+    "rewrites": [
+      {
+        "source": "**",
+        "destination": "/index.html"
+      }
+    ]
+  },
+  "flutter": {
+    "platforms": {
+      "android": {
+        "default": {
+          "projectId": "my-store-cc10",
+          "appId": "1:502184227984:android:05880e85485520ab03d415",
+          "fileOutput": "android/app/google-services.json"
+        }
+      },
+      "dart": {
+        "lib/firebase_options.dart": {
+          "projectId": "my-store-cc10",
+          "configurations": {
+            "android": "1:502184227984:android:05880e85485520ab03d415",
+            "ios": "1:502184227984:ios:fa75459b6b631d6a03d415",
+            "macos": "1:502184227984:ios:fa75459b6b631d6a03d415",
+            "web": "1:502184227984:web:8df5e0284af9e43803d415",
+            "windows": "1:502184227984:web:187b2311045488ab03d415"
+          }
+        }
+      }
+    }
+  },
+  "functions": [
+    {
+      "source": "functions",
+      "codebase": "default",
+      "disallowLegacyRuntimeConfig": true,
+      "ignore": [
+        "node_modules",
+        ".git",
+        "firebase-debug.log",
+        "firebase-debug.*.log",
+        "*.local"
+      ]
+    }
+  ]
+}

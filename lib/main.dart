@@ -1,0 +1,2643 @@
+import 'package:flutter/material.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'firebase_options.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
+import 'dart:async';
+
+// ✳️ ايميل الادمن
+const String adminEmail = "youssef.hisham1771@gmail.com";
+
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
+
+  runApp(MyApp());
+}
+
+class MyApp extends StatefulWidget {
+  static _MyAppState? of(BuildContext context) =>
+      context.findAncestorStateOfType<_MyAppState>();
+
+  @override
+  State<MyApp> createState() => _MyAppState();
+}
+
+class _MyAppState extends State<MyApp> {
+  bool isDark = false;
+
+  @override
+  void initState() {
+    super.initState();
+    loadTheme();
+    setupFCM(); // 🔥 أهم سطر
+  }
+
+  // 🔥 FCM SETUP
+  Future<void> setupFCM() async {
+    FirebaseMessaging messaging = FirebaseMessaging.instance;
+
+    // طلب الإذن
+    NotificationSettings settings = await messaging.requestPermission();
+
+    print("🔔 Permission: ${settings.authorizationStatus}");
+
+    // 🔑 الحصول على التوكن
+    String? token = await messaging.getToken();
+    print("🔥 FCM TOKEN: $token");
+
+    // 🧠 حفظ التوكن في Firestore
+    var user = FirebaseAuth.instance.currentUser;
+    if (user != null && token != null) {
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .update({
+        "fcmToken": token,
+      });
+    }
+
+    // 📩 استقبال الرسائل والتطبيق مفتوح
+    FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+      print("📩 Message Title: ${message.notification?.title}");
+      print("📩 Message Body: ${message.notification?.body}");
+    });
+  }
+
+  // 📥 تحميل من الميموري
+  void loadTheme() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      isDark = prefs.getBool("isDark") ?? false;
+    });
+  }
+
+  // 💾 حفظ الاختيار
+  void toggleTheme() async {
+    final prefs = await SharedPreferences.getInstance();
+
+    setState(() {
+      isDark = !isDark;
+    });
+
+    await prefs.setBool("isDark", isDark);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      debugShowCheckedModeBanner: false,
+
+      theme: ThemeData(
+        brightness: Brightness.light,
+        primarySwatch: Colors.blue,
+        appBarTheme: AppBarTheme(
+          backgroundColor: Colors.white,
+          foregroundColor: Colors.black,
+        ),
+      ),
+
+      darkTheme: ThemeData(
+        brightness: Brightness.dark,
+        appBarTheme: AppBarTheme(
+          backgroundColor: Colors.black,
+          foregroundColor: Colors.white,
+        ),
+      ),
+
+      themeMode: isDark ? ThemeMode.dark : ThemeMode.light,
+
+      home: SplashScreen(),
+    );
+  }
+}
+
+///////////////////// 🔥 SPLASH /////////////////////
+
+class SplashScreen extends StatefulWidget {
+  @override
+  _SplashScreenState createState() => _SplashScreenState();
+}
+
+class _SplashScreenState extends State<SplashScreen>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _fadeAnimation;
+  late Animation<double> _scaleAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+
+    /// 🎬 Animation Controller
+    _controller = AnimationController(
+      vsync: this,
+      duration: Duration(milliseconds: 1500),
+    );
+
+    /// ✨ Fade
+    _fadeAnimation = Tween<double>(begin: 0, end: 1).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeIn),
+    );
+
+    /// 🔍 Scale
+    _scaleAnimation = Tween<double>(begin: 0.8, end: 1).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeOutBack),
+    );
+
+    _controller.forward();
+
+    /// 🔥 نسمع لحالة اليوزر
+    FirebaseAuth.instance.authStateChanges().listen((user) {
+      Future.delayed(Duration(milliseconds: 1800), () {
+        if (!mounted) return;
+
+        if (user == null) {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (_) => LoginScreen()),
+          );
+        } else {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (_) => ProductsScreen()),
+          );
+        }
+      });
+    });
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.white,
+
+      body: Center(
+        child: FadeTransition(
+          opacity: _fadeAnimation,
+          child: ScaleTransition(
+            scale: _scaleAnimation,
+            child: Image.asset(
+              "assets/logo.png",
+              width: 200,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+///////////////////// 🔐 LOGIN (MODERN CLEAN UI) /////////////////////
+
+class LoginScreen extends StatefulWidget {
+  @override
+  State<LoginScreen> createState() => _LoginScreenState();
+}
+
+class _LoginScreenState extends State<LoginScreen> {
+  final emailController = TextEditingController();
+  final passController = TextEditingController();
+
+  bool isLoading = false;
+  bool isPasswordHidden = true;
+
+  Future<void> login() async {
+    if (emailController.text.trim().isEmpty ||
+        passController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("اكتب الايميل والباسورد")),
+      );
+      return;
+    }
+
+    setState(() => isLoading = true);
+
+    try {
+      await FirebaseAuth.instance.signInWithEmailAndPassword(
+        email: emailController.text.trim(),
+        password: passController.text.trim(),
+      );
+
+      String? token = await FirebaseMessaging.instance.getToken();
+
+      var user = FirebaseAuth.instance.currentUser;
+
+      if (user != null && token != null) {
+        await FirebaseFirestore.instance
+            .collection('users')
+            .doc(user.uid)
+            .set({
+          "fcmToken": token,
+        }, SetOptions(merge: true));
+      }
+
+      if (mounted) {
+  Navigator.pushReplacement(
+    context,
+    MaterialPageRoute(builder: (_) => ProductsScreen()),
+  );
+}
+
+    } on FirebaseAuthException catch (e) {
+      String message = "حصل خطأ";
+
+      if (e.code == 'user-not-found') {
+        message = "الايميل ده مش متسجل";
+      } else if (e.code == 'wrong-password') {
+        message = "الباسورد غلط";
+      } else if (e.code == 'invalid-email') {
+        message = "الايميل غير صحيح";
+      } else if (e.code == 'user-disabled') {
+        message = "الحساب متوقف";
+      }
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(message)),
+      );
+    }
+
+    if (mounted) {
+      setState(() => isLoading = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.white,
+
+      body: SafeArea(
+        child: Padding(
+          padding: EdgeInsets.symmetric(horizontal: 25),
+
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+
+              /// 🔥 TITLE
+              Text(
+                "Welcome Back 👋",
+                style: TextStyle(
+                  fontSize: 28,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+
+              SizedBox(height: 8),
+
+              Text(
+                "Login to your account",
+                style: TextStyle(
+                  color: Colors.grey,
+                  fontSize: 16,
+                ),
+              ),
+
+              SizedBox(height: 35),
+
+              /// 📧 EMAIL
+              TextField(
+                controller: emailController,
+                keyboardType: TextInputType.emailAddress,
+                decoration: InputDecoration(
+                  hintText: "Email",
+                  filled: true,
+                  fillColor: Colors.grey[100],
+                  contentPadding:
+                      EdgeInsets.symmetric(horizontal: 15, vertical: 18),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(15),
+                    borderSide: BorderSide.none,
+                  ),
+                ),
+              ),
+
+              SizedBox(height: 15),
+
+              /// 🔑 PASSWORD
+              TextField(
+                controller: passController,
+                obscureText: isPasswordHidden,
+                decoration: InputDecoration(
+                  hintText: "Password",
+                  filled: true,
+                  fillColor: Colors.grey[100],
+                  contentPadding:
+                      EdgeInsets.symmetric(horizontal: 15, vertical: 18),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(15),
+                    borderSide: BorderSide.none,
+                  ),
+                  suffixIcon: IconButton(
+                    icon: Icon(
+                      isPasswordHidden
+                          ? Icons.visibility
+                          : Icons.visibility_off,
+                      color: Colors.grey,
+                    ),
+                    onPressed: () {
+                      setState(() {
+                        isPasswordHidden = !isPasswordHidden;
+                      });
+                    },
+                  ),
+                ),
+              ),
+
+              SizedBox(height: 30),
+
+              /// 🔥 LOGIN BUTTON
+              isLoading
+                  ? Center(child: CircularProgressIndicator())
+                  : SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        onPressed: login,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.black,
+                          padding: EdgeInsets.symmetric(vertical: 16),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(15),
+                          ),
+                        ),
+                        child: Text(
+                          "Login",
+                          style: TextStyle(fontSize: 16),
+                        ),
+                      ),
+                    ),
+
+              SizedBox(height: 15),
+
+              /// 🔁 REGISTER
+              Center(
+                child: TextButton(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (_) => RegisterScreen()),
+                    );
+                  },
+                  child: Text(
+                    "Don't have an account? Register",
+                    style: TextStyle(color: Colors.black),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  @override
+  void dispose() {
+    emailController.dispose();
+    passController.dispose();
+    super.dispose();
+  }
+}
+
+///////////////////// 🔐 REGISTER (MODERN CLEAN UI) /////////////////////
+
+class RegisterScreen extends StatefulWidget {
+  @override
+  State<RegisterScreen> createState() => _RegisterScreenState();
+}
+
+class _RegisterScreenState extends State<RegisterScreen> {
+  final name = TextEditingController();
+  final phone = TextEditingController();
+  final email = TextEditingController();
+  final pass = TextEditingController();
+
+  bool isLoading = false;
+  bool isPasswordHidden = true;
+
+  Future<void> register() async {
+    if (name.text.trim().isEmpty ||
+        phone.text.trim().isEmpty ||
+        email.text.trim().isEmpty ||
+        pass.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("املأ كل البيانات")),
+      );
+      return;
+    }
+
+    if (pass.text.length < 6) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("الباسورد لازم يكون 6 حروف على الأقل")),
+      );
+      return;
+    }
+
+    setState(() => isLoading = true);
+
+    try {
+      /// 🔐 إنشاء الحساب
+      final userCred = await FirebaseAuth.instance
+          .createUserWithEmailAndPassword(
+        email: email.text.trim(),
+        password: pass.text.trim(),
+      );
+
+      /// 🔥 حفظ بيانات اليوزر
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(userCred.user!.uid)
+          .set({
+        'name': name.text.trim(),
+        'phone': phone.text.trim(),
+        'email': email.text.trim(),
+        'role': 'user',
+      });
+
+      /// 🔥 FCM TOKEN
+      String? token = await FirebaseMessaging.instance.getToken();
+
+      if (token != null) {
+        await FirebaseFirestore.instance
+            .collection('users')
+            .doc(userCred.user!.uid)
+            .set({
+          "fcmToken": token,
+        }, SetOptions(merge: true));
+      }
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Account Created Successfully 🎉")),
+      );
+
+if (mounted) {
+  Navigator.pushReplacement(
+    context,
+    MaterialPageRoute(builder: (_) => ProductsScreen()),
+  );
+}
+
+    } on FirebaseAuthException catch (e) {
+      String message = "حصل خطأ";
+
+      if (e.code == 'email-already-in-use') {
+        message = "الايميل مستخدم بالفعل";
+      } else if (e.code == 'invalid-email') {
+        message = "الايميل غير صحيح";
+      } else if (e.code == 'weak-password') {
+        message = "الباسورد ضعيف";
+      }
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(message)),
+      );
+    } catch (e) {
+      print("ERROR: $e");
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Register Error ❌")),
+      );
+    }
+
+    if (mounted) {
+      setState(() => isLoading = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.white,
+
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: EdgeInsets.symmetric(horizontal: 25),
+
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+
+              SizedBox(height: 40),
+
+              /// 🔥 TITLE
+              Text(
+                "Create Account 🚀",
+                style: TextStyle(
+                  fontSize: 28,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+
+              SizedBox(height: 8),
+
+              Text(
+                "Sign up to get started",
+                style: TextStyle(
+                  color: Colors.grey,
+                  fontSize: 16,
+                ),
+              ),
+
+              SizedBox(height: 30),
+
+              /// 👤 NAME
+              TextField(
+                controller: name,
+                decoration: InputDecoration(
+                  hintText: "Full Name",
+                  filled: true,
+                  fillColor: Colors.grey[100],
+                  contentPadding:
+                      EdgeInsets.symmetric(horizontal: 15, vertical: 18),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(15),
+                    borderSide: BorderSide.none,
+                  ),
+                ),
+              ),
+
+              SizedBox(height: 15),
+
+              /// 📱 PHONE
+              TextField(
+                controller: phone,
+                keyboardType: TextInputType.phone,
+                decoration: InputDecoration(
+                  hintText: "Phone",
+                  filled: true,
+                  fillColor: Colors.grey[100],
+                  contentPadding:
+                      EdgeInsets.symmetric(horizontal: 15, vertical: 18),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(15),
+                    borderSide: BorderSide.none,
+                  ),
+                ),
+              ),
+
+              SizedBox(height: 15),
+
+              /// 📧 EMAIL
+              TextField(
+                controller: email,
+                keyboardType: TextInputType.emailAddress,
+                decoration: InputDecoration(
+                  hintText: "Email",
+                  filled: true,
+                  fillColor: Colors.grey[100],
+                  contentPadding:
+                      EdgeInsets.symmetric(horizontal: 15, vertical: 18),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(15),
+                    borderSide: BorderSide.none,
+                  ),
+                ),
+              ),
+
+              SizedBox(height: 15),
+
+              /// 🔑 PASSWORD
+              TextField(
+                controller: pass,
+                obscureText: isPasswordHidden,
+                decoration: InputDecoration(
+                  hintText: "Password",
+                  filled: true,
+                  fillColor: Colors.grey[100],
+                  contentPadding:
+                      EdgeInsets.symmetric(horizontal: 15, vertical: 18),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(15),
+                    borderSide: BorderSide.none,
+                  ),
+                  suffixIcon: IconButton(
+                    icon: Icon(
+                      isPasswordHidden
+                          ? Icons.visibility
+                          : Icons.visibility_off,
+                      color: Colors.grey,
+                    ),
+                    onPressed: () {
+                      setState(() {
+                        isPasswordHidden = !isPasswordHidden;
+                      });
+                    },
+                  ),
+                ),
+              ),
+
+              SizedBox(height: 30),
+
+              /// 🔥 REGISTER BUTTON
+              isLoading
+                  ? Center(child: CircularProgressIndicator())
+                  : SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        onPressed: register,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.black,
+                          padding: EdgeInsets.symmetric(vertical: 16),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(15),
+                          ),
+                        ),
+                        child: Text(
+                          "Register",
+                          style: TextStyle(fontSize: 16),
+                        ),
+                      ),
+                    ),
+
+              SizedBox(height: 15),
+
+              /// 🔁 LOGIN
+              Center(
+                child: TextButton(
+                  onPressed: () {
+                    Navigator.pop(context);
+                  },
+                  child: Text(
+                    "Already have an account? Login",
+                    style: TextStyle(color: Colors.black),
+                  ),
+                ),
+              ),
+
+              SizedBox(height: 20),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  @override
+  void dispose() {
+    name.dispose();
+    phone.dispose();
+    email.dispose();
+    pass.dispose();
+    super.dispose();
+  }
+}
+
+///////////////////// 🛍 PRODUCTS /////////////////////
+
+class ProductsScreen extends StatefulWidget {
+  @override
+  State<ProductsScreen> createState() => _ProductsScreenState();
+}
+
+class _ProductsScreenState extends State<ProductsScreen> {
+  List<Map<String, dynamic>> cart = [];
+  List<Map<String, dynamic>> favourites = [];
+
+  int currentIndex = 0;
+
+
+ bool isAdmin = false;
+
+@override
+void initState() {
+  super.initState();
+  loadFavourites();
+  checkAdmin();
+}
+
+Future<void> checkAdmin() async {
+  var user = FirebaseAuth.instance.currentUser;
+  if (user == null) return;
+
+  var doc = await FirebaseFirestore.instance
+      .collection('users')
+      .doc(user.uid)
+      .get();
+
+  if (doc.exists && doc.data()!['role'] == 'admin') {
+    setState(() {
+      isAdmin = true;
+    });
+  }
+}
+
+Future<void> toggleFavourite(Map<String, dynamic> item) async {
+  var user = FirebaseAuth.instance.currentUser;
+  if (user == null) return;
+
+  var favRef = FirebaseFirestore.instance
+      .collection('users')
+      .doc(user.uid)
+      .collection('favourites');
+
+  var existing = await favRef
+      .where("name", isEqualTo: item['name'])
+      .get();
+
+  if (existing.docs.isNotEmpty) {
+    // ❌ remove
+    await favRef.doc(existing.docs.first.id).delete();
+
+    setState(() {
+      favourites.removeWhere((e) => e['name'] == item['name']);
+    });
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text("Removed from Favourites ❌")),
+    );
+  } else {
+    // ❤️ add
+    await favRef.add(item);
+
+    setState(() {
+      favourites.add(item);
+    });
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text("Added To Favourite ❤️")),
+    );
+  }
+}
+
+Future<void> loadFavourites() async {
+  var user = FirebaseAuth.instance.currentUser;
+  if (user == null) return;
+
+  var snapshot = await FirebaseFirestore.instance
+      .collection('users')
+      .doc(user.uid)
+      .collection('favourites')
+      .get();
+
+ setState(() {
+  favourites = snapshot.docs.map((doc) {
+    var data = doc.data();
+    data['docId'] = doc.id; // 🔥 مهم جدًا
+    return data;
+  }).toList();
+});
+}
+
+Future<void> removeFromFavourites(int index) async {
+  var user = FirebaseAuth.instance.currentUser;
+  if (user == null) return;
+
+  var favRef = FirebaseFirestore.instance
+      .collection('users')
+      .doc(user.uid)
+      .collection('favourites');
+
+  var docId = favourites[index]['docId'];
+
+  if (docId != null) {
+    await favRef.doc(docId).delete();
+  }
+
+  setState(() {
+    favourites.removeAt(index);
+  });
+}
+
+Widget buildProducts() {
+  return StreamBuilder(
+    stream: FirebaseFirestore.instance.collection('Products').snapshots(),
+    builder: (context, snapshot) {
+      if (!snapshot.hasData) {
+        return Center(child: CircularProgressIndicator());
+      }
+
+      var products = snapshot.data!.docs;
+
+      return Column(
+  children: [
+
+    /// 🔥 البانر فوق
+    BannerSlider(isAdmin: isAdmin),
+
+    /// 🔥 المنتجات تحت
+    Expanded(
+      child: GridView.builder(
+        padding: EdgeInsets.all(10),
+        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 2,
+          childAspectRatio: 0.75,
+          crossAxisSpacing: 10,
+          mainAxisSpacing: 10,
+        ),
+        itemCount: products.length,
+        itemBuilder: (context, index) {
+          var product = products[index];
+          var data = product.data() as Map<String, dynamic>;
+
+          List images = data.containsKey('images')
+              ? data['images']
+              : [data['image']];
+
+          bool isFav = favourites.any((e) => e['name'] == data['name']);
+
+          return GestureDetector(
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => ProductDetailsScreen(
+                    product: product,
+                    cart: cart,
+                  ),
+                ),
+              );
+            },
+            child: Stack(
+              children: [
+                Card(
+                  elevation: 6,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(15),
+                  ),
+                  child: Column(
+                    children: [
+                      Expanded(
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.vertical(
+                              top: Radius.circular(15)),
+                          child: Image.network(
+                            images.isNotEmpty ? images[0] : "",
+                            fit: BoxFit.cover,
+                            width: double.infinity,
+                          ),
+                        ),
+                      ),
+                      Padding(
+                        padding: EdgeInsets.all(8),
+                        child: Column(
+                          children: [
+                            Text(
+                              data['name'],
+                              style: TextStyle(
+                                  fontWeight: FontWeight.bold),
+                            ),
+                            Text("${data['price']} EGP"),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                /// ❤️ Favorite
+                Positioned(
+                  top: 10,
+                  left: 10,
+                  child: GestureDetector(
+                    onTap: () {
+                      var item = {
+                        "name": data['name'],
+                        "price": data['price'],
+                        "image": images.isNotEmpty ? images[0] : "",
+                      };
+
+                      toggleFavourite(item);
+                    },
+                    child: CircleAvatar(
+                      backgroundColor: Colors.white,
+                      child: Icon(
+                        isFav ? Icons.favorite : Icons.favorite_border,
+                        color: isFav ? Colors.red : Colors.grey,
+                      ),
+                    ),
+                  ),
+                ),
+
+                /// 🔥 Admin Controls
+                if (isAdmin)
+                  Positioned(
+                    right: 10,
+                    top: 10,
+                    child: Column(
+                      children: [
+                        IconButton(
+                          icon: Icon(Icons.edit, color: Colors.blue),
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => AddEditProductScreen(
+                                  docId: product.id,
+                                  oldData: data,
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                        IconButton(
+                          icon: Icon(Icons.delete, color: Colors.red),
+                          onPressed: () async {
+                            await FirebaseFirestore.instance
+                                .collection('Products')
+                                .doc(product.id)
+                                .delete();
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
+              ],
+            ),
+          );
+        },
+      ),
+    ),
+  ],
+);
+    },
+  );
+}
+
+Widget buildFavourites() {
+
+  if (favourites.isEmpty) {
+    return Center(
+      child: Text(
+        "No Favourites Yet ❤️",
+        style: TextStyle(fontSize: 18),
+      ),
+    );
+  }
+
+  return GridView.builder(
+    padding: EdgeInsets.all(10),
+    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+      crossAxisCount: 2,
+      childAspectRatio: 0.75,
+      crossAxisSpacing: 10,
+      mainAxisSpacing: 10,
+    ),
+    itemCount: favourites.length,
+    itemBuilder: (context, index) {
+      var item = favourites[index];
+
+      return Stack(
+        children: [
+          Card(
+            elevation: 6,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(15),
+            ),
+            child: Column(
+              children: [
+                Expanded(
+                  child: ClipRRect(
+                    borderRadius:
+                        BorderRadius.vertical(top: Radius.circular(15)),
+                    child: Image.network(
+                      item["image"],
+                      fit: BoxFit.cover,
+                      width: double.infinity,
+                    ),
+                  ),
+                ),
+                Padding(
+                  padding: EdgeInsets.all(8),
+                  child: Column(
+                    children: [
+                      Text(
+                        item["name"],
+                        style: TextStyle(
+                            fontWeight: FontWeight.bold),
+                      ),
+                      Text("${item["price"]} EGP"),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          // ❤️ remove from favourites
+          Positioned(
+            top: 10,
+            left: 10,
+            child: GestureDetector(
+              onTap: () {
+                setState(() {
+                  favourites.removeAt(index);
+                });
+
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                      content:
+                          Text("Removed from Favourites ❌")),
+                );
+              },
+              child: CircleAvatar(
+                backgroundColor: Colors.white,
+                child: Icon(
+                  Icons.favorite,
+                  color: Colors.red,
+                ),
+              ),
+            ),
+          ),
+        ],
+      );
+    },
+  );
+}
+
+  @override
+  Widget build(BuildContext context) {
+    var user = FirebaseAuth.instance.currentUser;
+    
+return Scaffold(
+  appBar: AppBar(
+  centerTitle: true,
+  backgroundColor: Theme.of(context).appBarTheme.backgroundColor,
+  iconTheme: IconThemeData(
+    color: Theme.of(context).brightness == Brightness.dark
+        ? Colors.white
+        : Colors.black,
+  ),
+  title: Text(
+    currentIndex == 0
+        ? "MedLife"
+        : currentIndex == 1
+            ? "Cart 🛒"
+            : "Favourites ❤️",
+    style: GoogleFonts.poppins(
+      fontSize: 26,
+      fontWeight: FontWeight.bold,
+      letterSpacing: 1.5,
+    ),
+  ),
+  actions: [
+    IconButton(
+      icon: Icon(
+        MyApp.of(context)!.isDark
+            ? Icons.wb_sunny
+            : Icons.dark_mode,
+        color: Theme.of(context).brightness == Brightness.dark
+            ? Colors.white
+            : Colors.black,
+      ),
+      onPressed: () {
+        MyApp.of(context)!.toggleTheme();
+      },
+    ),
+
+if (isAdmin)
+  IconButton(
+    icon: Icon(Icons.admin_panel_settings),
+    onPressed: () {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => AdminOrdersScreen()),
+      );
+    },
+  ),
+
+  // 👤 Profile
+  IconButton(
+    icon: Icon(Icons.person),
+    onPressed: () {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => ProfileScreen()),
+      );
+    },
+  ),
+
+         // 🚪 Logout
+  IconButton(
+    icon: Icon(Icons.logout),
+    onPressed: () async {
+      await FirebaseAuth.instance.signOut();
+
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(builder: (_) => LoginScreen()),
+        (route) => false,
+      );
+    },
+  ),
+],
+  ),
+
+  body: currentIndex == 0
+      ? buildProducts()
+      : currentIndex == 1
+          ? CartScreen(cart: cart)
+          : buildFavourites(),
+
+floatingActionButton: isAdmin
+    ? FloatingActionButton(
+        onPressed: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => AddEditProductScreen(),
+            ),
+          );
+        },
+        child: Icon(Icons.add),
+      )
+    : null,
+
+  bottomNavigationBar: BottomNavigationBar(
+    currentIndex: currentIndex,
+    onTap: (i) {
+      setState(() {
+        currentIndex = i;
+      });
+    },
+    items: [
+      BottomNavigationBarItem(
+        icon: Icon(Icons.store),
+        label: "Products",
+      ),
+      BottomNavigationBarItem(
+        icon: Icon(Icons.shopping_cart),
+        label: "Cart",
+      ),
+      BottomNavigationBarItem(
+        icon: Icon(Icons.favorite),
+        label: "Favourites",
+      ),
+    ],
+  ),
+);
+  }
+}
+
+///////////////////// 📦 DETAILS /////////////////////
+
+class ProductDetailsScreen extends StatefulWidget {
+  final dynamic product;
+  final List<Map<String, dynamic>> cart;
+
+  ProductDetailsScreen({required this.product, required this.cart});
+
+  @override
+  State<ProductDetailsScreen> createState() =>
+      _ProductDetailsScreenState();
+}
+
+class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
+  String selectedSize = "";
+  int quantity = 1;
+  int currentIndex = 0;
+
+  Widget buildSizeButton(String size) {
+    bool isSelected = selectedSize == size;
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          selectedSize = size;
+        });
+      },
+      child: Container(
+        margin: EdgeInsets.symmetric(horizontal: 6),
+        padding: EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+        decoration: BoxDecoration(
+          color: isSelected ? Colors.blue : Colors.grey[200],
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: isSelected ? Colors.blue : Colors.grey,
+          ),
+        ),
+        child: Text(
+          size,
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            color: isSelected ? Colors.white : Colors.black,
+          ),
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    var product = widget.product;
+var data = widget.product.data() as Map<String, dynamic>;
+
+List images = data.containsKey('images')
+    ? data['images']
+    : [data['image']];
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(product['name'] ?? "No Name"),
+      ),
+
+      // 🔥 الجسم
+      body: Column(
+        children: [
+          Expanded(
+            child: SingleChildScrollView(
+              child: Column(
+                children: [
+
+SizedBox(
+  height: 300,
+  child:PageView.builder(
+  itemCount: images.length,
+  onPageChanged: (index) {
+    setState(() {
+      currentIndex = index;
+    });
+  },
+  itemBuilder: (context, index) {
+      return Image.network(
+        images[index],
+        fit: BoxFit.cover,
+        width: double.infinity,
+      );
+    },
+  ),
+),
+  SizedBox(height: 10),
+
+Row(
+  mainAxisAlignment: MainAxisAlignment.center,
+  children: List.generate(images.length, (index) {
+    return Container(
+      margin: EdgeInsets.symmetric(horizontal: 4),
+      width: currentIndex == index ? 12 : 8,
+      height: currentIndex == index ? 12 : 8,
+      decoration: BoxDecoration(
+        color: currentIndex == index ? Colors.black : Colors.grey,
+        shape: BoxShape.circle,
+      ),
+    );
+  }),
+),
+
+                  SizedBox(height: 20),
+
+                  Text(
+                    product['name'],
+                    style: TextStyle(
+                        fontSize: 22, fontWeight: FontWeight.bold),
+                  ),
+
+                  Text("${product['price']} EGP"),
+
+                  SizedBox(height: 20),
+
+                  // 🔥 المقاسات
+                  Text(
+                    "Choose Size",
+                    style: TextStyle(
+                        fontWeight: FontWeight.bold, fontSize: 16),
+                  ),
+
+                  SizedBox(height: 10),
+
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      buildSizeButton("S"),
+                      buildSizeButton("M"),
+                      buildSizeButton("L"),
+                      buildSizeButton("XL"),
+                    ],
+                  ),
+
+                  SizedBox(height: 25),
+
+                  // 🔢 الكمية
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      IconButton(
+                        icon: Icon(Icons.remove),
+                        onPressed: () {
+                          if (quantity > 1) {
+                            setState(() {
+                              quantity--;
+                            });
+                          }
+                        },
+                      ),
+                      Text(
+                        "$quantity",
+                        style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold),
+                      ),
+                      IconButton(
+                        icon: Icon(Icons.add),
+                        onPressed: () {
+                          setState(() {
+                            quantity++;
+                          });
+                        },
+                      ),
+                    ],
+                  ),
+
+                  SizedBox(height: 20),
+                ],
+              ),
+            ),
+          ),
+
+          // 🔥 الزرار تحت ثابت
+          Padding(
+            padding: EdgeInsets.all(15),
+            child: SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () async {
+                  if (selectedSize.isEmpty) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                          content: Text("اختار المقاس الأول")),
+                    );
+                    return;
+                  }
+
+                  var index = widget.cart.indexWhere(
+                    (i) =>
+                        i['name'] == product['name'] &&
+                        i['size'] == selectedSize,
+                  );
+
+                  if (index != -1) {
+                    widget.cart[index]['quantity'] =
+                        (widget.cart[index]['quantity'] ?? 1) +
+                            quantity;
+                  } else {
+                    widget.cart.add({
+                      "name": data['name'],
+                      "price": data['price'],
+                      "image": images.isNotEmpty ? images[0] : "",
+                      "size": selectedSize,
+                      "quantity": quantity,
+                    });
+                  }
+
+                  // 🔥 Firebase
+                  var user =
+                      FirebaseAuth.instance.currentUser;
+
+                  if (user != null) {
+                    var cartRef = FirebaseFirestore.instance
+                        .collection('users')
+                        .doc(user.uid)
+                        .collection('cart');
+
+                    var existing = await cartRef
+                        .where("name",
+                            isEqualTo: product['name'])
+                        .where("size",
+                            isEqualTo: selectedSize)
+                        .get();
+
+                    if (existing.docs.isNotEmpty) {
+                      var doc = existing.docs.first;
+
+                      await cartRef.doc(doc.id).update({
+                        "quantity":
+                            (doc['quantity'] ?? 1) +
+                                quantity,
+                      });
+                    } else {
+                      await cartRef.add({
+                        "name": data['name'],
+                        "price": data['price'],
+                        "image": images.isNotEmpty ? images[0] : "",
+                        "size": selectedSize,
+                        "quantity": quantity,
+                      });
+                    }
+                  }
+
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                        content:
+                            Text("Added to cart 🛒")),
+                  );
+                },
+                style: ElevatedButton.styleFrom(
+                  padding: EdgeInsets.symmetric(
+                      vertical: 15),
+                ),
+                child: Text("Add to Cart"),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+//////////////////// 🛒 CART /////////////////////
+
+class CartScreen extends StatefulWidget {
+  List<Map<String, dynamic>> cart;
+
+  CartScreen({required this.cart});
+
+  @override
+  State<CartScreen> createState() => _CartScreenState();
+}
+
+class _CartScreenState extends State<CartScreen> {
+  TextEditingController promoController = TextEditingController();
+
+  double discount = 0;
+  double percent = 0;
+
+  Future<void> updateQuantityFirebase(int index) async {
+  var user = FirebaseAuth.instance.currentUser;
+  if (user == null) return;
+
+  var cartRef = FirebaseFirestore.instance
+      .collection('users')
+      .doc(user.uid)
+      .collection('cart');
+
+ var docId = widget.cart[index]['docId'];
+
+if (docId != null) {
+  await cartRef.doc(docId).update({
+    "quantity": widget.cart[index]["quantity"],
+  });
+}
+}
+
+  // 🔥 تحميل الكارت من فايربيز
+  Future<void> loadCart() async {
+    var user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    var snapshot = await FirebaseFirestore.instance
+        .collection('users')
+        .doc(user.uid)
+        .collection('cart')
+        .get();
+
+    setState(() {
+     widget.cart = snapshot.docs.map((doc) {
+  var data = doc.data();
+  data['docId'] = doc.id;
+  return data;
+}).toList();
+    });
+  }
+
+  // 💾 حفظ منتج واحد
+  Future<void> addToCartFirebase(Map<String, dynamic> item) async {
+    var user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    await FirebaseFirestore.instance
+        .collection('users')
+        .doc(user.uid)
+        .collection('cart')
+        .add(item);
+  }
+
+  // ❌ حذف منتج
+  Future<void> removeFromCartFirebase(int index) async {
+    var user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    var cartRef = FirebaseFirestore.instance
+        .collection('users')
+        .doc(user.uid)
+        .collection('cart');
+
+    var docId = widget.cart[index]['docId'];
+
+if (docId != null) {
+  await cartRef.doc(docId).delete();
+}
+  }
+
+  // 🧠 الحساب
+  double getTotalBeforeDiscount() {
+    double t = 0;
+    for (var item in widget.cart) {
+      t += double.parse(item["price"].toString()) *
+     (item["quantity"] ?? 1);
+    }
+    return t;
+  }
+
+  double total() {
+    return getTotalBeforeDiscount() - discount;
+  }
+
+  // 🎁 برومو كود
+  void applyPromo() async {
+    var code = promoController.text.trim();
+
+    var snapshot = await FirebaseFirestore.instance
+        .collection('promoCodes')
+        .doc(code)
+        .get();
+
+    if (snapshot.exists) {
+      percent = (snapshot['discount'] as num).toDouble();
+
+      double t = getTotalBeforeDiscount();
+
+      setState(() {
+        discount = t * (percent / 100);
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("تم تطبيق خصم $percent%")),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("كود غير صحيح ❌")),
+      );
+    }
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    loadCart(); // 🔥 أول ما الشاشة تفتح
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    // 🔐 Check Login
+    if (FirebaseAuth.instance.currentUser == null) {
+      Future.microtask(() {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => LoginScreen()),
+        );
+      });
+
+      return Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    return Scaffold(
+      body: widget.cart.isEmpty
+          ? Center(child: Text("Cart is empty"))
+          : ListView.builder(
+              itemCount: widget.cart.length,
+              itemBuilder: (context, i) {
+                return ListTile(
+                  leading: Image.network(widget.cart[i]["image"]),
+                  title: Text(widget.cart[i]["name"]),
+                  subtitle: Column(
+  crossAxisAlignment: CrossAxisAlignment.start,
+  children: [
+    Text("${widget.cart[i]["price"]} EGP"),
+    Text("Size: ${widget.cart[i]["size"]}"),
+
+    SizedBox(height: 5),
+
+    Row(
+      children: [
+        IconButton(
+          icon: Icon(Icons.remove),
+          onPressed: () async {
+            if ((widget.cart[i]["quantity"] ?? 1) > 1) {
+              setState(() {
+                widget.cart[i]["quantity"]--;
+              });
+
+              await updateQuantityFirebase(i);
+            }
+          },
+        ),
+
+        Text(
+          "${widget.cart[i]["quantity"] ?? 1}",
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
+
+        IconButton(
+          icon: Icon(Icons.add),
+          onPressed: () async {
+            setState(() {
+              widget.cart[i]["quantity"]++;
+            });
+
+            await updateQuantityFirebase(i);
+          },
+        ),
+      ],
+    )
+  ],
+),
+                  trailing: IconButton(
+                    icon: Icon(Icons.delete, color: Colors.red),
+                    onPressed: () async {
+                      await removeFromCartFirebase(i);
+
+                      setState(() {
+                        widget.cart.removeAt(i);
+                      });
+
+                      double t = getTotalBeforeDiscount();
+                      discount = t * (percent / 100);
+                    },
+                  ),
+                );
+              },
+            ),
+
+      bottomNavigationBar: Container(
+        padding: EdgeInsets.all(15),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+
+            TextField(
+              controller: promoController,
+              decoration: InputDecoration(
+                hintText: "Enter Promo Code",
+                border: OutlineInputBorder(),
+                suffixIcon: IconButton(
+                  icon: Icon(Icons.check),
+                  onPressed: applyPromo,
+                ),
+              ),
+            ),
+
+            SizedBox(height: 10),
+
+            Text("Discount: $discount EGP"),
+
+            SizedBox(height: 10),
+
+            Text("Total: ${total()} EGP"),
+
+            SizedBox(height: 10),
+
+           ElevatedButton(
+  onPressed: () {
+    if (widget.cart.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("الكارت فاضي ❌")),
+      );
+      return;
+    }
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        TextEditingController nameController = TextEditingController();
+        TextEditingController phoneController = TextEditingController();
+
+        return AlertDialog(
+          title: Text("Enter your data"),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: nameController,
+                decoration: InputDecoration(labelText: "Name"),
+              ),
+              TextField(
+                controller: phoneController,
+                decoration: InputDecoration(labelText: "Phone"),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () async {
+                var user = FirebaseAuth.instance.currentUser;
+
+                await FirebaseFirestore.instance.collection('orders').add({
+                  "userId": user?.uid,
+                  "name": nameController.text,
+                  "phone": phoneController.text,
+                  "items": widget.cart.map((item) {
+  return {
+    "name": item["name"],
+    "price": item["price"],
+    "quantity": item["quantity"] ?? 1,
+    "image":item["image"],
+    "size": item["size"],
+  };
+}).toList(),
+                  "total": total(),
+                  "date": FieldValue.serverTimestamp(),
+                  "status": "pending"
+                });
+
+                // 🧹 فضي الكارت
+                var cartRef = FirebaseFirestore.instance
+                    .collection('users')
+                    .doc(user!.uid)
+                    .collection('cart');
+
+                var snapshot = await cartRef.get();
+                for (var doc in snapshot.docs) {
+                  await doc.reference.delete();
+                }
+
+                setState(() {
+                  widget.cart.clear();
+                  discount = 0;
+                });
+
+                Navigator.pop(context); // يقفل الديالوج
+  showDialog(
+  context: context,
+  barrierDismissible: false, // ❌ مينفعش يقفل بالضغط برا
+  builder: (context) {
+    return Center(
+      child: Material(
+        color: Colors.transparent,
+        child: Container(
+          width: MediaQuery.of(context).size.width * 0.85,
+          padding: EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: [
+              BoxShadow(
+                blurRadius: 20,
+                color: Colors.black26,
+              )
+            ],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // ✅ أيقونة
+              Icon(Icons.check_circle, color: Colors.green, size: 55),
+
+              SizedBox(height: 15),
+
+              // 🔥 السطر الأول
+              Text(
+                "Order Sent",
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+                textAlign: TextAlign.center,
+              ),
+
+              SizedBox(height: 10),
+
+              // 🔥 السطر الثاني
+              Text(
+                "سيتم التواصل معك اليوم لتاكيد الاوردر و تحديد مكان الاستلام",
+                textAlign: TextAlign.center,
+
+              ),
+
+              SizedBox(height: 10),
+
+              // 🔥 السطر الثالث
+              Text(
+                "الاستلام يكون في خلال 2 ايام 💨",
+                textAlign: TextAlign.center,
+              ),
+
+              SizedBox(height: 20),
+
+              // ✅ زرار OK
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () {
+                    Navigator.pop(context); // يقفل البوب اب
+                  },
+                  style: ElevatedButton.styleFrom(
+                    padding: EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: Text("OK"),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  },
+);
+              },
+              child: Text("Confirm"),
+            )
+          ],
+        );
+      },
+    );
+  },
+  child: Text("Place Order"),
+)
+          ],
+        ),
+      ),
+    );
+  }
+  @override
+void dispose() {
+  promoController.dispose();
+  super.dispose();
+}
+}
+
+///////////////////// ➕ ADD / EDIT /////////////////////
+
+class AddEditProductScreen extends StatefulWidget {
+  final String? docId;
+  final dynamic oldData;
+
+  AddEditProductScreen({this.docId, this.oldData});
+
+  @override
+  State<AddEditProductScreen> createState() =>
+      _AddEditProductScreenState();
+}
+
+class _AddEditProductScreenState
+    extends State<AddEditProductScreen> {
+  final name = TextEditingController();
+  final price = TextEditingController();
+  final imagesController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+
+    if (widget.oldData != null) {
+      name.text = widget.oldData['name'];
+      price.text = widget.oldData['price'];
+      imagesController.text =
+    (widget.oldData['images'] ?? []).join(",");
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+          title: Text(widget.docId == null
+              ? "Add Product"
+              : "Edit Product")),
+      body: Padding(
+        padding: EdgeInsets.all(20),
+        child: Column(
+          children: [
+            TextField(controller: name, decoration: InputDecoration(labelText: "Name")),
+            TextField(controller: price, decoration: InputDecoration(labelText: "Price")),
+            TextField(controller: imagesController, decoration: InputDecoration(labelText: "Images URLs (separated by comma)")),
+            SizedBox(height: 20),
+            ElevatedButton(
+              onPressed: () async {
+                var data = {
+                  "name": name.text,
+                  "price": price.text,
+                  "images": imagesController.text.split(","),
+                };
+
+                if (widget.docId == null) {
+                  await FirebaseFirestore.instance
+                      .collection('Products')
+                      .add(data);
+                } else {
+                  await FirebaseFirestore.instance
+                      .collection('Products')
+                      .doc(widget.docId)
+                      .update(data);
+                }
+
+                Navigator.pop(context);
+              },
+              child: Text(widget.docId == null
+                  ? "Add"
+                  : "Update"),
+            )
+          ],
+        ),
+      ),
+    );
+  }
+  @override
+void dispose() {
+name.dispose();
+price.dispose();
+imagesController.dispose();
+super.dispose();
+}
+}
+
+class AdminOrdersScreen extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text("Admin Dashboard 📊"),
+      ),
+      body: StreamBuilder(
+        stream: FirebaseFirestore.instance
+            .collection('orders')
+            .orderBy('date', descending: false)
+            .snapshots(),
+        builder: (context, snapshot) {
+          if (!snapshot.hasData) {
+            return Center(child: CircularProgressIndicator());
+          }
+
+          var orders = snapshot.data!.docs;
+
+          if (orders.isEmpty) {
+            return Center(child: Text("No Orders Yet"));
+          }
+
+          return ListView.builder(
+            itemCount: orders.length,
+            itemBuilder: (context, i) {
+              var order = orders[i];
+              final data = order.data() as Map<String, dynamic>;
+
+              List items = data['items'] ?? [];
+
+              bool isDelivered =
+                  (data['status'] ?? 'pending') == 'delivered';
+
+              return Card(
+                margin: EdgeInsets.all(10),
+                child: ListTile(
+                  title: Text("Order #${i + 1}"),
+                  subtitle: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text("Name: ${data['name'] ?? 'No Name'}"),
+                      Text("Phone: ${data['phone'] ?? 'No Phone'}"),
+
+                      SizedBox(height: 5),
+
+                      Text(
+                        "Order Details:",
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
+
+                      SizedBox(height: 5),
+
+                      if (items.isEmpty)
+                        Text("No items")
+                      else
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: items.map<Widget>((item) {
+                            return Text(
+                                "- ${item['name']} | ${item['size']} | (${item['price']} EGP) | x${item['quantity'] ?? 1}");
+                          }).toList(),
+                        ),
+
+                      SizedBox(height: 5),
+
+                      Text("Total: ${data['total'] ?? 0} EGP"),
+                    ],
+                  ),
+
+                  trailing: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // ✅ Checkbox Toggle
+                      Row(
+                        children: [
+                          Checkbox(
+                            value: isDelivered,
+                            activeColor:
+                                isDelivered ? Colors.green : Colors.orange,
+                            onChanged: (value) async {
+                              String newStatus =
+                                  isDelivered ? "pending" : "delivered";
+
+                              await FirebaseFirestore.instance
+                                  .collection('orders')
+                                  .doc(order.id)
+                                  .update({
+                                "status": newStatus,
+                              });
+
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(
+                                    isDelivered
+                                        ? "Order is Pending ⏳"
+                                        : "Order marked as Delivered ✅",
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                          Text(
+                            isDelivered
+                                ? "Delivered"
+                                : "Mark as Delivered",
+                          ),
+                        ],
+                      ),
+
+                      // 🗑 Delete
+                      IconButton(
+                        icon: Icon(Icons.delete, color: Colors.red),
+                        onPressed: () {
+                          showDialog(
+                            context: context,
+                            builder: (context) {
+                              return AlertDialog(
+                                title: Text("Delete Order"),
+                                content: Text(
+                                    "Are you sure you want to delete this order?"),
+                                actions: [
+                                  TextButton(
+                                    onPressed: () {
+                                      Navigator.pop(context);
+                                    },
+                                    child: Text("Cancel"),
+                                  ),
+                                  TextButton(
+                                    onPressed: () async {
+                                      await FirebaseFirestore.instance
+                                          .collection('orders')
+                                          .doc(order.id)
+                                          .delete();
+
+                                      Navigator.pop(context);
+
+                                      ScaffoldMessenger.of(context)
+                                          .showSnackBar(
+                                        SnackBar(
+                                            content:
+                                                Text("Order deleted ❌")),
+                                      );
+                                    },
+                                    child: Text("Delete",
+                                        style:
+                                            TextStyle(color: Colors.red)),
+                                  ),
+                                ],
+                              );
+                            },
+                          );
+                        },
+                      ),
+
+                      // ➡️ Details
+                      IconButton(
+                        icon: Icon(Icons.arrow_forward),
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) =>
+                                  OrderDetailsScreen(order: order),
+                            ),
+                          );
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
+          );
+        },
+      ),
+    );
+  }
+}
+
+class OrderDetailsScreen extends StatelessWidget {
+  final dynamic order;
+
+  OrderDetailsScreen({required this.order});
+
+  @override
+  Widget build(BuildContext context) {
+    List items = order['items'] ?? [];
+
+    return Scaffold(
+      appBar: AppBar(title: Text("Order Details 📦")),
+      body: ListView.builder(
+        itemCount: items.length,
+        itemBuilder: (context, i) {
+          var item = items[i];
+
+         return ListTile(
+  leading: item['image'] != null
+      ? Image.network(item['image'])
+      : Icon(Icons.image_not_supported),
+  title: Text(item['name']),
+  subtitle: Text("${item['price']} EGP"),
+);
+        },
+      ),
+    );
+  }
+}
+
+class ProfileScreen extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    var user = FirebaseAuth.instance.currentUser;
+
+    return Scaffold(
+      appBar: AppBar(title: Text("My Profile 👤")),
+      body: Column(
+        children: [
+
+          /// 👤 بيانات المستخدم
+          FutureBuilder(
+            future: FirebaseFirestore.instance
+                .collection('users')
+                .doc(user!.uid)
+                .get(),
+            builder: (context, snapshot) {
+              if (!snapshot.hasData) {
+                return Padding(
+                  padding: EdgeInsets.all(20),
+                  child: CircularProgressIndicator(),
+                );
+              }
+
+            var doc = snapshot.data!;
+var userData = doc.data() as Map<String, dynamic>;
+
+              return Container(
+                margin: EdgeInsets.all(15),
+                padding: EdgeInsets.all(15),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).cardColor,
+                  borderRadius: BorderRadius.circular(15),
+                ),
+                child: Column(
+  crossAxisAlignment: CrossAxisAlignment.start,
+  children: [
+    Text(
+      "Personal Info",
+      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+        fontWeight: FontWeight.bold,
+      ),
+    ),
+
+    SizedBox(height: 10),
+
+    Text(
+      "Name: ${userData['name'] ?? 'No Name'}",
+      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+        fontWeight: FontWeight.w500,
+      ),
+    ),
+
+    Text(
+      "Email: ${userData['email'] ?? 'No Email'}",
+      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+        fontWeight: FontWeight.w500,
+      ),
+    ),
+
+    Text(
+      "Phone: ${userData['phone'] ?? 'No Phone'}",
+      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+        fontWeight: FontWeight.w500,
+      ),
+    ),
+  ],
+),
+              );
+            },
+          ),
+
+          /// 📦 Orders Tabs
+          Expanded(
+            child: DefaultTabController(
+              length: 2,
+              child: Column(
+                children: [
+
+                  TabBar(
+                    labelColor: Colors.black,
+                    tabs: [
+                      Tab(text: "Pending 🟠"),
+                      Tab(text: "Delivered 🟢"),
+                    ],
+                  ),
+
+                  Expanded(
+                    child: TabBarView(
+                      children: [
+                        OrdersList(status: "pending"),
+                        OrdersList(status: "delivered"),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class OrdersList extends StatelessWidget {
+  final String status;
+
+  OrdersList({required this.status});
+
+  @override
+  Widget build(BuildContext context) {
+    var user = FirebaseAuth.instance.currentUser;
+
+    return StreamBuilder(
+stream: FirebaseFirestore.instance
+.collection('orders')
+.where("userId", isEqualTo: user!.uid)
+.where("status", isEqualTo: status)
+.orderBy("date", descending: false) 
+.snapshots(),
+builder: (context, snapshot) {
+
+if (snapshot.hasError) {
+  return Center(child: Text("Error: ${snapshot.error}"));
+}
+
+if (!snapshot.hasData) {
+return Center(child: CircularProgressIndicator()); }
+
+        var orders = snapshot.data!.docs;
+
+        if (orders.isEmpty) {
+          return Center(child: Text("No Orders"));
+        }
+
+        return ListView.builder(
+          itemCount: orders.length,
+          itemBuilder: (context, i) {
+            var order = orders[i];
+            var data = order.data() as Map<String, dynamic>;
+
+            List items = data['items'] ?? [];
+
+            return Card(
+              margin: EdgeInsets.all(10),
+              child: ListTile(
+                title: Text("Order #${i + 1}"),
+
+                subtitle: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // 🔹 المنتجات
+                    ...items.map<Widget>((item) {
+                      return Text(
+  "• ${item['name']} | Size: ${item['size'] ?? '-'} | Qty: ${item['quantity'] ?? 1} × (${item['price']})",
+                      );
+                    }).toList(),
+
+                    SizedBox(height: 8),
+
+                    // 💰 التوتال
+                    Text(
+                      "Total: ${data['total']} EGP",
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                      ),
+                    ),
+
+                    SizedBox(height: 5),
+
+                    // 🔄 الحالة
+                    Container(
+                      padding: EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 5),
+                      decoration: BoxDecoration(
+                        color: status == "pending"
+                            ? Colors.orange
+                            : Colors.green,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        status.toUpperCase(),
+                        style: TextStyle(color: Colors.white),
+                      ),
+                    ),
+                  ],
+                ),
+
+                trailing: Icon(Icons.arrow_forward),
+
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) =>
+                          OrderDetailsScreen(order: order),
+                    ),
+                  );
+                },
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+}
+
+
+class BannerSlider extends StatefulWidget {
+  final bool isAdmin;
+
+  BannerSlider({required this.isAdmin});
+
+  @override
+  _BannerSliderState createState() => _BannerSliderState();
+}
+
+class _BannerSliderState extends State<BannerSlider> {
+  late PageController _controller;
+  int currentPage = 0;
+  Timer? timer;
+  int bannersLength = 0;
+
+  @override
+  void initState() {
+    super.initState();
+
+   _controller = PageController(
+  viewportFraction: 0.9,
+  initialPage: 1000, // 👈 بدل 0
+);
+
+currentPage = 1000; // 👈 مهم جدا
+
+   timer = Timer.periodic(Duration(seconds: 3), (Timer timer) {
+  if (_controller.hasClients) {
+    currentPage++;
+
+    _controller.animateToPage(
+      currentPage,
+      duration: Duration(milliseconds: 600),
+      curve: Curves.easeInOut,
+    );
+  }
+});
+  }
+
+  @override
+  void dispose() {
+    timer?.cancel();
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder(
+      stream: FirebaseFirestore.instance.collection('banners').snapshots(),
+      builder: (context, snapshot) {
+        var banners = snapshot.hasData ? snapshot.data!.docs : [];
+        bannersLength = banners.length;
+
+        return Column(
+          children: [
+            /// 🔥 Banner
+            SizedBox(
+              height: 190,
+              child: Stack(
+                children: [
+                  if (!snapshot.hasData)
+                    Center(child: CircularProgressIndicator())
+                  else if (banners.isEmpty)
+                    Center(child: Text("No Banners"))
+                  else
+                    PageView.builder(
+                      controller: _controller,
+                      itemCount: null,
+                      onPageChanged: (index) {
+                        setState(() {
+                          currentPage = index;
+                        });
+                      },
+                      itemBuilder: (context, index) {
+                        var data = banners[index % banners.length];
+
+                        return AnimatedBuilder(
+                          animation: _controller,
+                          builder: (context, child) {
+                            double value = 1;
+                            double parallax = 0;
+
+                            if (_controller.position.haveDimensions) {
+                              double page = _controller.page ?? 0;
+                              value = (1 - ((page - index).abs() * 0.2))
+                                  .clamp(0.85, 1.0);
+
+                              parallax = (page - index) * 40; // 🔥 Parallax
+                            }
+
+                            return Transform.scale(
+                              scale: value,
+                              child: Transform.translate(
+                                offset: Offset(parallax, 0),
+                                child: child,
+                              ),
+                            );
+                          },
+                          child: Stack(
+                            children: [
+                              Container(
+                                margin:
+                                    EdgeInsets.symmetric(horizontal: 6),
+                                child: ClipRRect(
+                                  borderRadius:
+                                      BorderRadius.circular(15),
+                                  child: Image.network(
+                                    data['image'],
+                                    fit: BoxFit.cover,
+                                    width: double.infinity,
+                                  ),
+                                ),
+                              ),
+
+                              /// ✏️ Edit & Delete
+                              if (widget.isAdmin)
+                                Positioned(
+                                  top: 10,
+                                  right: 20,
+                                  child: Row(
+                                    children: [
+                                      IconButton(
+                                        icon: Icon(Icons.edit,
+                                            color: Colors.blue),
+                                        onPressed: () {
+                                          showDialog(
+                                            context: context,
+                                            builder: (_) {
+                                              TextEditingController controller =
+                                                  TextEditingController(
+                                                      text:
+                                                          data['image']);
+
+                                              return AlertDialog(
+                                                title:
+                                                    Text("Edit Image"),
+                                                content: TextField(
+                                                  controller:
+                                                      controller,
+                                                  decoration:
+                                                      InputDecoration(
+                                                          hintText:
+                                                              "Image URL"),
+                                                ),
+                                                actions: [
+                                                  TextButton(
+                                                    onPressed:
+                                                        () async {
+                                                      await FirebaseFirestore
+                                                          .instance
+                                                          .collection(
+                                                              'banners')
+                                                          .doc(data.id)
+                                                          .update({
+                                                        "image":
+                                                            controller
+                                                                .text
+                                                      });
+
+                                                      Navigator.pop(
+                                                          context);
+                                                    },
+                                                    child:
+                                                        Text("Update"),
+                                                  )
+                                                ],
+                                              );
+                                            },
+                                          );
+                                        },
+                                      ),
+                                      IconButton(
+                                        icon: Icon(Icons.delete,
+                                            color: Colors.red),
+                                        onPressed: () async {
+                                          await FirebaseFirestore
+                                              .instance
+                                              .collection('banners')
+                                              .doc(data.id)
+                                              .delete();
+                                        },
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                            ],
+                          ),
+                        );
+                      },
+                    ),
+
+                  /// ➕ Add Button
+                  if (widget.isAdmin)
+                    Positioned(
+                      bottom: 10,
+                      right: 20,
+                      child: FloatingActionButton(
+                        mini: true,
+                        child: Icon(Icons.add),
+                        onPressed: () {
+                          showDialog(
+                            context: context,
+                            builder: (_) {
+                              TextEditingController controller =
+                                  TextEditingController();
+
+                              return AlertDialog(
+                                title: Text("Add Banner"),
+                                content: TextField(
+                                  controller: controller,
+                                  decoration: InputDecoration(
+                                      hintText: "Image URL"),
+                                ),
+                                actions: [
+                                  TextButton(
+                                    onPressed: () async {
+                                      await FirebaseFirestore
+                                          .instance
+                                          .collection('banners')
+                                          .add({
+                                        "image": controller.text,
+                                      });
+
+                                      Navigator.pop(context);
+                                    },
+                                    child: Text("Add"),
+                                  )
+                                ],
+                              );
+                            },
+                          );
+                        },
+                      ),
+                    ),
+                ],
+              ),
+            ),
+
+            /// 🔵 Dots
+            if (banners.isNotEmpty)
+              Padding(
+                padding: EdgeInsets.only(top: 8),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children:
+                      List.generate(banners.length, (index) {
+                    return AnimatedContainer(
+                      duration: Duration(milliseconds: 300),
+                      margin:
+                          EdgeInsets.symmetric(horizontal: 3),
+                      width: currentPage % banners.length ==
+                              index
+                          ? 12
+                          : 6,
+                      height: 6,
+                      decoration: BoxDecoration(
+                        color: currentPage % banners.length ==
+                                index
+                            ? Colors.black
+                            : Colors.grey,
+                        borderRadius:
+                            BorderRadius.circular(10),
+                      ),
+                    );
+                  }),
+                ),
+              ),
+          ],
+        );
+      },
+    );
+  }
+}

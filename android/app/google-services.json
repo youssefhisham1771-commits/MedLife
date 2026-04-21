@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "502184227984",
+    "project_id": "my-store-cc10",
+    "storage_bucket": "my-store-cc10.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:502184227984:android:6a3cbc0bb32df8a503d415",
+        "android_client_info": {
+          "package_name": "com.example.my_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDUg2yp3Q8GEopUFp2rhCxXkqnCfeBFxGk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:502184227984:android:05880e85485520ab03d415",
+        "android_client_info": {
+          "package_name": "com.medlife.eg"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDUg2yp3Q8GEopUFp2rhCxXkqnCfeBFxGk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
