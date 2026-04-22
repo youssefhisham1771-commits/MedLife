@@ -5,7 +5,6 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'firebase_options.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:firebase_messaging/firebase_messaging.dart';
 import 'dart:async';
 
 // ✳️ ايميل الادمن
@@ -36,38 +35,6 @@ class _MyAppState extends State<MyApp> {
   void initState() {
     super.initState();
     loadTheme();
-    setupFCM(); // 🔥 أهم سطر
-  }
-
-  // 🔥 FCM SETUP
-  Future<void> setupFCM() async {
-    FirebaseMessaging messaging = FirebaseMessaging.instance;
-
-    // طلب الإذن
-    NotificationSettings settings = await messaging.requestPermission();
-
-    print("🔔 Permission: ${settings.authorizationStatus}");
-
-    // 🔑 الحصول على التوكن
-    String? token = await messaging.getToken();
-    print("🔥 FCM TOKEN: $token");
-
-    // 🧠 حفظ التوكن في Firestore
-    var user = FirebaseAuth.instance.currentUser;
-    if (user != null && token != null) {
-      await FirebaseFirestore.instance
-          .collection('users')
-          .doc(user.uid)
-          .update({
-        "fcmToken": token,
-      });
-    }
-
-    // 📩 استقبال الرسائل والتطبيق مفتوح
-    FirebaseMessaging.onMessage.listen((RemoteMessage message) {
-      print("📩 Message Title: ${message.notification?.title}");
-      print("📩 Message Body: ${message.notification?.body}");
-    });
   }
 
   // 📥 تحميل من الميموري
@@ -230,19 +197,6 @@ class _LoginScreenState extends State<LoginScreen> {
         email: emailController.text.trim(),
         password: passController.text.trim(),
       );
-
-      String? token = await FirebaseMessaging.instance.getToken();
-
-      var user = FirebaseAuth.instance.currentUser;
-
-      if (user != null && token != null) {
-        await FirebaseFirestore.instance
-            .collection('users')
-            .doc(user.uid)
-            .set({
-          "fcmToken": token,
-        }, SetOptions(merge: true));
-      }
 
       if (mounted) {
   Navigator.pushReplacement(
@@ -468,18 +422,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
         'email': email.text.trim(),
         'role': 'user',
       });
-
-      /// 🔥 FCM TOKEN
-      String? token = await FirebaseMessaging.instance.getToken();
-
-      if (token != null) {
-        await FirebaseFirestore.instance
-            .collection('users')
-            .doc(userCred.user!.uid)
-            .set({
-          "fcmToken": token,
-        }, SetOptions(merge: true));
-      }
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text("Account Created Successfully 🎉")),
