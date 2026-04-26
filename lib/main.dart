@@ -1026,19 +1026,66 @@ return Scaffold(
     ),
   ),
   actions: [
-    IconButton(
-      icon: Icon(
-        MyApp.of(context)!.isDark
-            ? Icons.wb_sunny
-            : Icons.dark_mode,
-        color: Theme.of(context).brightness == Brightness.dark
-            ? Colors.white
-            : Colors.black,
+    Padding(
+  padding: const EdgeInsets.symmetric(horizontal: 6),
+  child: GestureDetector(
+    onTap: () {
+      MyApp.of(context)!.toggleTheme();
+    },
+    child: AnimatedContainer(
+      duration: Duration(milliseconds: 250),
+      width: 58,
+      height: 32,
+      padding: EdgeInsets.symmetric(horizontal: 3),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(30),
+
+        // 🔥 الخلفية الرمادي الثابتة
+        color: Colors.grey.shade300,
+
+        border: Border.all(
+          color: Colors.grey.shade400,
+          width: 1.5,
+        ),
       ),
-      onPressed: () {
-        MyApp.of(context)!.toggleTheme();
-      },
+      child: Row(
+        mainAxisAlignment: MyApp.of(context)!.isDark
+            ? MainAxisAlignment.end
+            : MainAxisAlignment.start,
+        children: [
+          Container(
+            width: 24,
+            height: 24,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+
+              // 🔥 لون الدائرة نفسها
+              color: MyApp.of(context)!.isDark
+                  ? Colors.black
+                  : Colors.white,
+
+              boxShadow: [
+                BoxShadow(
+                  blurRadius: 4,
+                  color: Colors.black12,
+                ),
+              ],
+            ),
+            child: Icon(
+              MyApp.of(context)!.isDark
+                  ? Icons.nightlight_round
+                  : Icons.wb_sunny,
+              size: 15,
+              color: MyApp.of(context)!.isDark
+                  ? Colors.white
+                  : Colors.black,
+            ),
+          ),
+        ],
+      ),
     ),
+  ),
+),
 
 if (isAdmin)
   IconButton(
