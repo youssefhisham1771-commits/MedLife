@@ -5,10 +5,21 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'firebase_options.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:cloudinary_public/cloudinary_public.dart';
+import 'dart:convert';
+import 'dart:io';
+import 'package:image_picker/image_picker.dart';
+import 'package:http/http.dart' as http;
 import 'dart:async';
 
 // ✳️ ايميل الادمن
 const String adminEmail = "youssef.hisham1771@gmail.com";
+
+final cloudinary = CloudinaryPublic(
+  'dzlorraqi',
+  'Medlife',
+  cache: false,
+);
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -1868,72 +1879,242 @@ class _AddEditProductScreenState
     extends State<AddEditProductScreen> {
   final name = TextEditingController();
   final price = TextEditingController();
-  final imagesController = TextEditingController();
+
+  List<String> imageUrls = [];
+  bool isLoading = false;
 
   @override
   void initState() {
     super.initState();
 
     if (widget.oldData != null) {
-      name.text = widget.oldData['name'];
-      price.text = widget.oldData['price'];
-      imagesController.text =
-    (widget.oldData['images'] ?? []).join(",");
+      name.text = widget.oldData['name']?.toString() ?? "";
+      price.text = widget.oldData['price']?.toString() ?? "";
+
+      if (widget.oldData['images'] != null) {
+        imageUrls =
+            List<String>.from(widget.oldData['images']);
+      }
     }
+  }
+
+  Future<void> pickAndUploadImage() async {
+    final picker = ImagePicker();
+
+    final XFile? pickedFile =
+        await picker.pickImage(source: ImageSource.gallery);
+
+    if (pickedFile == null) return;
+
+    setState(() {
+      isLoading = true;
+    });
+
+    try {
+      var request = http.MultipartRequest(
+        'POST',
+        Uri.parse(
+          'https://api.cloudinary.com/v1_1/dzlorraqi/image/upload',
+        ),
+      );
+
+      request.fields['upload_preset'] = 'Medlife';
+      request.files.add(
+        await http.MultipartFile.fromPath(
+          'file',
+          pickedFile.path,
+        ),
+      );
+
+      var response = await request.send();
+      var responseData =
+          await response.stream.bytesToString();
+
+      var data = jsonDecode(responseData);
+
+      if (data['secure_url'] != null) {
+        setState(() {
+          imageUrls.add(data['secure_url']);
+        });
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text("Image Uploaded Successfully ✅"),
+          ),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("Upload Failed ❌"),
+        ),
+      );
+    }
+
+    setState(() {
+      isLoading = false;
+    });
+  }
+
+  Future<void> saveProduct() async {
+    if (name.text.isEmpty ||
+        price.text.isEmpty ||
+        imageUrls.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("Please complete all fields"),
+        ),
+      );
+      return;
+    }
+
+    var data = {
+      "name": name.text.trim(),
+      "price": price.text.trim(),
+      "images": imageUrls,
+    };
+
+    if (widget.docId == null) {
+      await FirebaseFirestore.instance
+          .collection('Products')
+          .add(data);
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("Product Added ✅"),
+        ),
+      );
+    } else {
+      await FirebaseFirestore.instance
+          .collection('Products')
+          .doc(widget.docId)
+          .update(data);
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("Product Updated ✅"),
+        ),
+      );
+    }
+
+    Navigator.pop(context);
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-          title: Text(widget.docId == null
+        title: Text(
+          widget.docId == null
               ? "Add Product"
-              : "Edit Product")),
+              : "Edit Product",
+        ),
+      ),
       body: Padding(
         padding: EdgeInsets.all(20),
-        child: Column(
-          children: [
-            TextField(controller: name, decoration: InputDecoration(labelText: "Name")),
-            TextField(controller: price, decoration: InputDecoration(labelText: "Price")),
-            TextField(controller: imagesController, decoration: InputDecoration(labelText: "Images URLs (separated by comma)")),
-            SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: () async {
-                var data = {
-                  "name": name.text,
-                  "price": price.text,
-                  "images": imagesController.text.split(","),
-                };
+        child: SingleChildScrollView(
+          child: Column(
+            children: [
+              TextField(
+                controller: name,
+                decoration: InputDecoration(
+                  labelText: "Product Name",
+                  border: OutlineInputBorder(),
+                ),
+              ),
 
-                if (widget.docId == null) {
-                  await FirebaseFirestore.instance
-                      .collection('Products')
-                      .add(data);
-                } else {
-                  await FirebaseFirestore.instance
-                      .collection('Products')
-                      .doc(widget.docId)
-                      .update(data);
-                }
+              SizedBox(height: 15),
 
-                Navigator.pop(context);
-              },
-              child: Text(widget.docId == null
-                  ? "Add"
-                  : "Update"),
-            )
-          ],
+              TextField(
+                controller: price,
+                keyboardType: TextInputType.number,
+                decoration: InputDecoration(
+                  labelText: "Price",
+                  border: OutlineInputBorder(),
+                ),
+              ),
+
+              SizedBox(height: 20),
+
+              ElevatedButton(
+                onPressed: pickAndUploadImage,
+                child: Text("Upload Image"),
+              ),
+
+              SizedBox(height: 15),
+
+              if (isLoading)
+                CircularProgressIndicator(),
+
+              SizedBox(height: 15),
+
+              Wrap(
+                spacing: 10,
+                runSpacing: 10,
+                children: imageUrls.map((url) {
+                  return Stack(
+                    children: [
+                      ClipRRect(
+                        borderRadius:
+                            BorderRadius.circular(12),
+                        child: Image.network(
+                          url,
+                          width: 100,
+                          height: 100,
+                          fit: BoxFit.cover,
+                        ),
+                      ),
+                      Positioned(
+                        top: 0,
+                        right: 0,
+                        child: GestureDetector(
+                          onTap: () {
+                            setState(() {
+                              imageUrls.remove(url);
+                            });
+                          },
+                          child: CircleAvatar(
+                            radius: 12,
+                            backgroundColor: Colors.red,
+                            child: Icon(
+                              Icons.close,
+                              size: 14,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                      )
+                    ],
+                  );
+                }).toList(),
+              ),
+
+              SizedBox(height: 30),
+
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: saveProduct,
+                  child: Text(
+                    widget.docId == null
+                        ? "Add Product"
+                        : "Update Product",
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
+
   @override
-void dispose() {
-name.dispose();
-price.dispose();
-imagesController.dispose();
-super.dispose();
-}
+  void dispose() {
+    name.dispose();
+    price.dispose();
+    super.dispose();
+  }
 }
 
 class AdminOrdersScreen extends StatelessWidget {
@@ -2354,8 +2535,6 @@ return Center(child: CircularProgressIndicator()); }
     );
   }
 }
-
-
 class BannerSlider extends StatefulWidget {
   final bool isAdmin;
 
@@ -2370,29 +2549,71 @@ class _BannerSliderState extends State<BannerSlider> {
   int currentPage = 0;
   Timer? timer;
   int bannersLength = 0;
+  bool isUploading = false;
 
   @override
   void initState() {
     super.initState();
 
-   _controller = PageController(
-  viewportFraction: 0.9,
-  initialPage: 1000, // 👈 بدل 0
-);
-
-currentPage = 1000; // 👈 مهم جدا
-
-   timer = Timer.periodic(Duration(seconds: 3), (Timer timer) {
-  if (_controller.hasClients) {
-    currentPage++;
-
-    _controller.animateToPage(
-      currentPage,
-      duration: Duration(milliseconds: 600),
-      curve: Curves.easeInOut,
+    _controller = PageController(
+      viewportFraction: 0.9,
+      initialPage: 1000,
     );
+
+    currentPage = 1000;
+
+    timer = Timer.periodic(Duration(seconds: 3), (Timer timer) {
+      if (_controller.hasClients) {
+        currentPage++;
+
+        _controller.animateToPage(
+          currentPage,
+          duration: Duration(milliseconds: 600),
+          curve: Curves.easeInOut,
+        );
+      }
+    });
   }
-});
+
+  Future<String?> uploadBannerToCloudinary() async {
+    try {
+      final picker = ImagePicker();
+
+      final XFile? pickedFile = await picker.pickImage(
+        source: ImageSource.gallery,
+      );
+
+      if (pickedFile == null) return null;
+
+      setState(() {
+        isUploading = true;
+      });
+
+      CloudinaryResponse response = await cloudinary.uploadFile(
+        CloudinaryFile.fromFile(
+          pickedFile.path,
+          resourceType: CloudinaryResourceType.Image,
+        ),
+      );
+
+      setState(() {
+        isUploading = false;
+      });
+
+      return response.secureUrl;
+    } catch (e) {
+      setState(() {
+        isUploading = false;
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("Upload Failed ❌"),
+        ),
+      );
+
+      return null;
+    }
   }
 
   @override
@@ -2405,22 +2626,30 @@ currentPage = 1000; // 👈 مهم جدا
   @override
   Widget build(BuildContext context) {
     return StreamBuilder(
-      stream: FirebaseFirestore.instance.collection('banners').snapshots(),
+      stream: FirebaseFirestore.instance
+          .collection('banners')
+          .snapshots(),
       builder: (context, snapshot) {
-        var banners = snapshot.hasData ? snapshot.data!.docs : [];
+        var banners = snapshot.hasData
+            ? snapshot.data!.docs
+            : [];
+
         bannersLength = banners.length;
 
         return Column(
           children: [
-            /// 🔥 Banner
             SizedBox(
               height: 190,
               child: Stack(
                 children: [
                   if (!snapshot.hasData)
-                    Center(child: CircularProgressIndicator())
+                    Center(
+                      child: CircularProgressIndicator(),
+                    )
                   else if (banners.isEmpty)
-                    Center(child: Text("No Banners"))
+                    Center(
+                      child: Text("No Banners"),
+                    )
                   else
                     PageView.builder(
                       controller: _controller,
@@ -2431,7 +2660,8 @@ currentPage = 1000; // 👈 مهم جدا
                         });
                       },
                       itemBuilder: (context, index) {
-                        var data = banners[index % banners.length];
+                        var data =
+                            banners[index % banners.length];
 
                         return AnimatedBuilder(
                           animation: _controller,
@@ -2439,18 +2669,26 @@ currentPage = 1000; // 👈 مهم جدا
                             double value = 1;
                             double parallax = 0;
 
-                            if (_controller.position.haveDimensions) {
-                              double page = _controller.page ?? 0;
-                              value = (1 - ((page - index).abs() * 0.2))
+                            if (_controller
+                                .position.haveDimensions) {
+                              double page =
+                                  _controller.page ?? 0;
+
+                              value = (1 -
+                                      ((page - index)
+                                              .abs() *
+                                          0.2))
                                   .clamp(0.85, 1.0);
 
-                              parallax = (page - index) * 40; // 🔥 Parallax
+                              parallax =
+                                  (page - index) * 40;
                             }
 
                             return Transform.scale(
                               scale: value,
                               child: Transform.translate(
-                                offset: Offset(parallax, 0),
+                                offset:
+                                    Offset(parallax, 0),
                                 child: child,
                               ),
                             );
@@ -2459,82 +2697,79 @@ currentPage = 1000; // 👈 مهم جدا
                             children: [
                               Container(
                                 margin:
-                                    EdgeInsets.symmetric(horizontal: 6),
+                                    EdgeInsets.symmetric(
+                                        horizontal: 6),
                                 child: ClipRRect(
                                   borderRadius:
-                                      BorderRadius.circular(15),
+                                      BorderRadius
+                                          .circular(15),
                                   child: Image.network(
                                     data['image'],
                                     fit: BoxFit.cover,
-                                    width: double.infinity,
+                                    width:
+                                        double.infinity,
                                   ),
                                 ),
                               ),
 
-                              /// ✏️ Edit & Delete
                               if (widget.isAdmin)
                                 Positioned(
                                   top: 10,
                                   right: 20,
                                   child: Row(
                                     children: [
+                                      /// ✏️ Edit
                                       IconButton(
-                                        icon: Icon(Icons.edit,
-                                            color: Colors.blue),
-                                        onPressed: () {
-                                          showDialog(
-                                            context: context,
-                                            builder: (_) {
-                                              TextEditingController controller =
-                                                  TextEditingController(
-                                                      text:
-                                                          data['image']);
+                                        icon: Icon(
+                                          Icons.edit,
+                                          color:
+                                              Colors.blue,
+                                        ),
+                                        onPressed:
+                                            () async {
+                                          String?
+                                              newImage =
+                                              await uploadBannerToCloudinary();
 
-                                              return AlertDialog(
-                                                title:
-                                                    Text("Edit Image"),
-                                                content: TextField(
-                                                  controller:
-                                                      controller,
-                                                  decoration:
-                                                      InputDecoration(
-                                                          hintText:
-                                                              "Image URL"),
+                                          if (newImage !=
+                                              null) {
+                                            await FirebaseFirestore
+                                                .instance
+                                                .collection(
+                                                    'banners')
+                                                .doc(data.id)
+                                                .update({
+                                              "image":
+                                                  newImage,
+                                            });
+
+                                            ScaffoldMessenger.of(
+                                                    context)
+                                                .showSnackBar(
+                                              SnackBar(
+                                                content:
+                                                    Text(
+                                                  "Banner Updated ✅",
                                                 ),
-                                                actions: [
-                                                  TextButton(
-                                                    onPressed:
-                                                        () async {
-                                                      await FirebaseFirestore
-                                                          .instance
-                                                          .collection(
-                                                              'banners')
-                                                          .doc(data.id)
-                                                          .update({
-                                                        "image":
-                                                            controller
-                                                                .text
-                                                      });
-
-                                                      Navigator.pop(
-                                                          context);
-                                                    },
-                                                    child:
-                                                        Text("Update"),
-                                                  )
-                                                ],
-                                              );
-                                            },
-                                          );
+                                              ),
+                                            );
+                                          }
                                         },
                                       ),
+
+                                      /// 🗑 Delete
                                       IconButton(
-                                        icon: Icon(Icons.delete,
-                                            color: Colors.red),
-                                        onPressed: () async {
+                                        icon: Icon(
+                                          Icons.delete,
+                                          color:
+                                              Colors.red,
+                                        ),
+                                        onPressed:
+                                            () async {
                                           await FirebaseFirestore
                                               .instance
-                                              .collection('banners')
+                                              .collection(
+                                                  'banners')
                                               .doc(data.id)
                                               .delete();
                                         },
@@ -2548,46 +2783,46 @@ currentPage = 1000; // 👈 مهم جدا
                       },
                     ),
 
-                  /// ➕ Add Button
+                  /// ➕ Add Banner
                   if (widget.isAdmin)
                     Positioned(
                       bottom: 10,
                       right: 20,
                       child: FloatingActionButton(
                         mini: true,
-                        child: Icon(Icons.add),
-                        onPressed: () {
-                          showDialog(
-                            context: context,
-                            builder: (_) {
-                              TextEditingController controller =
-                                  TextEditingController();
-
-                              return AlertDialog(
-                                title: Text("Add Banner"),
-                                content: TextField(
-                                  controller: controller,
-                                  decoration: InputDecoration(
-                                      hintText: "Image URL"),
+                        child: isUploading
+                            ? SizedBox(
+                                width: 20,
+                                height: 20,
+                                child:
+                                    CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Colors.white,
                                 ),
-                                actions: [
-                                  TextButton(
-                                    onPressed: () async {
-                                      await FirebaseFirestore
-                                          .instance
-                                          .collection('banners')
-                                          .add({
-                                        "image": controller.text,
-                                      });
+                              )
+                            : Icon(Icons.add),
+                        onPressed: () async {
+                          String? imageUrl =
+                              await uploadBannerToCloudinary();
 
-                                      Navigator.pop(context);
-                                    },
-                                    child: Text("Add"),
-                                  )
-                                ],
-                              );
-                            },
-                          );
+                          if (imageUrl != null) {
+                            await FirebaseFirestore
+                                .instance
+                                .collection('banners')
+                                .add({
+                              "image": imageUrl,
+                            });
+
+                            ScaffoldMessenger.of(
+                                    context)
+                                .showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                  "Banner Added ✅",
+                                ),
+                              ),
+                            );
+                          }
                         },
                       ),
                     ),
@@ -2595,33 +2830,40 @@ currentPage = 1000; // 👈 مهم جدا
               ),
             ),
 
-            /// 🔵 Dots
             if (banners.isNotEmpty)
               Padding(
                 padding: EdgeInsets.only(top: 8),
                 child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children:
-                      List.generate(banners.length, (index) {
-                    return AnimatedContainer(
-                      duration: Duration(milliseconds: 300),
-                      margin:
-                          EdgeInsets.symmetric(horizontal: 3),
-                      width: currentPage % banners.length ==
-                              index
-                          ? 12
-                          : 6,
-                      height: 6,
-                      decoration: BoxDecoration(
-                        color: currentPage % banners.length ==
+                  mainAxisAlignment:
+                      MainAxisAlignment.center,
+                  children: List.generate(
+                    banners.length,
+                    (index) {
+                      return AnimatedContainer(
+                        duration: Duration(
+                            milliseconds: 300),
+                        margin:
+                            EdgeInsets.symmetric(
+                                horizontal: 3),
+                        width: currentPage %
+                                    banners.length ==
                                 index
-                            ? Colors.black
-                            : Colors.grey,
-                        borderRadius:
-                            BorderRadius.circular(10),
-                      ),
-                    );
-                  }),
+                            ? 12
+                            : 6,
+                        height: 6,
+                        decoration: BoxDecoration(
+                          color: currentPage %
+                                      banners.length ==
+                                  index
+                              ? Colors.black
+                              : Colors.grey,
+                          borderRadius:
+                              BorderRadius.circular(
+                                  10),
+                        ),
+                      );
+                    },
+                  ),
                 ),
               ),
           ],
