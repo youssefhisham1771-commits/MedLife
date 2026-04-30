@@ -1011,9 +1011,45 @@ Widget buildFavourites() {
   );
 }
 
+Widget buildBadge({
+  required IconData icon,
+  required int count,
+}) {
+  return Stack(
+    clipBehavior: Clip.none,
+    children: [
+      Icon(icon, size: 28),
+
+      if (count > 0)
+        Positioned(
+          right: -6,
+          top: -6,
+          child: Container(
+            padding: const EdgeInsets.all(5),
+            decoration: const BoxDecoration(
+              color: Colors.red,
+              shape: BoxShape.circle,
+            ),
+            child: Text(
+              count.toString(),
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 10,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+        ),
+    ],
+  );
+}
+
   @override
   Widget build(BuildContext context) {
     var user = FirebaseAuth.instance.currentUser;
+
+    int cartCount = cart.length;
+int favCount = favourites.length;
     
 return Scaffold(
   appBar: AppBar(
@@ -1025,11 +1061,13 @@ return Scaffold(
         : Colors.black,
   ),
   title: Text(
-    currentIndex == 0
-        ? "MedLife"
-        : currentIndex == 1
-            ? "Cart 🛒"
-            : "Favourites ❤️",
+  currentIndex == 0
+      ? "MedLife"
+      : currentIndex == 1
+          ? "Cart 🛒"
+          : currentIndex == 2
+              ? "Favourites ❤️"
+              : "My Orders 🛍",
     style: GoogleFonts.poppins(
       fontSize: 26,
       fontWeight: FontWeight.bold,
@@ -1136,11 +1174,13 @@ if (isAdmin)
 ],
   ),
 
-  body: currentIndex == 0
-      ? buildProducts()
-      : currentIndex == 1
-          ? CartScreen(cart: cart)
-          : buildFavourites(),
+ body: currentIndex == 0
+    ? buildProducts()
+    : currentIndex == 1
+        ? CartScreen(cart: cart)
+        : currentIndex == 2
+            ? buildFavourites()
+            : MyOrdersScreen(),
 
 floatingActionButton: isAdmin
     ? FloatingActionButton(
@@ -1156,28 +1196,73 @@ floatingActionButton: isAdmin
       )
     : null,
 
-  bottomNavigationBar: BottomNavigationBar(
-    currentIndex: currentIndex,
-    onTap: (i) {
-      setState(() {
-        currentIndex = i;
-      });
-    },
-    items: [
-      BottomNavigationBarItem(
-        icon: Icon(Icons.store),
-        label: "Products",
-      ),
-      BottomNavigationBarItem(
-        icon: Icon(Icons.shopping_cart),
-        label: "Cart",
-      ),
-      BottomNavigationBarItem(
-        icon: Icon(Icons.favorite),
-        label: "Favourites",
-      ),
-    ],
+bottomNavigationBar: BottomNavigationBar(
+  currentIndex: currentIndex,
+
+  backgroundColor: MyApp.of(context)!.isDark
+      ? Colors.black
+      : Colors.white,
+
+  selectedItemColor: MyApp.of(context)!.isDark
+      ? Colors.white
+      : Colors.deepPurple,
+
+  unselectedItemColor: Colors.grey,
+
+  type: BottomNavigationBarType.fixed,
+  elevation: 10,
+
+  onTap: (i) {
+    setState(() {
+      currentIndex = i;
+    });
+  },
+
+ items: [
+  const BottomNavigationBarItem(
+    icon: Icon(Icons.store),
+    label: "Products",
   ),
+
+  /// 🛒 CART
+  BottomNavigationBarItem(
+    icon: buildBadge(
+      icon: Icons.shopping_cart,
+      count: cartCount,
+    ),
+    label: "Cart",
+  ),
+
+  /// ❤️ FAVOURITES
+  BottomNavigationBarItem(
+    icon: buildBadge(
+      icon: Icons.favorite,
+      count: favCount,
+    ),
+    label: "Favourites",
+  ),
+
+  /// 📦 ORDERS (🔥 من Firebase)
+  BottomNavigationBarItem(
+    icon: StreamBuilder(
+      stream: FirebaseFirestore.instance
+          .collection('orders')
+          .where('userId',
+              isEqualTo: FirebaseAuth.instance.currentUser?.uid)
+          .snapshots(),
+      builder: (context, snapshot) {
+        int count = snapshot.data?.docs.length ?? 0;
+
+        return buildBadge(
+          icon: Icons.shopping_bag,
+          count: count,
+        );
+      },
+    ),
+    label: "My Orders",
+  ),
+],
+),
 );
   }
 }
@@ -2327,102 +2412,971 @@ class OrderDetailsScreen extends StatelessWidget {
 }
 
 class ProfileScreen extends StatelessWidget {
+  ProfileScreen({super.key});
+
+  final User? user = FirebaseAuth.instance.currentUser;
+
   @override
   Widget build(BuildContext context) {
-    var user = FirebaseAuth.instance.currentUser;
+    final bool isDark =
+        Theme.of(context).brightness == Brightness.dark;
+
+    final Color mainTextColor =
+        isDark ? Colors.white : Colors.black;
+
+    final Color subTextColor =
+        isDark ? Colors.white70 : Colors.grey.shade700;
+
+    final Color cardColor =
+        isDark ? const Color(0xFF171326) : Colors.white;
+
+    final Color iconBoxColor =
+        isDark ? const Color(0xFF2A223D) : const Color(0xFFF3F3F3);
+
+    final Color purpleColor =
+        const Color(0xFF8E5CF7);
 
     return Scaffold(
-      appBar: AppBar(title: Text("My Profile 👤")),
-      body: Column(
-        children: [
+      backgroundColor:
+          isDark ? const Color(0xFF0D0917) : const Color(0xFFF7F7FA),
 
-          /// 👤 بيانات المستخدم
-          FutureBuilder(
-            future: FirebaseFirestore.instance
-                .collection('users')
-                .doc(user!.uid)
-                .get(),
-            builder: (context, snapshot) {
-              if (!snapshot.hasData) {
-                return Padding(
-                  padding: EdgeInsets.all(20),
-                  child: CircularProgressIndicator(),
-                );
-              }
-
-            var doc = snapshot.data!;
-var userData = doc.data() as Map<String, dynamic>;
-
-              return Container(
-                margin: EdgeInsets.all(15),
-                padding: EdgeInsets.all(15),
-                decoration: BoxDecoration(
-                  color: Theme.of(context).cardColor,
-                  borderRadius: BorderRadius.circular(15),
-                ),
-                child: Column(
-  crossAxisAlignment: CrossAxisAlignment.start,
-  children: [
-    Text(
-      "Personal Info",
-      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-        fontWeight: FontWeight.bold,
-      ),
-    ),
-
-    SizedBox(height: 10),
-
-    Text(
-      "Name: ${userData['name'] ?? 'No Name'}",
-      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-        fontWeight: FontWeight.w500,
-      ),
-    ),
-
-    Text(
-      "Email: ${userData['email'] ?? 'No Email'}",
-      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-        fontWeight: FontWeight.w500,
-      ),
-    ),
-
-    Text(
-      "Phone: ${userData['phone'] ?? 'No Phone'}",
-      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-        fontWeight: FontWeight.w500,
-      ),
-    ),
-  ],
-),
-              );
-            },
+      appBar: AppBar(
+        backgroundColor:
+            isDark ? Colors.black : Colors.white,
+        elevation: 0,
+        leading: IconButton(
+          icon: Icon(
+            Icons.arrow_back,
+            color: mainTextColor,
           ),
+          onPressed: () {
+            Navigator.pop(context);
+          },
+        ),
+        title: Text(
+          "My Profile",
+          style: TextStyle(
+            color: mainTextColor,
+            fontWeight: FontWeight.bold,
+            fontSize: 30,
+          ),
+        ),
+        actions: [
+         IconButton(
+  icon: Icon(
+    Icons.edit,
+    color: purpleColor,
+    size: 28,
+  ),
+  onPressed: () {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => EditProfileScreen(),
+      ),
+    );
+  },
+),
+          const SizedBox(width: 10),
+        ],
+      ),
 
-          /// 📦 Orders Tabs
-          Expanded(
-            child: DefaultTabController(
-              length: 2,
-              child: Column(
+      body: user == null
+          ? Center(
+              child: Text(
+                "No User Found",
+                style: TextStyle(
+                  color: mainTextColor,
+                ),
+              ),
+            )
+          : StreamBuilder<DocumentSnapshot>(
+              stream: FirebaseFirestore.instance
+                  .collection('users')
+                  .doc(user!.uid)
+                  .snapshots(),
+              builder: (context, snapshot) {
+                if (!snapshot.hasData) {
+                  return const Center(
+                    child: CircularProgressIndicator(),
+                  );
+                }
+
+                if (!snapshot.data!.exists) {
+                  return Center(
+                    child: Text(
+                      "User data not found",
+                      style: TextStyle(
+                        color: mainTextColor,
+                      ),
+                    ),
+                  );
+                }
+
+                final data =
+                    snapshot.data!.data() as Map<String, dynamic>;
+
+                final String name =
+                    data['name'] ?? 'No Name';
+
+                final String email =
+                    data['email'] ?? 'No Email';
+
+                final String phone =
+                    data['phone'] ?? 'No Phone';
+
+                return SingleChildScrollView(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    children: [
+                      /// PROFILE CARD
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(20),
+                        decoration: BoxDecoration(
+                          color: cardColor,
+                          borderRadius:
+                              BorderRadius.circular(24),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black12,
+                              blurRadius: 12,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
+                        ),
+                        child: Column(
+                          children: [
+                            CircleAvatar(
+                              radius: 45,
+                              backgroundColor:
+                                  purpleColor.withOpacity(.2),
+                              child: Icon(
+                                Icons.person,
+                                size: 50,
+                                color: purpleColor,
+                              ),
+                            ),
+
+                            const SizedBox(height: 16),
+
+                            Text(
+                              name,
+                              style: TextStyle(
+                                fontSize: 24,
+                                fontWeight: FontWeight.bold,
+                                color: mainTextColor,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+
+                            const SizedBox(height: 8),
+
+                            Text(
+                              "Always remember, We care about you! ♡",
+                              style: TextStyle(
+                                fontSize: 15,
+                                color: subTextColor,
+                              ),
+                            ),
+
+                            const SizedBox(height: 24),
+
+                            _buildInfoTile(
+                              icon: Icons.email,
+                              title: "Email",
+                              value: email,
+                              mainTextColor: mainTextColor,
+                              subTextColor: subTextColor,
+                              iconBoxColor: iconBoxColor,
+                              purpleColor: purpleColor,
+                            ),
+
+                            const SizedBox(height: 14),
+
+                            _buildInfoTile(
+                              icon: Icons.phone,
+                              title: "Phone",
+                              value: phone,
+                              mainTextColor: mainTextColor,
+                              subTextColor: subTextColor,
+                              iconBoxColor: iconBoxColor,
+                              purpleColor: purpleColor,
+                            ),
+
+                            const SizedBox(height: 14),
+
+                            _buildInfoTile(
+                              icon: Icons.calendar_month,
+                              title: "Member Since",
+                              value: "May 2024",
+                              mainTextColor: mainTextColor,
+                              subTextColor: subTextColor,
+                              iconBoxColor: iconBoxColor,
+                              purpleColor: purpleColor,
+                            ),
+                          ],
+                        ),
+                      ),
+
+                      const SizedBox(height: 20),
+
+                      /// MENU CARD
+                      Container(
+                        decoration: BoxDecoration(
+                          color: cardColor,
+                          borderRadius:
+                              BorderRadius.circular(24),
+                        ),
+                        child: Column(
+                          children: [
+                            _menuTile(
+                              icon: Icons.location_on_outlined,
+                              title: "My Addresses",
+                              color: mainTextColor,
+                            ),
+
+                            _menuTile(
+                              icon: Icons.credit_card,
+                              title: "Payment Methods",
+                              color: mainTextColor,
+                            ),
+
+                            _menuTile(
+                              icon: Icons.notifications_none,
+                              title: "Notifications",
+                              color: mainTextColor,
+                            ),
+
+                            _menuTile(
+                              icon: Icons.help_outline,
+                              title: "Help & Support",
+                              color: mainTextColor,
+                            ),
+
+                            _menuTile(
+  icon: Icons.info_outline,
+  title: "About MedLife",
+  color: mainTextColor,
+  onTap: () {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => AboutMedLifeScreen(),
+      ),
+    );
+  },
+),
+                          ],
+                        ),
+                      ),
+
+                      const SizedBox(height: 20),
+
+                      /// LOGOUT
+                      Container(
+                        decoration: BoxDecoration(
+                          color: cardColor,
+                          borderRadius:
+                              BorderRadius.circular(24),
+                        ),
+                        child: ListTile(
+                          leading: Icon(
+                            Icons.logout,
+                            color: Colors.red,
+                          ),
+                          title: const Text(
+                            "Logout",
+                            style: TextStyle(
+                              color: Colors.red,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          trailing: const Icon(
+                            Icons.arrow_forward_ios,
+                            size: 18,
+                            color: Colors.red,
+                          ),
+                          onTap: () async {
+                            await FirebaseAuth.instance
+                                .signOut();
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
+    );
+  }
+
+  Widget _buildInfoTile({
+    required IconData icon,
+    required String title,
+    required String value,
+    required Color mainTextColor,
+    required Color subTextColor,
+    required Color iconBoxColor,
+    required Color purpleColor,
+  }) {
+    return Row(
+      children: [
+        Container(
+          width: 52,
+          height: 52,
+          decoration: BoxDecoration(
+            color: iconBoxColor,
+            borderRadius: BorderRadius.circular(14),
+          ),
+          child: Icon(
+            icon,
+            color: purpleColor,
+          ),
+        ),
+        const SizedBox(width: 14),
+        Expanded(
+          child: Column(
+            crossAxisAlignment:
+                CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: TextStyle(
+                  color: subTextColor,
+                  fontSize: 14,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                value,
+                style: TextStyle(
+                  color: mainTextColor,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+        )
+      ],
+    );
+  }
+
+  Widget _menuTile({
+  required IconData icon,
+  required String title,
+  required Color color,
+  VoidCallback? onTap, // 👈 ضف دي
+}) {
+  return ListTile(
+    leading: Icon(
+      icon,
+      color: const Color(0xFF8E5CF7),
+    ),
+    title: Text(
+      title,
+      style: TextStyle(
+        color: color,
+        fontWeight: FontWeight.w600,
+      ),
+    ),
+    trailing: const Icon(
+      Icons.arrow_forward_ios,
+      size: 18,
+    ),
+    onTap: onTap, // 👈 استخدمها هنا
+  );
+}
+}
+
+class EditProfileScreen extends StatefulWidget {
+  const EditProfileScreen({super.key});
+
+  @override
+  State<EditProfileScreen> createState() => _EditProfileScreenState();
+}
+
+class _EditProfileScreenState extends State<EditProfileScreen> {
+  final user = FirebaseAuth.instance.currentUser;
+
+  final TextEditingController nameController = TextEditingController();
+  final TextEditingController phoneController = TextEditingController();
+
+  bool isLoading = false;
+
+  final Color purpleColor = const Color(0xFF8E5CF7);
+
+  @override
+  void initState() {
+    super.initState();
+    getUserData();
+  }
+
+  Future<void> getUserData() async {
+    final doc = await FirebaseFirestore.instance
+        .collection('users')
+        .doc(user!.uid)
+        .get();
+
+    if (doc.exists) {
+      final data = doc.data()!;
+
+      nameController.text = data['name'] ?? '';
+      phoneController.text = data['phone'] ?? '';
+    }
+  }
+
+  Future<void> saveChanges() async {
+    setState(() {
+      isLoading = true;
+    });
+
+    await FirebaseFirestore.instance
+        .collection('users')
+        .doc(user!.uid)
+        .update({
+      'name': nameController.text.trim(),
+      'phone': phoneController.text.trim(),
+    });
+
+    setState(() {
+      isLoading = false;
+    });
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text("Profile Updated Successfully"),
+      ),
+    );
+
+    Navigator.pop(context);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final bool isDark =
+        Theme.of(context).brightness == Brightness.dark;
+
+    final Color bgColor =
+        isDark ? const Color(0xFF0D0917) : const Color(0xFFF7F7FA);
+
+    final Color cardColor =
+        isDark ? const Color(0xFF171326) : Colors.white;
+
+    final Color textColor =
+        isDark ? Colors.white : Colors.black;
+
+    final Color subTextColor =
+        isDark ? Colors.white70 : Colors.grey.shade700;
+
+    return Scaffold(
+      backgroundColor: bgColor,
+      appBar: AppBar(
+        backgroundColor:
+            isDark ? Colors.black : Colors.white,
+        elevation: 0,
+        leading: IconButton(
+          icon: Icon(
+            Icons.arrow_back,
+            color: textColor,
+          ),
+          onPressed: () {
+            Navigator.pop(context);
+          },
+        ),
+        title: Text(
+          "Edit Profile",
+          style: TextStyle(
+            color: textColor,
+            fontWeight: FontWeight.bold,
+            fontSize: 28,
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: isLoading ? null : saveChanges,
+            child: Text(
+              "Save",
+              style: TextStyle(
+                color: purpleColor,
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          )
+        ],
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
+        child: Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: cardColor,
+            borderRadius: BorderRadius.circular(24),
+          ),
+          child: Column(
+            children: [
+              CircleAvatar(
+                radius: 50,
+                backgroundColor:
+                    purpleColor.withOpacity(.2),
+                child: Icon(
+                  Icons.person,
+                  size: 55,
+                  color: purpleColor,
+                ),
+              ),
+
+              const SizedBox(height: 16),
+
+              Text(
+                "Always remember, We care about you! ♡",
+                style: TextStyle(
+                  color: subTextColor,
+                  fontSize: 15,
+                ),
+              ),
+
+              const SizedBox(height: 30),
+
+              _buildTextField(
+                controller: nameController,
+                label: "Full Name",
+                icon: Icons.person_outline,
+                textColor: textColor,
+                cardColor: cardColor,
+              ),
+
+              const SizedBox(height: 18),
+
+              _buildTextField(
+                controller: TextEditingController(
+                  text: user?.email ?? "",
+                ),
+                label: "Email Address",
+                icon: Icons.email_outlined,
+                textColor: textColor,
+                cardColor: cardColor,
+                enabled: false,
+              ),
+
+              const SizedBox(height: 18),
+
+              _buildTextField(
+                controller: phoneController,
+                label: "Phone Number",
+                icon: Icons.phone_outlined,
+                textColor: textColor,
+                cardColor: cardColor,
+              ),
+
+              const SizedBox(height: 35),
+
+              SizedBox(
+                width: double.infinity,
+                height: 58,
+                child: ElevatedButton(
+                  onPressed:
+                      isLoading ? null : saveChanges,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: purpleColor,
+                    shape: RoundedRectangleBorder(
+                      borderRadius:
+                          BorderRadius.circular(18),
+                    ),
+                  ),
+                  child: isLoading
+                      ? const CircularProgressIndicator(
+                          color: Colors.white,
+                        )
+                      : const Text(
+                          "Save Changes",
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                        ),
+                ),
+              )
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTextField({
+    required TextEditingController controller,
+    required String label,
+    required IconData icon,
+    required Color textColor,
+    required Color cardColor,
+    bool enabled = true,
+  }) {
+    return TextField(
+      controller: controller,
+      enabled: enabled,
+      style: TextStyle(
+        color: textColor,
+      ),
+      decoration: InputDecoration(
+        labelText: label,
+        labelStyle: TextStyle(
+          color: Colors.grey,
+        ),
+        prefixIcon: Icon(
+          icon,
+          color: purpleColor,
+        ),
+        filled: true,
+        fillColor: cardColor,
+        border: OutlineInputBorder(
+          borderRadius:
+              BorderRadius.circular(18),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius:
+              BorderRadius.circular(18),
+          borderSide: BorderSide(
+            color: Colors.grey.shade300,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class AboutMedLifeScreen extends StatelessWidget {
+  const AboutMedLifeScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final bool isDark =
+        Theme.of(context).brightness == Brightness.dark;
+
+    final Color bgColor =
+        isDark ? const Color(0xFF0D0917) : const Color(0xFFF7F7FA);
+
+    final Color cardColor =
+        isDark ? const Color(0xFF171326) : Colors.white;
+
+    final Color boxColor =
+        isDark ? const Color(0xFF221A3A) : const Color(0xFFF0F0F0);
+
+    final Color mainText =
+        isDark ? Colors.white : Colors.black;
+
+    final Color subText =
+        isDark ? Colors.white70 : Colors.grey.shade700;
+
+    const Color purple = Color(0xFF8E5CF7);
+
+    return Scaffold(
+      backgroundColor: bgColor,
+
+      appBar: AppBar(
+        title: Text(
+          "About MedLife",
+          style: TextStyle(color: mainText),
+        ),
+        backgroundColor:
+            isDark ? Colors.black : Colors.white,
+        iconTheme: IconThemeData(color: mainText),
+        elevation: 0,
+      ),
+
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          children: [
+
+            /// 🔥 TOP CARD
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(24),
+                gradient: LinearGradient(
+                  colors: isDark
+                      ? [
+                          const Color(0xFF2B1E4B),
+                          const Color(0xFF1A1333),
+                        ]
+                      : [
+                          const Color(0xFFEDE7FF),
+                          const Color(0xFFF8F6FF),
+                        ],
+                ),
+              ),
+              child: Row(
                 children: [
 
-                  TabBar(
-                    labelColor: Colors.black,
-                    tabs: [
-                      Tab(text: "Pending 🟠"),
-                      Tab(text: "Delivered 🟢"),
+                  Column(
+                    children: [
+                      const Icon(Icons.favorite,
+                          color: purple, size: 50),
+                      const SizedBox(height: 8),
+                      Text(
+                        "MedLife",
+                        style: TextStyle(
+                          color: mainText,
+                          fontSize: 22,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      Text(
+                        "For a better healthcare",
+                        style: TextStyle(
+                          color: subText,
+                          fontSize: 12,
+                        ),
+                      ),
                     ],
                   ),
 
+                  const SizedBox(width: 20),
+
                   Expanded(
-                    child: TabBarView(
-                      children: [
-                        OrdersList(status: "pending"),
-                        OrdersList(status: "delivered"),
-                      ],
+                    child: Text(
+                      "MedLife is your trusted destination for high-quality medical scrubs, lab coats, and medical accessories.",
+                      style: TextStyle(
+                        color: subText,
+                        height: 1.5,
+                      ),
                     ),
                   ),
                 ],
               ),
+            ),
+
+            const SizedBox(height: 20),
+
+            /// 🔥 VISION & MISSION
+            Row(
+              children: [
+                Expanded(
+                  child: _box(
+                    icon: Icons.remove_red_eye,
+                    title: "Our Vision",
+                    text:
+                        "To become the leading destination in the Middle East.",
+                    cardColor: cardColor,
+                    mainText: mainText,
+                    subText: subText,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: _box(
+                    icon: Icons.track_changes,
+                    title: "Our Mission",
+                    text:
+                        "Provide high quality with best price.",
+                    cardColor: cardColor,
+                    mainText: mainText,
+                    subText: subText,
+                  ),
+                ),
+              ],
+            ),
+
+            const SizedBox(height: 20),
+
+            /// 🔥 SERVICES
+            _section(
+              "Our Services",
+              [
+                _iconItem(Icons.medical_services, "Scrubs", boxColor, subText),
+                _iconItem(Icons.science, "Lab Coats", boxColor, subText),
+                _iconItem(Icons.healing, "Accessories", boxColor, subText),
+                _iconItem(Icons.local_shipping, "Delivery", boxColor, subText),
+              ],
+              cardColor,
+              mainText,
+            ),
+
+            const SizedBox(height: 20),
+
+            /// 🔥 WHY CHOOSE US
+            _section(
+              "Why Choose MedLife?",
+              [
+                _iconItem(Icons.star, "High Quality", boxColor, subText),
+                _iconItem(Icons.attach_money, "Affordable", boxColor, subText),
+                _iconItem(Icons.flash_on, "Fast", boxColor, subText),
+                _iconItem(Icons.verified, "Trusted", boxColor, subText),
+              ],
+              cardColor,
+              mainText,
+            ),
+
+            const SizedBox(height: 20),
+
+            /// 🔥 CONTACT
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: cardColor,
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Column(
+                crossAxisAlignment:
+                    CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    "Contact Us",
+                    style: TextStyle(
+                      color: mainText,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+
+                  Row(
+                    children: [
+                      const Icon(Icons.phone, color: purple),
+                      const SizedBox(width: 10),
+                      Text("01066813466",
+                          style: TextStyle(color: subText)),
+                    ],
+                  ),
+
+                  const SizedBox(height: 8),
+
+                  Row(
+                    children: [
+                      const Icon(Icons.email, color: purple),
+                      const SizedBox(width: 10),
+                      Text("support@medlife.com",
+                          style: TextStyle(color: subText)),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// 🔹 CARD
+  Widget _box({
+    required IconData icon,
+    required String title,
+    required String text,
+    required Color cardColor,
+    required Color mainText,
+    required Color subText,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: cardColor,
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Column(
+        children: [
+          Icon(icon, color: const Color(0xFF8E5CF7)),
+          const SizedBox(height: 10),
+          Text(title,
+              style: TextStyle(
+                  color: mainText,
+                  fontWeight: FontWeight.bold)),
+          const SizedBox(height: 6),
+          Text(text,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                  color: subText, fontSize: 12)),
+        ],
+      ),
+    );
+  }
+
+  /// 🔹 SECTION
+  Widget _section(
+    String title,
+    List<Widget> items,
+    Color cardColor,
+    Color mainText,
+  ) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: cardColor,
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Column(
+        crossAxisAlignment:
+            CrossAxisAlignment.start,
+        children: [
+          Text(title,
+              style: TextStyle(
+                  color: mainText,
+                  fontWeight: FontWeight.bold)),
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 10,
+            runSpacing: 10,
+            children: items,
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// 🔹 ICON ITEM
+  Widget _iconItem(
+      IconData icon, String text, Color boxColor, Color subText) {
+    return Container(
+      width: 80,
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: boxColor,
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Column(
+        children: [
+          Icon(icon, color: const Color(0xFF8E5CF7)),
+          const SizedBox(height: 6),
+          Text(text,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                  color: subText, fontSize: 11)),
+        ],
+      ),
+    );
+  }
+}
+
+class MyOrdersScreen extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return DefaultTabController(
+      length: 2,
+      child: Column(
+        children: [
+         TabBar(
+  labelColor: Colors.deepPurpleAccent, // اللون عند الاختيار
+  unselectedLabelColor: Colors.grey, // اللون العادي
+
+  indicatorColor: Colors.deepPurpleAccent, // الخط البنفسجي تحت
+  indicatorWeight: 4,
+
+  tabs: [
+    Tab(text: "Pending 🟠"),
+    Tab(text: "Delivered 🟢"),
+  ],
+),
+          Expanded(
+            child: TabBarView(
+              children: [
+                OrdersList(status: "pending"),
+                OrdersList(status: "delivered"),
+              ],
             ),
           ),
         ],
