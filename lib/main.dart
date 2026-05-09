@@ -662,14 +662,17 @@ class _ProductsScreenState extends State<ProductsScreen> {
 
   int currentIndex = 0;
 
-
+ int salesCount = 0;
  bool isAdmin = false;
+
+ bool salesSeen = false;
 
 @override
 void initState() {
   super.initState();
   loadFavourites();
   checkAdmin();
+  loadSalesCount();
 }
 
 Future<void> checkAdmin() async {
@@ -686,6 +689,16 @@ Future<void> checkAdmin() async {
       isAdmin = true;
     });
   }
+}
+
+Future<void> loadSalesCount() async {
+  var snapshot = await FirebaseFirestore.instance
+      .collection('sales')
+      .get();
+
+  setState(() {
+    salesCount = snapshot.docs.length;
+  });
 }
 
 Future<void> toggleFavourite(Map<String, dynamic> item) async {
@@ -1053,7 +1066,7 @@ int favCount = favourites.length;
     
 return Scaffold(
   appBar: AppBar(
-  centerTitle: true,
+  centerTitle: false,
   backgroundColor: Theme.of(context).appBarTheme.backgroundColor,
   iconTheme: IconThemeData(
     color: Theme.of(context).brightness == Brightness.dark
@@ -1136,6 +1149,67 @@ return Scaffold(
   ),
 ),
 
+/// 🔥 SALES
+Padding(
+  padding: const EdgeInsets.symmetric(horizontal: 4),
+  child: GestureDetector(
+    onTap: () async {
+
+      /// 👁️ المستخدم شاف العروض
+      setState(() {
+        salesSeen = true;
+      });
+
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => SalesScreen(
+            isAdmin: isAdmin,
+          ),
+        ),
+      );
+    },
+
+    child: Stack(
+      clipBehavior: Clip.none,
+      children: [
+
+        /// 🔥 ICON
+        Container(
+          padding: EdgeInsets.all(8),
+          child: Icon(
+            Icons.percent,
+            color: Colors.white,
+            size: 28,
+          ),
+        ),
+
+        /// 🔴 BADGE
+        if (!salesSeen && salesCount > 0)
+          Positioned(
+            right: -5,
+            top: -5,
+            child: Container(
+              padding: EdgeInsets.all(5),
+              decoration: BoxDecoration(
+                color: Colors.red,
+                shape: BoxShape.circle,
+              ),
+              child: Text(
+                salesCount.toString(),
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 10,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ),
+      ],
+    ),
+  ),
+),
+
 if (isAdmin)
   IconButton(
     icon: Icon(Icons.admin_panel_settings),
@@ -1157,20 +1231,37 @@ if (isAdmin)
       );
     },
   ),
+IconButton(
+  icon: Icon(Icons.menu),
+  onPressed: () {
+    showGeneralDialog(
+      context: context,
+      barrierLabel: "Menu",
+      barrierDismissible: true,
+      transitionDuration: Duration(milliseconds: 500), // 🔥 أسرع + Bounce
+      pageBuilder: (_, __, ___) {
+        return Align(
+          alignment: Alignment.centerRight,
+          child: CustomDrawer(),
+        );
+      },
+      transitionBuilder: (_, anim, __, child) {
+        final curved = CurvedAnimation(
+          parent: anim,
+          curve: Curves.easeOutBack, // 🔥 Bounce effect
+        );
 
-         // 🚪 Logout
-  IconButton(
-    icon: Icon(Icons.logout),
-    onPressed: () async {
-      await FirebaseAuth.instance.signOut();
-
-      Navigator.pushAndRemoveUntil(
-        context,
-        MaterialPageRoute(builder: (_) => LoginScreen()),
-        (route) => false,
-      );
-    },
-  ),
+        return SlideTransition(
+          position: Tween(
+            begin: Offset(1, 0),
+            end: Offset(0, 0),
+          ).animate(curved),
+          child: child,
+        );
+      },
+    );
+  },
+),
 ],
   ),
 
@@ -1267,6 +1358,565 @@ bottomNavigationBar: BottomNavigationBar(
   }
 }
 
+class SalesScreen extends StatelessWidget {
+  final bool isAdmin;
+
+  SalesScreen({required this.isAdmin});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+
+      appBar: AppBar(
+        title: Text("Sales 🔥"),
+      ),
+
+      /// 👑 زر إضافة عرض
+      floatingActionButton: isAdmin
+          ? FloatingActionButton(
+              backgroundColor: Colors.orange,
+              child: Icon(Icons.add),
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => AddSaleScreen(),
+                  ),
+                );
+              },
+            )
+          : null,
+
+      body: StreamBuilder(
+        stream: FirebaseFirestore.instance
+            .collection('sales')
+            .orderBy('createdAt', descending: true)
+            .snapshots(),
+
+        builder: (context, snapshot) {
+
+          if (!snapshot.hasData) {
+            return Center(
+              child: CircularProgressIndicator(),
+            );
+          }
+
+          var sales = snapshot.data!.docs;
+
+          if (sales.isEmpty) {
+            return Center(
+              child: Text("No Sales Yet 🔥"),
+            );
+          }
+
+          return ListView.builder(
+            padding: EdgeInsets.all(15),
+            itemCount: sales.length,
+
+            itemBuilder: (context, index) {
+
+              var data =
+                  sales[index].data() as Map<String, dynamic>;
+
+              return Container(
+                margin: EdgeInsets.only(bottom: 15),
+                padding: EdgeInsets.all(15),
+
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(20),
+                  gradient: LinearGradient(
+                    colors: [
+                      Colors.orange,
+                      Colors.deepOrange,
+                    ],
+                  ),
+                ),
+
+                child: Column(
+                  crossAxisAlignment:
+                      CrossAxisAlignment.start,
+                  children: [
+
+                    Text(
+                      data['title'] ?? "",
+                      style: TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
+
+                    SizedBox(height: 10),
+
+                    Text(
+                      data['description'] ?? "",
+                      style: TextStyle(
+                        color: Colors.white,
+                      ),
+                    ),
+
+                    SizedBox(height: 15),
+
+                    Row(
+                      children: [
+
+                        Icon(
+                          Icons.discount,
+                          color: Colors.white,
+                        ),
+
+                        SizedBox(width: 6),
+
+                        Text(
+                          "${data['discount']}% OFF",
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              );
+            },
+          );
+        },
+      ),
+    );
+  }
+}
+
+///////////////////// 🔥 ADD SALE SCREEN /////////////////////
+
+class AddSaleScreen extends StatefulWidget {
+  @override
+  State<AddSaleScreen> createState() => _AddSaleScreenState();
+}
+
+class _AddSaleScreenState extends State<AddSaleScreen> {
+
+  String? selectedProductId;
+  String? selectedProductName;
+  String? selectedImage;
+
+  final titleController = TextEditingController();
+  final detailsController = TextEditingController();
+  final discountController = TextEditingController();
+
+  DateTime? expiryDate;
+
+  bool isLoading = false;
+
+  Future<void> pickDate() async {
+
+    DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: DateTime.now(),
+      firstDate: DateTime.now(),
+      lastDate: DateTime(2030),
+    );
+
+    if (picked != null) {
+      setState(() {
+        expiryDate = picked;
+      });
+    }
+  }
+
+  Future<void> addSale() async {
+
+    if (selectedProductId == null ||
+        titleController.text.trim().isEmpty ||
+        detailsController.text.trim().isEmpty ||
+        discountController.text.trim().isEmpty ||
+        expiryDate == null) {
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Complete all fields")),
+      );
+
+      return;
+    }
+
+    setState(() {
+      isLoading = true;
+    });
+
+    try {
+
+      await FirebaseFirestore.instance
+          .collection('sales')
+          .add({
+
+        "productId": selectedProductId,
+        "productName": selectedProductName,
+        "image": selectedImage,
+
+        "title": titleController.text.trim(),
+        "details": detailsController.text.trim(),
+
+        "discount":
+            int.parse(discountController.text.trim()),
+
+        "expiryDate": expiryDate,
+
+        "createdAt": Timestamp.now(),
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Sale Added 🔥")),
+      );
+
+      Navigator.pop(context);
+
+    } catch (e) {
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Error ❌")),
+      );
+    }
+
+    setState(() {
+      isLoading = false;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+
+    return Scaffold(
+
+      appBar: AppBar(
+        title: Text("Add Sale 🔥"),
+      ),
+
+      body: SingleChildScrollView(
+
+        padding: EdgeInsets.all(16),
+
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+
+            /// 🔥 SELECT PRODUCT
+            Text(
+              "Choose Product",
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+
+            SizedBox(height: 10),
+
+            StreamBuilder(
+              stream: FirebaseFirestore.instance
+                  .collection('Products')
+                  .snapshots(),
+
+              builder: (context, snapshot) {
+
+                if (!snapshot.hasData) {
+                  return Center(
+                    child: CircularProgressIndicator(),
+                  );
+                }
+
+                var products = snapshot.data!.docs;
+
+                return DropdownButtonFormField(
+
+                  value: selectedProductId,
+
+                  items: products.map((product) {
+
+                    var data =
+                        product.data() as Map<String, dynamic>;
+
+                    return DropdownMenuItem(
+                      value: product.id,
+                      child: Text(data['name']),
+                    );
+
+                  }).toList(),
+
+                  onChanged: (value) {
+
+                    var selected = products.firstWhere(
+                      (p) => p.id == value,
+                    );
+
+                    var data =
+                        selected.data() as Map<String, dynamic>;
+
+                    List images = data.containsKey('images')
+                        ? data['images']
+                        : [data['image']];
+
+                    setState(() {
+
+                      selectedProductId = value;
+                      selectedProductName = data['name'];
+
+                      selectedImage =
+                          images.isNotEmpty ? images[0] : "";
+                    });
+                  },
+
+                  decoration: InputDecoration(
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(15),
+                    ),
+                  ),
+                );
+              },
+            ),
+
+            SizedBox(height: 20),
+
+            /// 📝 TITLE
+            TextField(
+              controller: titleController,
+              decoration: InputDecoration(
+                labelText: "Sale Title",
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(15),
+                ),
+              ),
+            ),
+
+            SizedBox(height: 20),
+
+            /// 📄 DETAILS
+            TextField(
+              controller: detailsController,
+              maxLines: 4,
+              decoration: InputDecoration(
+                labelText: "Sale Details",
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(15),
+                ),
+              ),
+            ),
+
+            SizedBox(height: 20),
+
+            /// 💸 DISCOUNT
+            TextField(
+              controller: discountController,
+              keyboardType: TextInputType.number,
+              decoration: InputDecoration(
+                labelText: "Discount %",
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(15),
+                ),
+              ),
+            ),
+
+            SizedBox(height: 20),
+
+            /// 📅 DATE
+            GestureDetector(
+
+              onTap: pickDate,
+
+              child: Container(
+                width: double.infinity,
+                padding: EdgeInsets.symmetric(
+                  horizontal: 15,
+                  vertical: 18,
+                ),
+
+                decoration: BoxDecoration(
+                  border: Border.all(color: Colors.grey),
+                  borderRadius: BorderRadius.circular(15),
+                ),
+
+                child: Text(
+                  expiryDate == null
+                      ? "Choose Expiry Date"
+                      : "${expiryDate!.day}/${expiryDate!.month}/${expiryDate!.year}",
+                ),
+              ),
+            ),
+
+            SizedBox(height: 30),
+
+            /// 🔥 BUTTON
+            SizedBox(
+              width: double.infinity,
+
+              child: ElevatedButton(
+
+                onPressed: isLoading ? null : addSale,
+
+                style: ElevatedButton.styleFrom(
+                  padding: EdgeInsets.symmetric(vertical: 16),
+                ),
+
+                child: isLoading
+                    ? CircularProgressIndicator(
+                        color: Colors.white,
+                      )
+                    : Text("Add Sale"),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class CustomDrawer extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    var user = FirebaseAuth.instance.currentUser;
+
+    return Material(
+      color: Colors.transparent,
+      child: Container(
+        width: 260,
+        margin: EdgeInsets.only(top: 60, right: 10, bottom: 60),
+        padding: EdgeInsets.all(15),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(25),
+
+          /// 🎨 Gradient
+          gradient: LinearGradient(
+            colors: [
+              Color(0xFF6DD5FA),
+              Color(0xFF2980B9),
+            ],
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+          ),
+
+          boxShadow: [
+            BoxShadow(
+              blurRadius: 20,
+              color: Colors.black26,
+            )
+          ],
+        ),
+
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+
+            /// 👤 USER
+            Row(
+              children: [
+                CircleAvatar(
+                  radius: 25,
+                  backgroundImage: NetworkImage(
+                    user?.photoURL ??
+                        "https://i.pravatar.cc/150?img=3",
+                  ),
+                ),
+                SizedBox(width: 10),
+                Expanded(
+                  child:StreamBuilder(
+  stream: FirebaseFirestore.instance
+      .collection('users')
+      .doc(user?.uid)
+      .snapshots(),
+  builder: (context, snapshot) {
+    if (!snapshot.hasData) {
+      return Text(
+        "Loading...",
+        style: TextStyle(color: Colors.white),
+      );
+    }
+
+    var data = snapshot.data!.data() as Map<String, dynamic>;
+
+    return Text(
+      data['name'] ?? "User",
+      style: TextStyle(
+        fontWeight: FontWeight.bold,
+        color: Colors.white,
+      ),
+    );
+  },
+),
+                ),
+              ],
+            ),
+
+            SizedBox(height: 10),
+
+            /// ✏️ Edit Profile
+            TextButton(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => ProfileScreen()),
+                );
+              },
+              child: Text(
+                "My Profile",
+                style: TextStyle(color: Colors.white),
+              ),
+            ),
+
+            Divider(color: Colors.white38),
+
+            /// 📄 MENU
+            buildItem(context, Icons.store, "Products", 0),
+            buildItem(context, Icons.shopping_cart, "Cart", 1),
+            buildItem(context, Icons.favorite, "Favourites", 2),
+            buildItem(context, Icons.shopping_bag, "My Orders", 3),
+
+            Spacer(),
+
+            /// 🚪 Logout
+            ListTile(
+              leading: Icon(Icons.logout, color: Colors.red),
+              title: Text(
+                "Logout",
+                style: TextStyle(color: Colors.red,
+                fontWeight: FontWeight.bold,),
+              ),
+              onTap: () async {
+                await FirebaseAuth.instance.signOut();
+
+                Navigator.pushAndRemoveUntil(
+                  context,
+                  MaterialPageRoute(builder: (_) => LoginScreen()),
+                  (route) => false,
+                );
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// 🔹 عنصر في القائمة
+  Widget buildItem(
+      BuildContext context, IconData icon, String title, int index) {
+    return ListTile(
+      leading: Icon(icon, color: Colors.white),
+      title: Text(
+        title,
+        style: TextStyle(color: Colors.white),
+      ),
+      onTap: () {
+        Navigator.pop(context);
+
+        var state =
+            context.findAncestorStateOfType<_ProductsScreenState>();
+
+        state?.setState(() {
+          state.currentIndex = index;
+        });
+      },
+    );
+  }
+}
 ///////////////////// 📦 DETAILS /////////////////////
 
 class ProductDetailsScreen extends StatefulWidget {
@@ -2800,9 +3450,20 @@ class EditProfileScreen extends StatefulWidget {
 class _EditProfileScreenState extends State<EditProfileScreen> {
   final user = FirebaseAuth.instance.currentUser;
 
+  final TextEditingController oldPasswordController =
+    TextEditingController();
+
+  final TextEditingController newPasswordController =
+    TextEditingController();
+
+  final TextEditingController emailController =
+    TextEditingController();
+
   final TextEditingController nameController = TextEditingController();
   final TextEditingController phoneController = TextEditingController();
 
+  bool obscureOldPassword = true;
+  bool obscureNewPassword = true;
   bool isLoading = false;
 
   final Color purpleColor = const Color(0xFF8E5CF7);
@@ -2819,39 +3480,79 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         .doc(user!.uid)
         .get();
 
-    if (doc.exists) {
-      final data = doc.data()!;
+   if (doc.exists) {
+  final data = doc.data()!;
 
-      nameController.text = data['name'] ?? '';
-      phoneController.text = data['phone'] ?? '';
-    }
+  nameController.text = data['name'] ?? '';
+  phoneController.text = data['phone'] ?? '';
+  emailController.text = data['email'] ?? '';
+}
   }
 
-  Future<void> saveChanges() async {
+Future<void> saveChanges() async {
+  try {
     setState(() {
       isLoading = true;
     });
 
+    /// تحديث الاسم والموبايل
     await FirebaseFirestore.instance
         .collection('users')
         .doc(user!.uid)
         .update({
       'name': nameController.text.trim(),
       'phone': phoneController.text.trim(),
+      'email': emailController.text.trim(),
     });
+
+    /// تحديث الايميل في Authentication
+    if (emailController.text.trim() != user!.email) {
+      await user!.updateEmail(
+        emailController.text.trim(),
+      );
+    }
+
+    /// تغيير الباسورد
+    if (oldPasswordController.text.isNotEmpty &&
+        newPasswordController.text.isNotEmpty) {
+      AuthCredential credential =
+          EmailAuthProvider.credential(
+        email: user!.email!,
+        password: oldPasswordController.text.trim(),
+      );
+
+      await user!.reauthenticateWithCredential(
+        credential,
+      );
+
+      await user!.updatePassword(
+        newPasswordController.text.trim(),
+      );
+    }
 
     setState(() {
       isLoading = false;
     });
 
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text("Profile Updated Successfully"),
+      SnackBar(
+        content: Text("Profile Updated Successfully ✅"),
       ),
     );
 
     Navigator.pop(context);
+  } on FirebaseAuthException catch (e) {
+    setState(() {
+      isLoading = false;
+    });
+
+    String message = e.message ?? "Error";
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message)),
+    );
   }
+}
 
   @override
   Widget build(BuildContext context) {
@@ -2951,15 +3652,12 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               const SizedBox(height: 18),
 
               _buildTextField(
-                controller: TextEditingController(
-                  text: user?.email ?? "",
-                ),
-                label: "Email Address",
-                icon: Icons.email_outlined,
-                textColor: textColor,
-                cardColor: cardColor,
-                enabled: false,
-              ),
+  controller: emailController,
+  label: "Email Address",
+  icon: Icons.email_outlined,
+  textColor: textColor,
+  cardColor: cardColor,
+),
 
               const SizedBox(height: 18),
 
@@ -2970,6 +3668,107 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                 textColor: textColor,
                 cardColor: cardColor,
               ),
+
+const SizedBox(height: 25),
+
+Align(
+  alignment: Alignment.centerLeft,
+  child: Text(
+    "Change Password",
+    style: TextStyle(
+      color: textColor,
+      fontSize: 18,
+      fontWeight: FontWeight.bold,
+    ),
+  ),
+),
+
+const SizedBox(height: 18),
+
+/// OLD PASSWORD
+TextField(
+  controller: oldPasswordController,
+  obscureText: obscureOldPassword,
+  style: TextStyle(color: textColor),
+  decoration: InputDecoration(
+    labelText: "Old Password",
+    prefixIcon: Icon(
+      Icons.lock_outline,
+      color: purpleColor,
+    ),
+    suffixIcon: IconButton(
+      icon: Icon(
+        obscureOldPassword
+            ? Icons.visibility_off
+            : Icons.visibility,
+      ),
+      onPressed: () {
+        setState(() {
+          obscureOldPassword =
+              !obscureOldPassword;
+        });
+      },
+    ),
+    border: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(18),
+    ),
+  ),
+),
+
+const SizedBox(height: 18),
+
+/// NEW PASSWORD
+TextField(
+  controller: newPasswordController,
+  obscureText: obscureNewPassword,
+  style: TextStyle(color: textColor),
+  decoration: InputDecoration(
+    labelText: "New Password",
+    prefixIcon: Icon(
+      Icons.lock,
+      color: purpleColor,
+    ),
+    suffixIcon: IconButton(
+      icon: Icon(
+        obscureNewPassword
+            ? Icons.visibility_off
+            : Icons.visibility,
+      ),
+      onPressed: () {
+        setState(() {
+          obscureNewPassword =
+              !obscureNewPassword;
+        });
+      },
+    ),
+    border: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(18),
+    ),
+  ),
+),
+
+const SizedBox(height: 10),
+
+Align(
+  alignment: Alignment.centerRight,
+  child: GestureDetector(
+    onTap: () {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => ForgotPasswordScreen(),
+        ),
+      );
+    },
+    child: Text(
+      "Forgot my password?",
+      style: TextStyle(
+        color: purpleColor,
+        fontWeight: FontWeight.bold,
+      ),
+    ),
+  ),
+),
 
               const SizedBox(height: 35),
 
@@ -3042,6 +3841,292 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           borderSide: BorderSide(
             color: Colors.grey.shade300,
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class ForgotPasswordScreen extends StatefulWidget {
+  @override
+  State<ForgotPasswordScreen> createState() =>
+      _ForgotPasswordScreenState();
+}
+
+class _ForgotPasswordScreenState
+    extends State<ForgotPasswordScreen> {
+
+  final phoneController = TextEditingController();
+
+  final emailController = TextEditingController();
+
+  final codeController = TextEditingController();
+
+  final newPasswordController =
+      TextEditingController();
+
+  String verificationId = "";
+
+  bool codeSent = false;
+
+  bool obscurePassword = true;
+
+  bool useEmail = true;
+
+  Future<void> sendCode() async {
+
+    if (useEmail) {
+
+      try {
+
+        await FirebaseAuth.instance
+            .sendPasswordResetEmail(
+          email: emailController.text.trim(),
+        );
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              "Password reset email sent ✅",
+            ),
+          ),
+        );
+
+      } on FirebaseAuthException catch (e) {
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(e.message ?? "Error"),
+          ),
+        );
+      }
+
+    } else {
+
+      try {
+
+        String phone = phoneController.text.trim();
+
+        if (phone.startsWith('0')) {
+          phone = '+2$phone';
+        }
+
+        await FirebaseAuth.instance.verifyPhoneNumber(
+
+          phoneNumber: phone,
+
+          verificationCompleted:
+              (PhoneAuthCredential credential) {},
+
+          verificationFailed:
+              (FirebaseAuthException e) {
+
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(e.message ?? "Error"),
+              ),
+            );
+          },
+
+          codeSent:
+              (String verId, int? resendToken) {
+
+            verificationId = verId;
+
+            setState(() {
+              codeSent = true;
+            });
+
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text("Code Sent ✅"),
+              ),
+            );
+          },
+
+          codeAutoRetrievalTimeout:
+              (String verId) {},
+        );
+
+      } catch (e) {
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text("Something went wrong"),
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> verifyCodeAndChangePassword() async {
+
+    try {
+
+      PhoneAuthCredential credential =
+          PhoneAuthProvider.credential(
+        verificationId: verificationId,
+        smsCode: codeController.text.trim(),
+      );
+
+      await FirebaseAuth.instance
+          .signInWithCredential(credential);
+
+      await FirebaseAuth.instance.currentUser!
+          .updatePassword(
+        newPasswordController.text.trim(),
+      );
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content:
+              Text("Password Changed Successfully ✅"),
+        ),
+      );
+
+      Navigator.pop(context);
+
+    } catch (e) {
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("Invalid Code ❌"),
+        ),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+
+    return Scaffold(
+
+      appBar: AppBar(
+        title: Text("Forgot Password"),
+      ),
+
+      body: Padding(
+        padding: EdgeInsets.all(20),
+
+        child: Column(
+          children: [
+
+            Row(
+              mainAxisAlignment:
+                  MainAxisAlignment.center,
+              children: [
+
+                ChoiceChip(
+                  label: Text("Email"),
+
+                  selected: useEmail,
+
+                  onSelected: (value) {
+                    setState(() {
+                      useEmail = true;
+                      codeSent = false;
+                    });
+                  },
+                ),
+
+                SizedBox(width: 10),
+
+                ChoiceChip(
+                  label: Text("Phone"),
+
+                  selected: !useEmail,
+
+                  onSelected: (value) {
+                    setState(() {
+                      useEmail = false;
+                      codeSent = false;
+                    });
+                  },
+                ),
+              ],
+            ),
+
+            SizedBox(height: 20),
+
+            TextField(
+              controller:
+                  useEmail
+                      ? emailController
+                      : phoneController,
+
+              keyboardType:
+                  useEmail
+                      ? TextInputType.emailAddress
+                      : TextInputType.phone,
+
+              decoration: InputDecoration(
+                labelText:
+                    useEmail
+                        ? "Email Address"
+                        : "Phone Number",
+
+                border: OutlineInputBorder(),
+              ),
+            ),
+
+            SizedBox(height: 20),
+
+            if (!codeSent || useEmail)
+              ElevatedButton(
+                onPressed: sendCode,
+                child: Text(
+                  useEmail
+                      ? "Send Reset Email"
+                      : "Send Code",
+                ),
+              ),
+
+            if (codeSent && !useEmail) ...[
+
+              TextField(
+                controller: codeController,
+                decoration: InputDecoration(
+                  labelText: "Verification Code",
+                  border: OutlineInputBorder(),
+                ),
+              ),
+
+              SizedBox(height: 20),
+
+              TextField(
+                controller: newPasswordController,
+                obscureText: obscurePassword,
+
+                decoration: InputDecoration(
+                  labelText: "New Password",
+
+                  border: OutlineInputBorder(),
+
+                  suffixIcon: IconButton(
+                    icon: Icon(
+                      obscurePassword
+                          ? Icons.visibility_off
+                          : Icons.visibility,
+                    ),
+                    onPressed: () {
+                      setState(() {
+                        obscurePassword =
+                            !obscurePassword;
+                      });
+                    },
+                  ),
+                ),
+              ),
+
+              SizedBox(height: 20),
+
+              ElevatedButton(
+                onPressed:
+                    verifyCodeAndChangePassword,
+                child: Text("Change Password"),
+              ),
+            ]
+          ],
         ),
       ),
     );
