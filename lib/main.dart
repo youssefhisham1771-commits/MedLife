@@ -1357,28 +1357,33 @@ bottomNavigationBar: BottomNavigationBar(
 );
   }
 }
-
 class SalesScreen extends StatelessWidget {
+
   final bool isAdmin;
 
   SalesScreen({required this.isAdmin});
 
   @override
   Widget build(BuildContext context) {
+
     return Scaffold(
 
       appBar: AppBar(
         title: Text("Sales 🔥"),
       ),
 
-      /// 👑 زر إضافة عرض
+      /// 👑 ADD SALE
       floatingActionButton: isAdmin
           ? FloatingActionButton(
               backgroundColor: Colors.orange,
+
               child: Icon(Icons.add),
+
               onPressed: () {
+
                 Navigator.push(
                   context,
+
                   MaterialPageRoute(
                     builder: (_) => AddSaleScreen(),
                   ),
@@ -1388,14 +1393,19 @@ class SalesScreen extends StatelessWidget {
           : null,
 
       body: StreamBuilder(
+
         stream: FirebaseFirestore.instance
             .collection('sales')
-            .orderBy('createdAt', descending: true)
+            .orderBy(
+              'createdAt',
+              descending: true,
+            )
             .snapshots(),
 
         builder: (context, snapshot) {
 
           if (!snapshot.hasData) {
+
             return Center(
               child: CircularProgressIndicator(),
             );
@@ -1404,78 +1414,344 @@ class SalesScreen extends StatelessWidget {
           var sales = snapshot.data!.docs;
 
           if (sales.isEmpty) {
+
             return Center(
               child: Text("No Sales Yet 🔥"),
             );
           }
 
           return ListView.builder(
+
             padding: EdgeInsets.all(15),
+
             itemCount: sales.length,
 
             itemBuilder: (context, index) {
 
-              var data =
-                  sales[index].data() as Map<String, dynamic>;
+              var sale =
+                  sales[index].data()
+                      as Map<String, dynamic>;
 
               return Container(
-                margin: EdgeInsets.only(bottom: 15),
-                padding: EdgeInsets.all(15),
+
+                height: 185,
+
+                margin: EdgeInsets.only(bottom: 18),
+
+                padding: EdgeInsets.all(20),
 
                 decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(20),
+
+                  borderRadius:
+                      BorderRadius.circular(30),
+
                   gradient: LinearGradient(
                     colors: [
+
                       Colors.orange,
-                      Colors.deepOrange,
+
+                      Colors.deepOrangeAccent,
+
+                      Colors.pink,
                     ],
                   ),
                 ),
 
-                child: Column(
-                  crossAxisAlignment:
-                      CrossAxisAlignment.start,
+                child: Row(
                   children: [
 
-                    Text(
-                      data['title'] ?? "",
-                      style: TextStyle(
-                        fontSize: 22,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                      ),
-                    ),
+                    /// 🖼 IMAGE
+                    sale['image'] != null &&
+                            sale['image']
+                                .toString()
+                                .isNotEmpty
 
-                    SizedBox(height: 10),
+                        ? ClipRRect(
 
-                    Text(
-                      data['description'] ?? "",
-                      style: TextStyle(
-                        color: Colors.white,
-                      ),
-                    ),
+                            borderRadius:
+                                BorderRadius.circular(20),
 
-                    SizedBox(height: 15),
+                            child: Image.network(
 
-                    Row(
-                      children: [
+                              sale['image'],
 
-                        Icon(
-                          Icons.discount,
-                          color: Colors.white,
-                        ),
+                              width: 110,
+                              height: 110,
 
-                        SizedBox(width: 6),
+                              fit: BoxFit.cover,
 
-                        Text(
-                          "${data['discount']}% OFF",
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
+                              errorBuilder:
+                                  (
+                                    context,
+                                    error,
+                                    stackTrace,
+                                  ) {
+
+                                return Container(
+
+                                  width: 110,
+                                  height: 110,
+
+                                  decoration: BoxDecoration(
+                                    color: Colors.white24,
+
+                                    borderRadius:
+                                        BorderRadius.circular(
+                                      20,
+                                    ),
+                                  ),
+
+                                  child: Icon(
+                                    Icons.image,
+                                    color: Colors.white,
+                                    size: 45,
+                                  ),
+                                );
+                              },
+                            ),
+                          )
+
+                        : Container(
+
+                            width: 110,
+                            height: 110,
+
+                            decoration: BoxDecoration(
+                              color: Colors.white24,
+
+                              borderRadius:
+                                  BorderRadius.circular(20),
+                            ),
+
+                            child: Icon(
+                              Icons.local_offer,
+                              color: Colors.white,
+                              size: 45,
+                            ),
                           ),
-                        ),
-                      ],
+
+                    SizedBox(width: 15),
+
+                    /// 📄 INFO
+                    Expanded(
+
+                      child: Column(
+
+                        crossAxisAlignment:
+                            CrossAxisAlignment.start,
+
+                        mainAxisAlignment:
+                            MainAxisAlignment.spaceEvenly,
+
+                        children: [
+
+                          /// 🔥 TITLE
+                          Text(
+
+                            sale['title'] ?? "",
+
+                            maxLines: 1,
+
+                            overflow:
+                                TextOverflow.ellipsis,
+
+                            style: TextStyle(
+                              color: Colors.white,
+
+                              fontSize: 22,
+
+                              fontWeight:
+                                  FontWeight.bold,
+                            ),
+                          ),
+
+                          SizedBox(height: 10),
+
+                          /// 📝 DETAILS
+                          Text(
+
+                            sale['details'] ?? "",
+
+                            maxLines: 2,
+
+                            overflow:
+                                TextOverflow.ellipsis,
+
+                            style: TextStyle(
+                              color: Colors.white,
+
+                              fontSize: 14,
+                            ),
+                          ),
+
+                          SizedBox(height: 15),
+
+                          /// 💸 DISCOUNT
+                          Row(
+                            children: [
+
+                              Icon(
+                                Icons.percent,
+                                color: Colors.white,
+                              ),
+
+                              SizedBox(width: 8),
+
+                              Text(
+
+                                "${sale['discount']}% OFF",
+
+                                style: TextStyle(
+                                  color: Colors.white,
+
+                                  fontSize: 20,
+
+                                  fontWeight:
+                                      FontWeight.bold,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
                     ),
+Column(
+  mainAxisAlignment: MainAxisAlignment.center,
+  children: [
+
+    /// ➡️ DETAILS
+    GestureDetector(
+
+      onTap: () async {
+
+        var product = await FirebaseFirestore.instance
+            .collection('Products')
+            .doc(sale['productId'])
+            .get();
+
+        if (product.exists) {
+
+          Navigator.push(
+
+            context,
+
+            MaterialPageRoute(
+
+              builder: (_) => ProductDetailsScreen(
+
+                product: product,
+
+                cart: [],
+              ),
+            ),
+          );
+        }
+      },
+
+      child: Container(
+
+        padding: EdgeInsets.all(8),
+
+        decoration: BoxDecoration(
+
+          color: Colors.white.withOpacity(0.15),
+
+          borderRadius:
+              BorderRadius.circular(12),
+        ),
+
+        child: Icon(
+          Icons.arrow_forward_ios,
+          color: Colors.white,
+        ),
+      ),
+    ),
+
+    /// 👑 ADMIN BUTTONS
+    if (isAdmin) ...[
+
+      SizedBox(height: 12),
+
+      /// ✏️ EDIT
+      GestureDetector(
+
+        onTap: () {
+
+          Navigator.push(
+
+            context,
+
+            MaterialPageRoute(
+
+              builder: (_) => EditSaleScreen(
+                saleId: sales[index].id,
+                saleData: sale,
+              ),
+            ),
+          );
+        },
+
+        child: Container(
+
+          padding: EdgeInsets.all(8),
+
+          decoration: BoxDecoration(
+
+            color: Colors.white.withOpacity(0.15),
+
+            borderRadius:
+                BorderRadius.circular(12),
+          ),
+
+          child: Icon(
+            Icons.edit,
+            color: Colors.white,
+          ),
+        ),
+      ),
+
+      SizedBox(height: 12),
+
+      /// 🗑 DELETE
+      GestureDetector(
+
+        onTap: () async {
+
+          await FirebaseFirestore.instance
+              .collection('sales')
+              .doc(sales[index].id)
+              .delete();
+
+          ScaffoldMessenger.of(context)
+              .showSnackBar(
+
+            SnackBar(
+              content: Text("Sale Deleted"),
+            ),
+          );
+        },
+
+        child: Container(
+
+          padding: EdgeInsets.all(8),
+
+          decoration: BoxDecoration(
+
+            color: Colors.red.withOpacity(0.3),
+
+            borderRadius:
+                BorderRadius.circular(12),
+          ),
+
+          child: Icon(
+            Icons.delete,
+            color: Colors.white,
+          ),
+        ),
+      ),
+    ],
+  ],
+),
                   ],
                 ),
               );
@@ -1496,10 +1772,6 @@ class AddSaleScreen extends StatefulWidget {
 
 class _AddSaleScreenState extends State<AddSaleScreen> {
 
-  String? selectedProductId;
-  String? selectedProductName;
-  String? selectedImage;
-
   final titleController = TextEditingController();
   final detailsController = TextEditingController();
   final discountController = TextEditingController();
@@ -1508,6 +1780,51 @@ class _AddSaleScreenState extends State<AddSaleScreen> {
 
   bool isLoading = false;
 
+  File? saleImageFile;
+  String? uploadedImageUrl;
+  String? selectedProductId;
+  String? selectedProductName;
+
+  /// 📸 PICK IMAGE
+  Future<void> pickImage() async {
+
+    final picked = await ImagePicker().pickImage(
+      source: ImageSource.gallery,
+      imageQuality: 80,
+    );
+
+    if (picked != null) {
+
+      setState(() {
+        saleImageFile = File(picked.path);
+      });
+
+      /// ☁️ Upload To Cloudinary
+      try {
+
+        CloudinaryResponse response =
+            await cloudinary.uploadFile(
+
+          CloudinaryFile.fromFile(
+            saleImageFile!.path,
+            resourceType: CloudinaryResourceType.Image,
+          ),
+        );
+
+        uploadedImageUrl = response.secureUrl;
+
+      } catch (e) {
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text("Image Upload Failed ❌"),
+          ),
+        );
+      }
+    }
+  }
+
+  /// 📅 PICK DATE
   Future<void> pickDate() async {
 
     DateTime? picked = await showDatePicker(
@@ -1518,22 +1835,29 @@ class _AddSaleScreenState extends State<AddSaleScreen> {
     );
 
     if (picked != null) {
+
       setState(() {
         expiryDate = picked;
       });
     }
   }
 
+  /// 🔥 ADD SALE
   Future<void> addSale() async {
 
-    if (selectedProductId == null ||
+    if (
+        selectedProductId == null ||
+        uploadedImageUrl == null ||
         titleController.text.trim().isEmpty ||
         detailsController.text.trim().isEmpty ||
         discountController.text.trim().isEmpty ||
-        expiryDate == null) {
+        expiryDate == null
+    ) {
 
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Complete all fields")),
+        SnackBar(
+          content: Text("Complete all fields"),
+        ),
       );
 
       return;
@@ -1548,24 +1872,28 @@ class _AddSaleScreenState extends State<AddSaleScreen> {
       await FirebaseFirestore.instance
           .collection('sales')
           .add({
+        "image": uploadedImageUrl,
 
         "productId": selectedProductId,
-        "productName": selectedProductName,
-        "image": selectedImage,
+
+"productName": selectedProductName,
 
         "title": titleController.text.trim(),
+
         "details": detailsController.text.trim(),
 
         "discount":
             int.parse(discountController.text.trim()),
 
-        "expiryDate": expiryDate,
+        "expiryDate": Timestamp.fromDate(expiryDate!),
 
         "createdAt": Timestamp.now(),
       });
 
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Sale Added 🔥")),
+        SnackBar(
+          content: Text("Sale Added 🔥"),
+        ),
       );
 
       Navigator.pop(context);
@@ -1573,7 +1901,9 @@ class _AddSaleScreenState extends State<AddSaleScreen> {
     } catch (e) {
 
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Error ❌")),
+        SnackBar(
+          content: Text("Error ❌"),
+        ),
       );
     }
 
@@ -1599,89 +1929,162 @@ class _AddSaleScreenState extends State<AddSaleScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
 
-            /// 🔥 SELECT PRODUCT
+            /// 📸 IMAGE
             Text(
-              "Choose Product",
+              "Sale Image",
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
               ),
             ),
 
-            SizedBox(height: 10),
+            SizedBox(height: 12),
 
-            StreamBuilder(
-              stream: FirebaseFirestore.instance
-                  .collection('Products')
-                  .snapshots(),
+            GestureDetector(
 
-              builder: (context, snapshot) {
+              onTap: pickImage,
 
-                if (!snapshot.hasData) {
-                  return Center(
-                    child: CircularProgressIndicator(),
-                  );
-                }
+              child: Container(
 
-                var products = snapshot.data!.docs;
+                height: 200,
+                width: double.infinity,
 
-                return DropdownButtonFormField(
-
-                  value: selectedProductId,
-
-                  items: products.map((product) {
-
-                    var data =
-                        product.data() as Map<String, dynamic>;
-
-                    return DropdownMenuItem(
-                      value: product.id,
-                      child: Text(data['name']),
-                    );
-
-                  }).toList(),
-
-                  onChanged: (value) {
-
-                    var selected = products.firstWhere(
-                      (p) => p.id == value,
-                    );
-
-                    var data =
-                        selected.data() as Map<String, dynamic>;
-
-                    List images = data.containsKey('images')
-                        ? data['images']
-                        : [data['image']];
-
-                    setState(() {
-
-                      selectedProductId = value;
-                      selectedProductName = data['name'];
-
-                      selectedImage =
-                          images.isNotEmpty ? images[0] : "";
-                    });
-                  },
-
-                  decoration: InputDecoration(
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(15),
-                    ),
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade200,
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(
+                    color: Colors.grey.shade400,
                   ),
-                );
-              },
+                ),
+
+                child: saleImageFile == null
+
+                    ? Column(
+                        mainAxisAlignment:
+                            MainAxisAlignment.center,
+                        children: [
+
+                          Icon(
+                            Icons.add_photo_alternate,
+                            size: 50,
+                            color: Colors.grey,
+                          ),
+
+                          SizedBox(height: 10),
+
+                          Text(
+                            "Choose Sale Image",
+                            style: TextStyle(
+                              color: Colors.grey,
+                              fontSize: 16,
+                            ),
+                          ),
+                        ],
+                      )
+
+                    : ClipRRect(
+                        borderRadius:
+                            BorderRadius.circular(20),
+
+                        child: Image.file(
+                          saleImageFile!,
+                          fit: BoxFit.cover,
+                        ),
+                      ),
+              ),
             ),
 
-            SizedBox(height: 20),
+            SizedBox(height: 25),
+
+            /// 🛍 SELECT PRODUCT
+Text(
+  "Choose Product",
+  style: TextStyle(
+    fontSize: 18,
+    fontWeight: FontWeight.bold,
+  ),
+),
+
+SizedBox(height: 12),
+
+StreamBuilder(
+  stream: FirebaseFirestore.instance
+      .collection('Products')
+      .snapshots(),
+
+  builder: (context, snapshot) {
+
+    if (!snapshot.hasData) {
+      return Center(
+        child: CircularProgressIndicator(),
+      );
+    }
+
+    var products = snapshot.data!.docs;
+
+    return DropdownButtonFormField(
+
+      value: selectedProductId,
+
+      items: products.map((product) {
+
+        var data =
+            product.data() as Map<String, dynamic>;
+
+        return DropdownMenuItem(
+
+          value: product.id,
+
+          child: Text(
+            data['name'] ?? "",
+          ),
+        );
+
+      }).toList(),
+
+      onChanged: (value) {
+
+        var selected = products.firstWhere(
+          (p) => p.id == value,
+        );
+
+        var data =
+            selected.data() as Map<String, dynamic>;
+
+        setState(() {
+
+          selectedProductId = selected.id;
+
+          selectedProductName =
+              data['name'];
+        });
+      },
+
+      decoration: InputDecoration(
+
+        hintText: "Choose Product",
+
+        border: OutlineInputBorder(
+          borderRadius:
+              BorderRadius.circular(20),
+        ),
+      ),
+    );
+  },
+),
+
+SizedBox(height: 25),
 
             /// 📝 TITLE
             TextField(
               controller: titleController,
+
               decoration: InputDecoration(
                 labelText: "Sale Title",
+
                 border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(15),
+                  borderRadius:
+                      BorderRadius.circular(15),
                 ),
               ),
             ),
@@ -1692,10 +2095,13 @@ class _AddSaleScreenState extends State<AddSaleScreen> {
             TextField(
               controller: detailsController,
               maxLines: 4,
+
               decoration: InputDecoration(
                 labelText: "Sale Details",
+
                 border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(15),
+                  borderRadius:
+                      BorderRadius.circular(15),
                 ),
               ),
             ),
@@ -1706,10 +2112,13 @@ class _AddSaleScreenState extends State<AddSaleScreen> {
             TextField(
               controller: discountController,
               keyboardType: TextInputType.number,
+
               decoration: InputDecoration(
                 labelText: "Discount %",
+
                 border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(15),
+                  borderRadius:
+                      BorderRadius.circular(15),
                 ),
               ),
             ),
@@ -1722,45 +2131,225 @@ class _AddSaleScreenState extends State<AddSaleScreen> {
               onTap: pickDate,
 
               child: Container(
+
                 width: double.infinity,
+
                 padding: EdgeInsets.symmetric(
                   horizontal: 15,
                   vertical: 18,
                 ),
 
                 decoration: BoxDecoration(
-                  border: Border.all(color: Colors.grey),
-                  borderRadius: BorderRadius.circular(15),
+                  border: Border.all(
+                    color: Colors.grey,
+                  ),
+
+                  borderRadius:
+                      BorderRadius.circular(15),
                 ),
 
                 child: Text(
+
                   expiryDate == null
+
                       ? "Choose Expiry Date"
+
                       : "${expiryDate!.day}/${expiryDate!.month}/${expiryDate!.year}",
                 ),
               ),
             ),
 
-            SizedBox(height: 30),
+            SizedBox(height: 35),
 
             /// 🔥 BUTTON
             SizedBox(
+
               width: double.infinity,
 
               child: ElevatedButton(
 
-                onPressed: isLoading ? null : addSale,
+                onPressed:
+                    isLoading ? null : addSale,
 
                 style: ElevatedButton.styleFrom(
-                  padding: EdgeInsets.symmetric(vertical: 16),
+                  padding: EdgeInsets.symmetric(
+                    vertical: 16,
+                  ),
                 ),
 
                 child: isLoading
+
                     ? CircularProgressIndicator(
                         color: Colors.white,
                       )
-                    : Text("Add Sale"),
+
+                    : Text(
+                        "Add Sale",
+                        style: TextStyle(
+                          fontSize: 16,
+                        ),
+                      ),
               ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class EditSaleScreen extends StatefulWidget {
+
+  final String saleId;
+
+  final Map<String, dynamic> saleData;
+
+  EditSaleScreen({
+    required this.saleId,
+    required this.saleData,
+  });
+
+  @override
+  State<EditSaleScreen> createState() =>
+      _EditSaleScreenState();
+}
+
+class _EditSaleScreenState
+    extends State<EditSaleScreen> {
+
+  late TextEditingController titleController;
+
+  late TextEditingController detailsController;
+
+  late TextEditingController discountController;
+
+  bool isLoading = false;
+
+  @override
+  void initState() {
+
+    super.initState();
+
+    titleController =
+        TextEditingController(
+      text: widget.saleData['title'],
+    );
+
+    detailsController =
+        TextEditingController(
+      text: widget.saleData['details'],
+    );
+
+    discountController =
+        TextEditingController(
+      text: widget.saleData['discount']
+          .toString(),
+    );
+  }
+
+  Future<void> updateSale() async {
+
+    setState(() {
+      isLoading = true;
+    });
+
+    await FirebaseFirestore.instance
+        .collection('sales')
+        .doc(widget.saleId)
+        .update({
+
+      "title":
+          titleController.text.trim(),
+
+      "details":
+          detailsController.text.trim(),
+
+      "discount":
+          int.parse(
+            discountController.text.trim(),
+          ),
+    });
+
+    setState(() {
+      isLoading = false;
+    });
+
+    ScaffoldMessenger.of(context)
+        .showSnackBar(
+
+      SnackBar(
+        content: Text("Sale Updated 🔥"),
+      ),
+    );
+
+    Navigator.pop(context);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+
+    return Scaffold(
+
+      appBar: AppBar(
+        title: Text("Edit Sale"),
+      ),
+
+      body: Padding(
+
+        padding: EdgeInsets.all(20),
+
+        child: Column(
+          children: [
+
+            TextField(
+
+              controller: titleController,
+
+              decoration: InputDecoration(
+                labelText: "Sale Title",
+              ),
+            ),
+
+            SizedBox(height: 20),
+
+            TextField(
+
+              controller: detailsController,
+
+              maxLines: 4,
+
+              decoration: InputDecoration(
+                labelText: "Sale Details",
+              ),
+            ),
+
+            SizedBox(height: 20),
+
+            TextField(
+
+              controller: discountController,
+
+              keyboardType:
+                  TextInputType.number,
+
+              decoration: InputDecoration(
+                labelText: "Discount %",
+              ),
+            ),
+
+            SizedBox(height: 30),
+
+            ElevatedButton(
+
+              onPressed:
+                  isLoading
+                      ? null
+                      : updateSale,
+
+              child:
+                  isLoading
+                      ? CircularProgressIndicator()
+                      : Text("Update Sale"),
             ),
           ],
         ),
@@ -1869,6 +2458,34 @@ class CustomDrawer extends StatelessWidget {
             buildItem(context, Icons.favorite, "Favourites", 2),
             buildItem(context, Icons.shopping_bag, "My Orders", 3),
 
+            ListTile(
+  leading: Icon(
+    Icons.star_rate_rounded,
+    color: Colors.amber,
+  ),
+
+  title: Text(
+    "Our Customers Reviews",
+    style: TextStyle(
+      color: Colors.white,
+      fontWeight: FontWeight.bold,
+    ),
+  ),
+
+  onTap: () {
+
+    Navigator.push(
+
+      context,
+
+      MaterialPageRoute(
+
+        builder: (_) => ReviewsScreen(),
+      ),
+    );
+  },
+),
+
             Spacer(),
 
             /// 🚪 Logout
@@ -1917,6 +2534,614 @@ class CustomDrawer extends StatelessWidget {
     );
   }
 }
+
+class ReviewsScreen extends StatefulWidget {
+  @override
+  State<ReviewsScreen> createState() =>
+      _ReviewsScreenState();
+}
+
+class _ReviewsScreenState
+    extends State<ReviewsScreen> {
+
+  final reviewController = TextEditingController();
+
+  int selectedRating = 0;
+
+  bool isLoading = false;
+
+  Future<void> submitReview() async {
+
+    var user = FirebaseAuth.instance.currentUser;
+
+    if (user == null) return;
+
+    if (selectedRating == 0 ||
+        reviewController.text.trim().isEmpty) {
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+              "Choose rating and write review"),
+        ),
+      );
+
+      return;
+    }
+
+    setState(() {
+      isLoading = true;
+    });
+
+    try {
+
+      var userDoc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .get();
+
+      var userData =
+          userDoc.data() as Map<String, dynamic>;
+
+      /// 🔥 هل المستخدم كتب review قبل كدا؟
+      var existing = await FirebaseFirestore.instance
+          .collection('reviews')
+          .where('userId', isEqualTo: user.uid)
+          .get();
+
+      if (existing.docs.isNotEmpty) {
+
+        /// ✏️ update
+        await FirebaseFirestore.instance
+            .collection('reviews')
+            .doc(existing.docs.first.id)
+            .update({
+
+          'rating': selectedRating,
+
+          'review':
+              reviewController.text.trim(),
+
+          'createdAt': Timestamp.now(),
+        });
+
+      } else {
+
+        /// ➕ add
+        await FirebaseFirestore.instance
+            .collection('reviews')
+            .add({
+
+          'userId': user.uid,
+
+          'userName':
+              userData['name'] ?? "User",
+
+          'rating': selectedRating,
+
+          'review':
+              reviewController.text.trim(),
+
+          'createdAt': Timestamp.now(),
+        });
+      }
+
+      reviewController.clear();
+
+      setState(() {
+        selectedRating = 0;
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+              "Review Submitted Successfully ⭐"),
+        ),
+      );
+
+    } catch (e) {
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("Error ❌"),
+        ),
+      );
+    }
+
+    setState(() {
+      isLoading = false;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+
+    return Scaffold(
+
+      backgroundColor: Color(0xFF0E071B),
+
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        title: Text(
+          "Our Customers Reviews ⭐",
+        ),
+      ),
+
+      body: StreamBuilder(
+
+        stream: FirebaseFirestore.instance
+            .collection('reviews')
+            .orderBy(
+              'createdAt',
+              descending: true,
+            )
+            .snapshots(),
+
+        builder: (context, snapshot) {
+
+          if (!snapshot.hasData) {
+            return Center(
+              child: CircularProgressIndicator(),
+            );
+          }
+
+          var reviews = snapshot.data!.docs;
+
+          /// ⭐ حساب المتوسط
+          double average = 0;
+
+          if (reviews.isNotEmpty) {
+
+            int total = 0;
+
+            for (var review in reviews) {
+              total += review['rating'] as int;
+            }
+
+            average = total / reviews.length;
+          }
+
+          /// 📊 عدد كل تقييم
+          int star5 = 0;
+          int star4 = 0;
+          int star3 = 0;
+          int star2 = 0;
+          int star1 = 0;
+
+          for (var review in reviews) {
+
+            int rate = review['rating'];
+
+            if (rate == 5) star5++;
+            if (rate == 4) star4++;
+            if (rate == 3) star3++;
+            if (rate == 2) star2++;
+            if (rate == 1) star1++;
+          }
+
+          double percent(int count) {
+
+            if (reviews.isEmpty) return 0;
+
+            return count / reviews.length;
+          }
+
+          return SingleChildScrollView(
+
+            padding: EdgeInsets.all(20),
+
+            child: Column(
+              crossAxisAlignment:
+                  CrossAxisAlignment.start,
+
+              children: [
+
+                /// ⭐ AVERAGE
+                Center(
+                  child: Column(
+                    children: [
+
+                      Text(
+                        average
+                            .toStringAsFixed(1),
+                        style: TextStyle(
+                          fontSize: 55,
+                          fontWeight:
+                              FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                      ),
+
+                      SizedBox(height: 8),
+
+                      Row(
+                        mainAxisAlignment:
+                            MainAxisAlignment.center,
+                        children: List.generate(
+                          5,
+                          (index) => Icon(
+                            index < average.round()
+                                ? Icons.star
+                                : Icons.star_border,
+                            color: Colors.amber,
+                            size: 30,
+                          ),
+                        ),
+                      ),
+
+                      SizedBox(height: 8),
+
+                      Text(
+                        "Based on ${reviews.length} Reviews",
+                        style: TextStyle(
+                          color: Colors.white70,
+                          fontSize: 16,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                SizedBox(height: 30),
+
+                /// 📊 BARS
+                buildRatingBar(5, percent(star5)),
+                buildRatingBar(4, percent(star4)),
+                buildRatingBar(3, percent(star3)),
+                buildRatingBar(2, percent(star2)),
+                buildRatingBar(1, percent(star1)),
+
+                SizedBox(height: 35),
+
+                /// ✍️ REVIEW CARD
+                Container(
+
+                  padding: EdgeInsets.all(20),
+
+                  decoration: BoxDecoration(
+                    borderRadius:
+                        BorderRadius.circular(30),
+
+                    gradient: LinearGradient(
+                      colors: [
+                        Colors.orange,
+                        Colors.deepOrangeAccent,
+                        Colors.pink,
+                      ],
+                    ),
+                  ),
+
+                  child: Column(
+                    crossAxisAlignment:
+                        CrossAxisAlignment.start,
+
+                    children: [
+
+                      Text(
+                        "Rate Our App ⭐",
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 24,
+                          fontWeight:
+                              FontWeight.bold,
+                        ),
+                      ),
+
+                      SizedBox(height: 20),
+
+                      /// ⭐ STARS
+                      Row(
+                        children: List.generate(
+                          5,
+                          (index) {
+
+                            int star = index + 1;
+
+                            return GestureDetector(
+
+                              onTap: () {
+                                setState(() {
+                                  selectedRating = star;
+                                });
+                              },
+
+                              child: AnimatedContainer(
+
+                                duration:
+                                    Duration(milliseconds: 200),
+
+                                margin:
+                                    EdgeInsets.only(right: 8),
+
+                                child: Icon(
+
+                                  star <= selectedRating
+                                      ? Icons.star
+                                      : Icons.star_border,
+
+                                  color: Colors.white,
+
+                                  size: star == selectedRating
+                                      ? 40
+                                      : 34,
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+
+                      SizedBox(height: 20),
+
+                      /// ✍️ REVIEW FIELD
+                      TextField(
+
+                        controller: reviewController,
+
+                        maxLines: 4,
+
+                        style:
+                            TextStyle(color: Colors.white),
+
+                        decoration: InputDecoration(
+
+                          hintText:
+                              "Write your review...",
+
+                          hintStyle: TextStyle(
+                            color: Colors.white70,
+                          ),
+
+                          filled: true,
+
+                          fillColor:
+                              Colors.white.withOpacity(0.15),
+
+                          border: OutlineInputBorder(
+                            borderRadius:
+                                BorderRadius.circular(20),
+                            borderSide:
+                                BorderSide.none,
+                          ),
+                        ),
+                      ),
+
+                      SizedBox(height: 20),
+
+                      /// 🚀 BUTTON
+                      SizedBox(
+                        width: double.infinity,
+
+                        child: ElevatedButton(
+
+                          onPressed:
+                              isLoading
+                                  ? null
+                                  : submitReview,
+
+                          style:
+                              ElevatedButton.styleFrom(
+
+                            backgroundColor:
+                                Colors.white,
+
+                            foregroundColor:
+                                Colors.black,
+
+                            padding:
+                                EdgeInsets.symmetric(
+                              vertical: 16,
+                            ),
+                          ),
+
+                          child: isLoading
+                              ? CircularProgressIndicator()
+                              : Text(
+                                  "Submit Review",
+                                ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                SizedBox(height: 35),
+
+                /// 👥 REVIEWS
+                Text(
+                  "Users Reviews",
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+
+                SizedBox(height: 20),
+
+                if (reviews.isEmpty)
+                  Center(
+                    child: Padding(
+                      padding: EdgeInsets.all(40),
+                      child: Text(
+                        "No Reviews Yet ⭐",
+                        style: TextStyle(
+                          color: Colors.white70,
+                          fontSize: 18,
+                        ),
+                      ),
+                    ),
+                  ),
+
+                ...reviews.map((doc) {
+
+                  var data =
+                      doc.data() as Map<String, dynamic>;
+
+                  return buildReviewCard(
+                    data['userName'],
+                    data['rating'],
+                    data['review'],
+                  );
+                }).toList(),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  /// ⭐ BAR
+  Widget buildRatingBar(
+      int star,
+      double value,
+  ) {
+
+    return Padding(
+
+      padding: EdgeInsets.only(bottom: 14),
+
+      child: Row(
+        children: [
+
+          Text(
+            "$star",
+            style: TextStyle(
+              color: Colors.white,
+            ),
+          ),
+
+          SizedBox(width: 5),
+
+          Icon(
+            Icons.star,
+            color: Colors.amber,
+            size: 18,
+          ),
+
+          SizedBox(width: 12),
+
+          Expanded(
+            child: ClipRRect(
+
+              borderRadius:
+                  BorderRadius.circular(20),
+
+              child: LinearProgressIndicator(
+
+                value: value,
+
+                minHeight: 10,
+
+                backgroundColor:
+                    Colors.white12,
+
+                valueColor:
+                    AlwaysStoppedAnimation(
+                  Colors.orange,
+                ),
+              ),
+            ),
+          ),
+
+          SizedBox(width: 10),
+
+          Text(
+            "${(value * 100).toInt()}%",
+            style: TextStyle(
+              color: Colors.white70,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// 💬 REVIEW CARD
+  Widget buildReviewCard(
+      String name,
+      int stars,
+      String review,
+  ) {
+
+    return Container(
+
+      margin: EdgeInsets.only(bottom: 20),
+
+      padding: EdgeInsets.all(18),
+
+      decoration: BoxDecoration(
+
+        color: Colors.white.withOpacity(0.05),
+
+        borderRadius:
+            BorderRadius.circular(22),
+      ),
+
+      child: Column(
+        crossAxisAlignment:
+            CrossAxisAlignment.start,
+
+        children: [
+
+          Row(
+            children: [
+
+              CircleAvatar(
+                backgroundColor:
+                    Colors.orange,
+
+                child: Text(
+                  name[0].toUpperCase(),
+                ),
+              ),
+
+              SizedBox(width: 10),
+
+              Expanded(
+                child: Text(
+                  name,
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight:
+                        FontWeight.bold,
+                    fontSize: 16,
+                  ),
+                ),
+              ),
+            ],
+          ),
+
+          SizedBox(height: 15),
+
+          Row(
+            children: List.generate(
+              stars,
+              (index) => Icon(
+                Icons.star,
+                color: Colors.amber,
+                size: 20,
+              ),
+            ),
+          ),
+
+          SizedBox(height: 12),
+
+          Text(
+            review,
+            style: TextStyle(
+              color: Colors.white70,
+              fontSize: 15,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 ///////////////////// 📦 DETAILS /////////////////////
 
 class ProductDetailsScreen extends StatefulWidget {
