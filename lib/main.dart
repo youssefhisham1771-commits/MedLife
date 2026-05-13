@@ -9,6 +9,8 @@ import 'package:cloudinary_public/cloudinary_public.dart';
 import 'dart:convert';
 import 'dart:io';
 import 'package:image_picker/image_picker.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'package:flutter/gestures.dart';
 import 'package:http/http.dart' as http;
 import 'dart:async';
 
@@ -2451,12 +2453,6 @@ class CustomDrawer extends StatelessWidget {
             ),
 
             Divider(color: Colors.white38),
-
-            /// 📄 MENU
-            buildItem(context, Icons.store, "Products", 0),
-            buildItem(context, Icons.shopping_cart, "Cart", 1),
-            buildItem(context, Icons.favorite, "Favourites", 2),
-            buildItem(context, Icons.shopping_bag, "My Orders", 3),
 
             ListTile(
   leading: Icon(
@@ -5357,7 +5353,6 @@ class _ForgotPasswordScreenState
     );
   }
 }
-
 class AboutMedLifeScreen extends StatelessWidget {
   const AboutMedLifeScreen({super.key});
 
@@ -5399,6 +5394,7 @@ class AboutMedLifeScreen extends StatelessWidget {
 
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
+
         child: Column(
           children: [
 
@@ -5406,8 +5402,10 @@ class AboutMedLifeScreen extends StatelessWidget {
             Container(
               width: double.infinity,
               padding: const EdgeInsets.all(20),
+
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(24),
+
                 gradient: LinearGradient(
                   colors: isDark
                       ? [
@@ -5420,14 +5418,21 @@ class AboutMedLifeScreen extends StatelessWidget {
                         ],
                 ),
               ),
+
               child: Row(
                 children: [
 
                   Column(
                     children: [
-                      const Icon(Icons.favorite,
-                          color: purple, size: 50),
+
+                      const Icon(
+                        Icons.favorite,
+                        color: purple,
+                        size: 50,
+                      ),
+
                       const SizedBox(height: 8),
+
                       Text(
                         "MedLife",
                         style: TextStyle(
@@ -5436,6 +5441,7 @@ class AboutMedLifeScreen extends StatelessWidget {
                           fontWeight: FontWeight.bold,
                         ),
                       ),
+
                       Text(
                         "For a better healthcare",
                         style: TextStyle(
@@ -5466,6 +5472,7 @@ class AboutMedLifeScreen extends StatelessWidget {
             /// 🔥 VISION & MISSION
             Row(
               children: [
+
                 Expanded(
                   child: _box(
                     icon: Icons.remove_red_eye,
@@ -5477,7 +5484,9 @@ class AboutMedLifeScreen extends StatelessWidget {
                     subText: subText,
                   ),
                 ),
+
                 const SizedBox(width: 12),
+
                 Expanded(
                   child: _box(
                     icon: Icons.track_changes,
@@ -5498,10 +5507,33 @@ class AboutMedLifeScreen extends StatelessWidget {
             _section(
               "Our Services",
               [
-                _iconItem(Icons.medical_services, "Scrubs", boxColor, subText),
-                _iconItem(Icons.science, "Lab Coats", boxColor, subText),
-                _iconItem(Icons.healing, "Accessories", boxColor, subText),
-                _iconItem(Icons.local_shipping, "Delivery", boxColor, subText),
+                _iconItem(
+                  Icons.medical_services,
+                  "Scrubs",
+                  boxColor,
+                  subText,
+                ),
+
+                _iconItem(
+                  Icons.science,
+                  "Lab Coats",
+                  boxColor,
+                  subText,
+                ),
+
+                _iconItem(
+                  Icons.healing,
+                  "Accessories",
+                  boxColor,
+                  subText,
+                ),
+
+                _iconItem(
+                  Icons.local_shipping,
+                  "Delivery",
+                  boxColor,
+                  subText,
+                ),
               ],
               cardColor,
               mainText,
@@ -5513,10 +5545,33 @@ class AboutMedLifeScreen extends StatelessWidget {
             _section(
               "Why Choose MedLife?",
               [
-                _iconItem(Icons.star, "High Quality", boxColor, subText),
-                _iconItem(Icons.attach_money, "Affordable", boxColor, subText),
-                _iconItem(Icons.flash_on, "Fast", boxColor, subText),
-                _iconItem(Icons.verified, "Trusted", boxColor, subText),
+                _iconItem(
+                  Icons.star,
+                  "High Quality",
+                  boxColor,
+                  subText,
+                ),
+
+                _iconItem(
+                  Icons.attach_money,
+                  "Affordable",
+                  boxColor,
+                  subText,
+                ),
+
+                _iconItem(
+                  Icons.flash_on,
+                  "Fast",
+                  boxColor,
+                  subText,
+                ),
+
+                _iconItem(
+                  Icons.verified,
+                  "Trusted",
+                  boxColor,
+                  subText,
+                ),
               ],
               cardColor,
               mainText,
@@ -5528,42 +5583,87 @@ class AboutMedLifeScreen extends StatelessWidget {
             Container(
               width: double.infinity,
               padding: const EdgeInsets.all(20),
+
               decoration: BoxDecoration(
                 color: cardColor,
                 borderRadius: BorderRadius.circular(20),
               ),
+
               child: Column(
                 crossAxisAlignment:
                     CrossAxisAlignment.start,
+
                 children: [
+
                   Text(
                     "Contact Us",
                     style: TextStyle(
                       color: mainText,
                       fontWeight: FontWeight.bold,
+                      fontSize: 20,
                     ),
                   ),
-                  const SizedBox(height: 10),
+
+                  const SizedBox(height: 18),
 
                   Row(
                     children: [
-                      const Icon(Icons.phone, color: purple),
+
+                      const Icon(
+                        Icons.phone,
+                        color: purple,
+                      ),
+
                       const SizedBox(width: 10),
-                      Text("01066813466",
-                          style: TextStyle(color: subText)),
+
+                      Text(
+                        "01066813466",
+                        style: TextStyle(
+                          color: subText,
+                          fontSize: 16,
+                        ),
+                      ),
                     ],
                   ),
 
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 12),
 
-                  Row(
-                    children: [
-                      const Icon(Icons.email, color: purple),
-                      const SizedBox(width: 10),
-                      Text("support@medlife.com",
-                          style: TextStyle(color: subText)),
-                    ],
-                  ),
+                 Row(
+  children: [
+
+    const Icon(
+      Icons.email,
+      color: purple,
+    ),
+
+    const SizedBox(width: 10),
+
+    GestureDetector(
+      onTap: () async {
+
+        final Uri emailUri = Uri(
+          scheme: 'mailto',
+          path: 'medlife.supportteam@gmail.com',
+          query:
+              'subject=MedLife Support',
+        );
+
+        await launchUrl(emailUri);
+      },
+
+      child: Text(
+        "medlife.supportteam@gmail.com",
+        style: TextStyle(
+          color: purple,
+          fontSize: 16,
+          fontWeight: FontWeight.w600,
+          decoration:
+              TextDecoration.underline,
+        ),
+      ),
+    ),
+  ],
+),
                 ],
               ),
             ),
@@ -5583,24 +5683,45 @@ class AboutMedLifeScreen extends StatelessWidget {
     required Color subText,
   }) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(18),
+
       decoration: BoxDecoration(
         color: cardColor,
         borderRadius: BorderRadius.circular(20),
       ),
+
       child: Column(
         children: [
-          Icon(icon, color: const Color(0xFF8E5CF7)),
-          const SizedBox(height: 10),
-          Text(title,
-              style: TextStyle(
-                  color: mainText,
-                  fontWeight: FontWeight.bold)),
-          const SizedBox(height: 6),
-          Text(text,
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                  color: subText, fontSize: 12)),
+
+          Icon(
+            icon,
+            color: const Color(0xFF8E5CF7),
+            size: 32,
+          ),
+
+          const SizedBox(height: 12),
+
+          Text(
+            title,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: mainText,
+              fontWeight: FontWeight.bold,
+              fontSize: 18,
+            ),
+          ),
+
+          const SizedBox(height: 8),
+
+          Text(
+            text,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: subText,
+              fontSize: 13,
+              height: 1.4,
+            ),
+          ),
         ],
       ),
     );
@@ -5614,23 +5735,35 @@ class AboutMedLifeScreen extends StatelessWidget {
     Color mainText,
   ) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      width: double.infinity,
+
+      padding: const EdgeInsets.all(18),
+
       decoration: BoxDecoration(
         color: cardColor,
         borderRadius: BorderRadius.circular(20),
       ),
+
       child: Column(
         crossAxisAlignment:
             CrossAxisAlignment.start,
+
         children: [
-          Text(title,
-              style: TextStyle(
-                  color: mainText,
-                  fontWeight: FontWeight.bold)),
-          const SizedBox(height: 12),
+
+          Text(
+            title,
+            style: TextStyle(
+              color: mainText,
+              fontWeight: FontWeight.bold,
+              fontSize: 20,
+            ),
+          ),
+
+          const SizedBox(height: 18),
+
           Wrap(
-            spacing: 10,
-            runSpacing: 10,
+            spacing: 14,
+            runSpacing: 14,
             children: items,
           ),
         ],
@@ -5640,22 +5773,44 @@ class AboutMedLifeScreen extends StatelessWidget {
 
   /// 🔹 ICON ITEM
   Widget _iconItem(
-      IconData icon, String text, Color boxColor, Color subText) {
+    IconData icon,
+    String text,
+    Color boxColor,
+    Color subText,
+  ) {
     return Container(
-      width: 80,
-      padding: const EdgeInsets.all(10),
+      width: 120,
+
+      padding: const EdgeInsets.symmetric(
+        vertical: 20,
+        horizontal: 12,
+      ),
+
       decoration: BoxDecoration(
         color: boxColor,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(18),
       ),
+
       child: Column(
         children: [
-          Icon(icon, color: const Color(0xFF8E5CF7)),
-          const SizedBox(height: 6),
-          Text(text,
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                  color: subText, fontSize: 11)),
+
+          Icon(
+            icon,
+            size: 32,
+            color: const Color(0xFF8E5CF7),
+          ),
+
+          const SizedBox(height: 10),
+
+          Text(
+            text,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: subText,
+              fontSize: 13,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
         ],
       ),
     );
