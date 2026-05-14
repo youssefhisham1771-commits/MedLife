@@ -11,6 +11,7 @@ import 'dart:io';
 import 'package:image_picker/image_picker.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:flutter/gestures.dart';
+import 'package:intl/intl.dart';
 import 'package:http/http.dart' as http;
 import 'dart:async';
 
@@ -4478,14 +4479,18 @@ class ProfileScreen extends StatelessWidget {
                             const SizedBox(height: 14),
 
                             _buildInfoTile(
-                              icon: Icons.calendar_month,
-                              title: "Member Since",
-                              value: "May 2024",
-                              mainTextColor: mainTextColor,
-                              subTextColor: subTextColor,
-                              iconBoxColor: iconBoxColor,
-                              purpleColor: purpleColor,
-                            ),
+  icon: Icons.calendar_month,
+  title: "Member Since",
+  value: user!.metadata.creationTime != null
+      ? DateFormat.yMMMM().format(
+          user!.metadata.creationTime!,
+        )
+      : "Unknown",
+  mainTextColor: mainTextColor,
+  subTextColor: subTextColor,
+  iconBoxColor: iconBoxColor,
+  purpleColor: purpleColor,
+),
                           ],
                         ),
                       ),
@@ -4502,10 +4507,20 @@ class ProfileScreen extends StatelessWidget {
                         child: Column(
                           children: [
                             _menuTile(
-                              icon: Icons.location_on_outlined,
-                              title: "My Addresses",
-                              color: mainTextColor,
-                            ),
+  icon: Icons.location_on_outlined,
+  title: "My Addresses",
+  color: mainTextColor,
+
+  onTap: () {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) =>
+            const MyAddressesScreen(),
+      ),
+    );
+  },
+),
 
                             _menuTile(
                               icon: Icons.credit_card,
@@ -5353,6 +5368,930 @@ class _ForgotPasswordScreenState
     );
   }
 }
+
+class MyAddressesScreen extends StatefulWidget {
+  const MyAddressesScreen({super.key});
+
+  @override
+  State<MyAddressesScreen> createState() =>
+      _MyAddressesScreenState();
+}
+
+class _MyAddressesScreenState
+    extends State<MyAddressesScreen> {
+
+  /// EMPTY LIST
+  final List<Map<String, String>> addresses = [];
+
+  void _showAddAddressDialog() {
+
+    if (addresses.length >= 3) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content:
+              Text("Maximum 3 addresses allowed"),
+        ),
+      );
+      return;
+    }
+
+    final titleController =
+        TextEditingController();
+
+    final addressController =
+        TextEditingController();
+
+    final bool isDark =
+        Theme.of(context).brightness ==
+            Brightness.dark;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor:
+          isDark
+              ? const Color(0xFF171326)
+              : Colors.white,
+
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(
+          top: Radius.circular(28),
+        ),
+      ),
+
+      builder: (context) {
+        return Padding(
+          padding: EdgeInsets.only(
+            left: 20,
+            right: 20,
+            top: 24,
+            bottom:
+                MediaQuery.of(context)
+                    .viewInsets
+                    .bottom +
+                24,
+          ),
+
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+
+            children: [
+
+              Container(
+                width: 70,
+                height: 5,
+
+                decoration: BoxDecoration(
+                  color: Colors.grey.withOpacity(.4),
+                  borderRadius:
+                      BorderRadius.circular(20),
+                ),
+              ),
+
+              const SizedBox(height: 24),
+
+              const Text(
+                "Add New Address",
+                style: TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+
+              const SizedBox(height: 24),
+
+              TextField(
+                controller: titleController,
+
+                style: TextStyle(
+                  color:
+                      isDark
+                          ? Colors.white
+                          : Colors.black,
+                ),
+
+                decoration: InputDecoration(
+                  labelText: "Title",
+                  hintText:
+                      "Home / Work / University",
+
+                  prefixIcon: const Icon(
+                    Icons.title,
+                  ),
+
+                  border: OutlineInputBorder(
+                    borderRadius:
+                        BorderRadius.circular(18),
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 18),
+
+              TextField(
+                controller: addressController,
+                maxLines: 3,
+
+                style: TextStyle(
+                  color:
+                      isDark
+                          ? Colors.white
+                          : Colors.black,
+                ),
+
+                decoration: InputDecoration(
+                  labelText: "Address",
+                  hintText:
+                      "Enter full address details",
+
+                  prefixIcon: const Padding(
+                    padding: EdgeInsets.only(
+                      bottom: 50,
+                    ),
+                    child: Icon(
+                      Icons.location_on,
+                    ),
+                  ),
+
+                  border: OutlineInputBorder(
+                    borderRadius:
+                        BorderRadius.circular(18),
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 24),
+
+              SizedBox(
+                width: double.infinity,
+                height: 56,
+
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor:
+                        const Color(0xFF8E5CF7),
+
+                    shape: RoundedRectangleBorder(
+                      borderRadius:
+                          BorderRadius.circular(
+                            18,
+                          ),
+                    ),
+                  ),
+
+                  onPressed: () {
+
+                    if (titleController.text
+                            .trim()
+                            .isEmpty ||
+                        addressController.text
+                            .trim()
+                            .isEmpty) {
+                      return;
+                    }
+
+                    setState(() {
+
+                      addresses.add({
+                        "title":
+                            titleController.text
+                                .trim(),
+
+                        "address":
+                            addressController.text
+                                .trim(),
+                      });
+                    });
+
+                    Navigator.pop(context);
+                  },
+
+                  child: const Text(
+                    "Save Address",
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight:
+                          FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  void _deleteAddress(int index) {
+    setState(() {
+      addresses.removeAt(index);
+    });
+  }
+
+  IconData _getAddressIcon(String title) {
+
+    switch (title.toLowerCase()) {
+
+      case "home":
+        return Icons.home_outlined;
+
+      case "work":
+        return Icons.work_outline;
+
+      case "university":
+        return Icons.school_outlined;
+
+      default:
+        return Icons.location_on_outlined;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+
+    final bool isDark =
+        Theme.of(context).brightness ==
+            Brightness.dark;
+
+    final Color bgColor =
+        isDark
+            ? const Color(0xFF0D0917)
+            : const Color(0xFFF7F7FA);
+
+    final Color cardColor =
+        isDark
+            ? const Color(0xFF171326)
+            : Colors.white;
+
+    final Color mainText =
+        isDark ? Colors.white : Colors.black;
+
+    final Color subText =
+        isDark
+            ? Colors.white70
+            : Colors.grey.shade700;
+
+    const Color purple =
+        Color(0xFF8E5CF7);
+
+    return Scaffold(
+      backgroundColor: bgColor,
+
+      appBar: AppBar(
+        backgroundColor:
+            isDark
+                ? Colors.black
+                : Colors.white,
+
+        elevation: 0,
+
+        leading: IconButton(
+          icon: Icon(
+            Icons.arrow_back,
+            color: mainText,
+          ),
+
+          onPressed: () {
+            Navigator.pop(context);
+          },
+        ),
+
+        title: Text(
+          "My Addresses",
+
+          style: TextStyle(
+            color: mainText,
+            fontWeight:
+                FontWeight.bold,
+            fontSize: 30,
+          ),
+        ),
+
+        actions: [
+
+          if (addresses.length < 3)
+
+            TextButton.icon(
+              onPressed:
+                  _showAddAddressDialog,
+
+              icon: const Icon(
+                Icons.add,
+                color: purple,
+              ),
+
+              label: const Text(
+                "Add",
+
+                style: TextStyle(
+                  color: purple,
+                  fontSize: 16,
+                  fontWeight:
+                      FontWeight.bold,
+                ),
+              ),
+            ),
+
+          const SizedBox(width: 8),
+        ],
+      ),
+
+      floatingActionButton:
+          addresses.isNotEmpty &&
+                  addresses.length < 3
+              ? FloatingActionButton.extended(
+
+                backgroundColor: purple,
+
+                onPressed:
+                    _showAddAddressDialog,
+
+                icon: const Icon(
+                  Icons.add,
+                  color: Colors.white,
+                ),
+
+                label: const Text(
+                  "Add Address",
+
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight:
+                        FontWeight.bold,
+                  ),
+                ),
+              )
+              : null,
+
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
+
+        child: Column(
+          crossAxisAlignment:
+              CrossAxisAlignment.start,
+
+          children: [
+
+            /// TOP CARD
+            Container(
+              width: double.infinity,
+              padding:
+                  const EdgeInsets.all(20),
+
+              decoration: BoxDecoration(
+                borderRadius:
+                    BorderRadius.circular(
+                      24,
+                    ),
+
+                gradient: LinearGradient(
+                  colors:
+                      isDark
+                          ? [
+                            const Color(
+                              0xFF2B1E4B,
+                            ),
+
+                            const Color(
+                              0xFF171326,
+                            ),
+                          ]
+                          : [
+                            const Color(
+                              0xFFEDE7FF,
+                            ),
+
+                            Colors.white,
+                          ],
+                ),
+              ),
+
+              child: Row(
+                children: [
+
+                  Container(
+                    width: 70,
+                    height: 70,
+
+                    decoration: BoxDecoration(
+                      color: purple
+                          .withOpacity(.15),
+
+                      shape: BoxShape.circle,
+                    ),
+
+                    child: const Icon(
+                      Icons.location_on,
+                      color: purple,
+                      size: 36,
+                    ),
+                  ),
+
+                  const SizedBox(width: 18),
+
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment:
+                          CrossAxisAlignment
+                              .start,
+
+                      children: [
+
+                        Text(
+                          "Manage your addresses",
+
+                          style: TextStyle(
+                            color: mainText,
+                            fontSize: 22,
+                            fontWeight:
+                                FontWeight.bold,
+                          ),
+                        ),
+
+                        const SizedBox(
+                          height: 6,
+                        ),
+
+                        Text(
+                          "You can add up to 3 addresses",
+
+                          style: TextStyle(
+                            color: subText,
+                            fontSize: 15,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 12,
+                        ),
+
+                    decoration: BoxDecoration(
+                      color: purple
+                          .withOpacity(.15),
+
+                      borderRadius:
+                          BorderRadius.circular(
+                            18,
+                          ),
+                    ),
+
+                    child: Text(
+                      "${addresses.length}/3",
+
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight:
+                            FontWeight.bold,
+                        fontSize: 20,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 26),
+
+            Text(
+              "Your Addresses",
+
+              style: TextStyle(
+                color: mainText,
+                fontSize: 28,
+                fontWeight:
+                    FontWeight.bold,
+              ),
+            ),
+
+            const SizedBox(height: 18),
+
+            /// EMPTY STATE
+            if (addresses.isEmpty)
+
+              Container(
+                width: double.infinity,
+                padding:
+                    const EdgeInsets.all(30),
+
+                decoration: BoxDecoration(
+                  color: cardColor,
+
+                  borderRadius:
+                      BorderRadius.circular(
+                        28,
+                      ),
+                ),
+
+                child: Column(
+                  children: [
+
+                    Container(
+                      width: 90,
+                      height: 90,
+
+                      decoration: BoxDecoration(
+                        color: purple
+                            .withOpacity(.15),
+
+                        shape: BoxShape.circle,
+                      ),
+
+                      child: const Icon(
+                        Icons.location_off_outlined,
+                        color: purple,
+                        size: 45,
+                      ),
+                    ),
+
+                    const SizedBox(
+                      height: 22,
+                    ),
+
+                    Text(
+                      "No Addresses Yet",
+
+                      style: TextStyle(
+                        color: mainText,
+                        fontSize: 24,
+                        fontWeight:
+                            FontWeight.bold,
+                      ),
+                    ),
+
+                    const SizedBox(
+                      height: 10,
+                    ),
+
+                    Text(
+                      "Add your first address to make ordering faster and easier.",
+
+                      textAlign:
+                          TextAlign.center,
+
+                      style: TextStyle(
+                        color: subText,
+                        fontSize: 15,
+                        height: 1.5,
+                      ),
+                    ),
+
+                    const SizedBox(
+                      height: 24,
+                    ),
+
+                    SizedBox(
+                      width: double.infinity,
+                      height: 56,
+
+                      child:
+                          ElevatedButton.icon(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor:
+                                  purple,
+
+                              shape: RoundedRectangleBorder(
+                                borderRadius:
+                                    BorderRadius.circular(
+                                      18,
+                                    ),
+                              ),
+                            ),
+
+                            onPressed:
+                                _showAddAddressDialog,
+
+                            icon: const Icon(
+                              Icons.add,
+                              color:
+                                  Colors.white,
+                            ),
+
+                            label: const Text(
+                              "Add Address",
+
+                              style: TextStyle(
+                                color:
+                                    Colors.white,
+                                fontWeight:
+                                    FontWeight
+                                        .bold,
+                                fontSize: 18,
+                              ),
+                            ),
+                          ),
+                    ),
+                  ],
+                ),
+              ),
+
+            /// ADDRESS LIST
+            ...List.generate(
+              addresses.length,
+
+              (index) {
+
+                final item =
+                    addresses[index];
+
+                return Padding(
+                  padding:
+                      const EdgeInsets.only(
+                        bottom: 18,
+                      ),
+
+                  child: Container(
+                    width: double.infinity,
+                    padding:
+                        const EdgeInsets.all(
+                          18,
+                        ),
+
+                    decoration: BoxDecoration(
+                      color: cardColor,
+
+                      borderRadius:
+                          BorderRadius.circular(
+                            28,
+                          ),
+
+                      boxShadow: [
+                        BoxShadow(
+                          color:
+                              Colors.black12,
+                          blurRadius: 10,
+                          offset:
+                              const Offset(
+                                0,
+                                4,
+                              ),
+                        ),
+                      ],
+                    ),
+
+                    child: Row(
+                      crossAxisAlignment:
+                          CrossAxisAlignment
+                              .start,
+
+                      children: [
+
+                        Container(
+                          width: 70,
+                          height: 70,
+
+                          decoration: BoxDecoration(
+                            color: purple
+                                .withOpacity(
+                                  .15,
+                                ),
+
+                            borderRadius:
+                                BorderRadius.circular(
+                                  22,
+                                ),
+                          ),
+
+                          child: Icon(
+                            _getAddressIcon(
+                              item['title']!,
+                            ),
+
+                            color: purple,
+                            size: 34,
+                          ),
+                        ),
+
+                        const SizedBox(
+                          width: 16,
+                        ),
+
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment:
+                                CrossAxisAlignment
+                                    .start,
+
+                            children: [
+
+                              Row(
+                                children: [
+
+                                  Text(
+                                    item['title']!,
+
+                                    style: TextStyle(
+                                      color:
+                                          mainText,
+
+                                      fontSize:
+                                          24,
+
+                                      fontWeight:
+                                          FontWeight
+                                              .bold,
+                                    ),
+                                  ),
+
+                                  const SizedBox(
+                                    width:
+                                        10,
+                                  ),
+
+                                  if (index ==
+                                      0)
+
+                                    Container(
+                                      padding:
+                                          const EdgeInsets.symmetric(
+                                            horizontal:
+                                                12,
+
+                                            vertical:
+                                                6,
+                                          ),
+
+                                      decoration: BoxDecoration(
+                                        color: purple
+                                            .withOpacity(
+                                              .15,
+                                            ),
+
+                                        borderRadius:
+                                            BorderRadius.circular(
+                                              14,
+                                            ),
+                                      ),
+
+                                      child:
+                                          const Text(
+                                            "Default",
+
+                                            style: TextStyle(
+                                              color:
+                                                  purple,
+
+                                              fontWeight:
+                                                  FontWeight.bold,
+                                            ),
+                                          ),
+                                    ),
+                                ],
+                              ),
+
+                              const SizedBox(
+                                height: 12,
+                              ),
+
+                              Text(
+                                item['address']!,
+
+                                style: TextStyle(
+                                  color:
+                                      subText,
+
+                                  fontSize:
+                                      16,
+
+                                  height:
+                                      1.5,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+
+                        PopupMenuButton(
+                          color: cardColor,
+
+                          icon: Icon(
+                            Icons.more_vert,
+                            color: subText,
+                          ),
+
+                          itemBuilder:
+                              (context) => [
+
+                                PopupMenuItem(
+                                  onTap: () {
+
+                                    Future.delayed(
+                                      Duration
+                                          .zero,
+
+                                      () {
+
+                                        _deleteAddress(
+                                          index,
+                                        );
+                                      },
+                                    );
+                                  },
+
+                                  child:
+                                      const Row(
+                                        children: [
+
+                                          Icon(
+                                            Icons
+                                                .delete,
+
+                                            color:
+                                                Colors.red,
+                                          ),
+
+                                          SizedBox(
+                                            width:
+                                                10,
+                                          ),
+
+                                          Text(
+                                            "Delete",
+                                          ),
+                                        ],
+                                      ),
+                                ),
+                              ],
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
+
+            const SizedBox(height: 24),
+
+            /// BOTTOM INFO
+            Container(
+              width: double.infinity,
+              padding:
+                  const EdgeInsets.all(20),
+
+              decoration: BoxDecoration(
+                color: cardColor,
+
+                borderRadius:
+                    BorderRadius.circular(
+                      24,
+                    ),
+              ),
+
+              child: Row(
+                children: [
+
+                  Container(
+                    width: 55,
+                    height: 55,
+
+                    decoration: BoxDecoration(
+                      color: purple
+                          .withOpacity(.15),
+
+                      borderRadius:
+                          BorderRadius.circular(
+                            18,
+                          ),
+                    ),
+
+                    child: const Icon(
+                      Icons.shield_outlined,
+                      color: purple,
+                    ),
+                  ),
+
+                  const SizedBox(width: 16),
+
+                  Expanded(
+                    child: Text(
+                      "Your addresses are saved securely and used to deliver your orders.",
+
+                      style: TextStyle(
+                        color: subText,
+                        fontSize: 15,
+                        height: 1.5,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 100),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class AboutMedLifeScreen extends StatelessWidget {
   const AboutMedLifeScreen({super.key});
 
