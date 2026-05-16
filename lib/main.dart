@@ -666,6 +666,7 @@ class _ProductsScreenState extends State<ProductsScreen> {
   int currentIndex = 0;
 
  int salesCount = 0;
+ int cartCount = 0;
  bool isAdmin = false;
 
  bool salesSeen = false;
@@ -673,7 +674,10 @@ class _ProductsScreenState extends State<ProductsScreen> {
 @override
 void initState() {
   super.initState();
+
   loadFavourites();
+  loadCart();
+
   checkAdmin();
   loadSalesCount();
 }
@@ -781,6 +785,21 @@ Future<void> removeFromFavourites(int index) async {
   });
 }
 
+Future<void> loadCart() async {
+  var user = FirebaseAuth.instance.currentUser;
+  if (user == null) return;
+
+  var snapshot = await FirebaseFirestore.instance
+      .collection('users')
+      .doc(user.uid)
+      .collection('cart')
+      .get();
+
+  setState(() {
+    cart = snapshot.docs.map((doc) => doc.data()).toList();
+  });
+}
+
 Widget buildProducts() {
   return StreamBuilder(
     stream: FirebaseFirestore.instance.collection('Products').snapshots(),
@@ -791,7 +810,7 @@ Widget buildProducts() {
 
       var products = snapshot.data!.docs;
 
-      return Column(
+return Column(
   children: [
 
     /// 🔥 البانر فوق
@@ -816,7 +835,8 @@ Widget buildProducts() {
               ? data['images']
               : [data['image']];
 
-          bool isFav = favourites.any((e) => e['name'] == data['name']);
+          bool isFav =
+              favourites.any((e) => e['name'] == data['name']);
 
           return GestureDetector(
             onTap: () {
@@ -826,6 +846,10 @@ Widget buildProducts() {
                   builder: (_) => ProductDetailsScreen(
                     product: product,
                     cart: cart,
+
+                    onAddToCart: () {
+                      setState(() {});
+                    },
                   ),
                 ),
               );
@@ -1064,7 +1088,6 @@ Widget buildBadge({
   Widget build(BuildContext context) {
     var user = FirebaseAuth.instance.currentUser;
 
-    int cartCount = cart.length;
 int favCount = favourites.length;
     
 return Scaffold(
@@ -1319,13 +1342,25 @@ bottomNavigationBar: BottomNavigationBar(
   ),
 
   /// 🛒 CART
-  BottomNavigationBarItem(
-    icon: buildBadge(
-      icon: Icons.shopping_cart,
-      count: cartCount,
-    ),
-    label: "Cart",
+ BottomNavigationBarItem(
+  icon: StreamBuilder(
+    stream: FirebaseFirestore.instance
+        .collection('users')
+        .doc(FirebaseAuth.instance.currentUser?.uid)
+        .collection('cart')
+        .snapshots(),
+    builder: (context, snapshot) {
+
+      int count = snapshot.data?.docs.length ?? 0;
+
+      return buildBadge(
+        icon: Icons.shopping_cart,
+        count: count,
+      );
+    },
   ),
+  label: "Cart",
+),
 
   /// ❤️ FAVOURITES
   BottomNavigationBarItem(
@@ -1645,6 +1680,8 @@ Column(
                 product: product,
 
                 cart: [],
+
+                onAddToCart: () {},
               ),
             ),
           );
@@ -2377,14 +2414,13 @@ class CustomDrawer extends StatelessWidget {
 
           /// 🎨 Gradient
           gradient: LinearGradient(
-            colors: [
-              Color(0xFF6DD5FA),
-              Color(0xFF2980B9),
-            ],
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-          ),
-
+  colors: [
+    Color(0xFF2D5A74),
+    Color(0xFF123249),
+  ],
+  begin: Alignment.topLeft,
+  end: Alignment.bottomRight,
+),
           boxShadow: [
             BoxShadow(
               blurRadius: 20,
@@ -2400,13 +2436,25 @@ class CustomDrawer extends StatelessWidget {
             /// 👤 USER
             Row(
               children: [
-                CircleAvatar(
-                  radius: 25,
-                  backgroundImage: NetworkImage(
-                    user?.photoURL ??
-                        "https://i.pravatar.cc/150?img=3",
-                  ),
-                ),
+                Container(
+  width: 50,
+  height: 50,
+  decoration: BoxDecoration(
+    shape: BoxShape.circle,
+    color: Colors.white.withOpacity(0.2),
+
+    border: Border.all(
+      color: Colors.white,
+      width: 2,
+    ),
+  ),
+
+  child: Icon(
+    Icons.person,
+    color: Colors.white,
+    size: 28,
+  ),
+),
                 SizedBox(width: 10),
                 Expanded(
                   child:StreamBuilder(
@@ -2478,6 +2526,30 @@ class CustomDrawer extends StatelessWidget {
       MaterialPageRoute(
 
         builder: (_) => ReviewsScreen(),
+      ),
+    );
+  },
+),
+
+ListTile(
+  leading: Icon(
+    Icons.support_agent,
+    color: Colors.white,
+  ),
+
+  title: Text(
+    "Contact Us",
+    style: TextStyle(
+      color: Colors.white,
+      fontWeight: FontWeight.bold,
+    ),
+  ),
+
+  onTap: () {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => ContactUsScreen(),
       ),
     );
   },
@@ -2580,7 +2652,6 @@ class _ReviewsScreenState
       var userData =
           userDoc.data() as Map<String, dynamic>;
 
-      /// 🔥 هل المستخدم كتب review قبل كدا؟
       var existing = await FirebaseFirestore.instance
           .collection('reviews')
           .where('userId', isEqualTo: user.uid)
@@ -2588,7 +2659,6 @@ class _ReviewsScreenState
 
       if (existing.docs.isNotEmpty) {
 
-        /// ✏️ update
         await FirebaseFirestore.instance
             .collection('reviews')
             .doc(existing.docs.first.id)
@@ -2604,7 +2674,6 @@ class _ReviewsScreenState
 
       } else {
 
-        /// ➕ add
         await FirebaseFirestore.instance
             .collection('reviews')
             .add({
@@ -2653,15 +2722,31 @@ class _ReviewsScreenState
   @override
   Widget build(BuildContext context) {
 
+    bool isDark =
+        Theme.of(context).brightness ==
+            Brightness.dark;
+
     return Scaffold(
 
-      backgroundColor: Color(0xFF0E071B),
+      backgroundColor:
+          isDark ? Colors.black : Colors.white,
 
       appBar: AppBar(
-        backgroundColor: Colors.transparent,
+
+        backgroundColor:
+            isDark ? Colors.black : Colors.white,
+
         elevation: 0,
+
         title: Text(
           "Our Customers Reviews ⭐",
+
+          style: TextStyle(
+            color:
+                isDark
+                    ? Colors.white
+                    : Colors.black,
+          ),
         ),
       ),
 
@@ -2685,7 +2770,6 @@ class _ReviewsScreenState
 
           var reviews = snapshot.data!.docs;
 
-          /// ⭐ حساب المتوسط
           double average = 0;
 
           if (reviews.isNotEmpty) {
@@ -2699,7 +2783,6 @@ class _ReviewsScreenState
             average = total / reviews.length;
           }
 
-          /// 📊 عدد كل تقييم
           int star5 = 0;
           int star4 = 0;
           int star3 = 0;
@@ -2742,11 +2825,16 @@ class _ReviewsScreenState
                       Text(
                         average
                             .toStringAsFixed(1),
+
                         style: TextStyle(
                           fontSize: 55,
                           fontWeight:
                               FontWeight.bold,
-                          color: Colors.white,
+
+                          color:
+                              isDark
+                                  ? Colors.white
+                                  : Colors.black,
                         ),
                       ),
 
@@ -2755,12 +2843,14 @@ class _ReviewsScreenState
                       Row(
                         mainAxisAlignment:
                             MainAxisAlignment.center,
+
                         children: List.generate(
                           5,
                           (index) => Icon(
                             index < average.round()
                                 ? Icons.star
                                 : Icons.star_border,
+
                             color: Colors.amber,
                             size: 30,
                           ),
@@ -2771,8 +2861,14 @@ class _ReviewsScreenState
 
                       Text(
                         "Based on ${reviews.length} Reviews",
+
                         style: TextStyle(
-                          color: Colors.white70,
+
+                          color:
+                              isDark
+                                  ? Colors.white70
+                                  : Colors.black54,
+
                           fontSize: 16,
                         ),
                       ),
@@ -2783,11 +2879,30 @@ class _ReviewsScreenState
                 SizedBox(height: 30),
 
                 /// 📊 BARS
-                buildRatingBar(5, percent(star5)),
-                buildRatingBar(4, percent(star4)),
-                buildRatingBar(3, percent(star3)),
-                buildRatingBar(2, percent(star2)),
-                buildRatingBar(1, percent(star1)),
+                buildRatingBar(
+                    5,
+                    percent(star5),
+                    isDark),
+
+                buildRatingBar(
+                    4,
+                    percent(star4),
+                    isDark),
+
+                buildRatingBar(
+                    3,
+                    percent(star3),
+                    isDark),
+
+                buildRatingBar(
+                    2,
+                    percent(star2),
+                    isDark),
+
+                buildRatingBar(
+                    1,
+                    percent(star1),
+                    isDark),
 
                 SizedBox(height: 35),
 
@@ -2797,16 +2912,25 @@ class _ReviewsScreenState
                   padding: EdgeInsets.all(20),
 
                   decoration: BoxDecoration(
+
                     borderRadius:
                         BorderRadius.circular(30),
 
                     gradient: LinearGradient(
-                      colors: [
-                        Colors.orange,
-                        Colors.deepOrangeAccent,
-                        Colors.pink,
-                      ],
-                    ),
+
+  begin: Alignment.topLeft,
+  end: Alignment.bottomRight,
+
+  colors: isDark
+      ? [
+          Color(0xFF2D5A74),
+          Color(0xFF123249),
+        ]
+      : [
+          Color(0xFFEAF6FF),
+          Color(0xFFD6ECFF),
+        ],
+),
                   ),
 
                   child: Column(
@@ -2817,9 +2941,16 @@ class _ReviewsScreenState
 
                       Text(
                         "Rate Our App ⭐",
+
                         style: TextStyle(
-                          color: Colors.white,
+
+                          color:
+                              isDark
+                                  ? Colors.white
+                                  : Colors.black,
+
                           fontSize: 24,
+
                           fontWeight:
                               FontWeight.bold,
                         ),
@@ -2878,8 +3009,12 @@ class _ReviewsScreenState
 
                         maxLines: 4,
 
-                        style:
-                            TextStyle(color: Colors.white),
+                        style: TextStyle(
+                          color:
+                              isDark
+                                  ? Colors.white
+                                  : Colors.black,
+                        ),
 
                         decoration: InputDecoration(
 
@@ -2887,17 +3022,25 @@ class _ReviewsScreenState
                               "Write your review...",
 
                           hintStyle: TextStyle(
-                            color: Colors.white70,
+
+                            color:
+                                isDark
+                                    ? Colors.white70
+                                    : Colors.black45,
                           ),
 
                           filled: true,
 
                           fillColor:
-                              Colors.white.withOpacity(0.15),
+                              isDark
+                                  ? Colors.white.withOpacity(0.15)
+                                  : Colors.white,
 
                           border: OutlineInputBorder(
+
                             borderRadius:
                                 BorderRadius.circular(20),
+
                             borderSide:
                                 BorderSide.none,
                           ),
@@ -2921,10 +3064,14 @@ class _ReviewsScreenState
                               ElevatedButton.styleFrom(
 
                             backgroundColor:
-                                Colors.white,
+                                isDark
+                                    ? Colors.white
+                                    : Colors.black,
 
                             foregroundColor:
-                                Colors.black,
+                                isDark
+                                    ? Colors.black
+                                    : Colors.white,
 
                             padding:
                                 EdgeInsets.symmetric(
@@ -2948,9 +3095,16 @@ class _ReviewsScreenState
                 /// 👥 REVIEWS
                 Text(
                   "Users Reviews",
+
                   style: TextStyle(
-                    color: Colors.white,
+
+                    color:
+                        isDark
+                            ? Colors.white
+                            : Colors.black,
+
                     fontSize: 24,
+
                     fontWeight: FontWeight.bold,
                   ),
                 ),
@@ -2961,10 +3115,17 @@ class _ReviewsScreenState
                   Center(
                     child: Padding(
                       padding: EdgeInsets.all(40),
+
                       child: Text(
                         "No Reviews Yet ⭐",
+
                         style: TextStyle(
-                          color: Colors.white70,
+
+                          color:
+                              isDark
+                                  ? Colors.white70
+                                  : Colors.black54,
+
                           fontSize: 18,
                         ),
                       ),
@@ -2980,6 +3141,7 @@ class _ReviewsScreenState
                     data['userName'],
                     data['rating'],
                     data['review'],
+                    isDark,
                   );
                 }).toList(),
               ],
@@ -2994,7 +3156,8 @@ class _ReviewsScreenState
   Widget buildRatingBar(
       int star,
       double value,
-  ) {
+      bool isDark,
+      ) {
 
     return Padding(
 
@@ -3005,8 +3168,13 @@ class _ReviewsScreenState
 
           Text(
             "$star",
+
             style: TextStyle(
-              color: Colors.white,
+
+              color:
+                  isDark
+                      ? Colors.white
+                      : Colors.black,
             ),
           ),
 
@@ -3033,7 +3201,9 @@ class _ReviewsScreenState
                 minHeight: 10,
 
                 backgroundColor:
-                    Colors.white12,
+                    isDark
+                        ? Colors.white12
+                        : Colors.black12,
 
                 valueColor:
                     AlwaysStoppedAnimation(
@@ -3047,8 +3217,13 @@ class _ReviewsScreenState
 
           Text(
             "${(value * 100).toInt()}%",
+
             style: TextStyle(
-              color: Colors.white70,
+
+              color:
+                  isDark
+                      ? Colors.white70
+                      : Colors.black54,
             ),
           ),
         ],
@@ -3061,7 +3236,8 @@ class _ReviewsScreenState
       String name,
       int stars,
       String review,
-  ) {
+      bool isDark,
+      ) {
 
     return Container(
 
@@ -3071,7 +3247,10 @@ class _ReviewsScreenState
 
       decoration: BoxDecoration(
 
-        color: Colors.white.withOpacity(0.05),
+        color:
+            isDark
+                ? Colors.white.withOpacity(0.05)
+                : Colors.black.withOpacity(0.04),
 
         borderRadius:
             BorderRadius.circular(22),
@@ -3100,10 +3279,17 @@ class _ReviewsScreenState
               Expanded(
                 child: Text(
                   name,
+
                   style: TextStyle(
-                    color: Colors.white,
+
+                    color:
+                        isDark
+                            ? Colors.white
+                            : Colors.black,
+
                     fontWeight:
                         FontWeight.bold,
+
                     fontSize: 16,
                   ),
                 ),
@@ -3116,7 +3302,7 @@ class _ReviewsScreenState
           Row(
             children: List.generate(
               stars,
-              (index) => Icon(
+                  (index) => Icon(
                 Icons.star,
                 color: Colors.amber,
                 size: 20,
@@ -3128,8 +3314,14 @@ class _ReviewsScreenState
 
           Text(
             review,
+
             style: TextStyle(
-              color: Colors.white70,
+
+              color:
+                  isDark
+                      ? Colors.white70
+                      : Colors.black87,
+
               fontSize: 15,
             ),
           ),
@@ -3139,13 +3331,465 @@ class _ReviewsScreenState
   }
 }
 
+//////////////////// 📞 CONTACT US SCREEN /////////////////////
+
+class ContactUsScreen extends StatelessWidget {
+  ContactUsScreen({super.key});
+
+  /// 🔗 OPEN LINKS
+  Future<void> openLink(String url) async {
+    final Uri uri = Uri.parse(url);
+
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(
+        uri,
+        mode: LaunchMode.externalApplication,
+      );
+    }
+  }
+
+  /// 🔹 CONTACT CARD
+  Widget buildContactCard({
+    required BuildContext context,
+    required IconData icon,
+    required Color iconColor,
+    required Color bgColor,
+    required String title,
+    required String subtitle,
+    required VoidCallback onTap,
+  }) {
+    bool isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return Container(
+      margin: EdgeInsets.only(bottom: 18),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(24),
+
+        color: isDark
+            ? Colors.white.withOpacity(0.05)
+            : Colors.black.withOpacity(0.03),
+
+        border: Border.all(
+          color: isDark
+              ? Colors.white10
+              : Colors.black12,
+        ),
+
+        boxShadow: [
+          BoxShadow(
+            blurRadius: 15,
+            offset: Offset(0, 6),
+            color: isDark
+                ? Colors.black26
+                : Colors.black12,
+          )
+        ],
+      ),
+
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(24),
+          onTap: onTap,
+
+          child: Padding(
+            padding: EdgeInsets.symmetric(
+              horizontal: 18,
+              vertical: 18,
+            ),
+
+            child: Row(
+              children: [
+
+                /// 🔥 ICON
+                Container(
+                  width: 70,
+                  height: 70,
+
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: bgColor,
+                  ),
+
+                  child: Icon(
+                    icon,
+                    size: 38,
+                    color: iconColor,
+                  ),
+                ),
+
+                SizedBox(width: 18),
+
+                /// 🔥 TEXT
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment:
+                        CrossAxisAlignment.start,
+                    children: [
+
+                      Text(
+                        title,
+                        style: TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.bold,
+
+                          color: isDark
+                              ? Colors.white
+                              : Colors.black,
+                        ),
+                      ),
+
+                      SizedBox(height: 6),
+
+                      Text(
+                        subtitle,
+                        style: TextStyle(
+                          fontSize: 16,
+                          color: Colors.grey,
+                        ),
+                      ),
+
+                      SizedBox(height: 6),
+
+                      Text(
+                        "Tap to open",
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: isDark
+                              ? Colors.white60
+                              : Colors.black54,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                /// ➜ ARROW
+                Icon(
+                  Icons.arrow_forward_ios_rounded,
+                  color: isDark
+                      ? Colors.white70
+                      : Colors.black54,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    bool isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return Scaffold(
+      backgroundColor:
+          isDark ? Colors.black : Colors.white,
+
+      appBar: AppBar(
+        title: Text("Contact Us"),
+
+        centerTitle: true,
+
+        elevation: 0,
+
+        backgroundColor:
+            isDark ? Colors.black : Colors.white,
+
+        foregroundColor:
+            isDark ? Colors.white : Colors.black,
+      ),
+
+      body: SingleChildScrollView(
+        padding: EdgeInsets.all(20),
+
+        child: Column(
+          children: [
+
+            SizedBox(height: 10),
+
+            /// 🎧 TOP ICON
+            Container(
+              padding: EdgeInsets.all(28),
+
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+
+                color: isDark
+                    ? Colors.white.withOpacity(0.06)
+                    : Colors.black.withOpacity(0.04),
+
+                border: Border.all(
+                  color: isDark
+                      ? Colors.white12
+                      : Colors.black12,
+                ),
+              ),
+
+              child: Icon(
+                Icons.support_agent_rounded,
+                size: 70,
+
+                color: isDark
+                    ? Colors.white
+                    : Color(0xFF123249),
+              ),
+            ),
+
+            SizedBox(height: 30),
+
+            /// 🔥 TITLE
+            Text(
+              "We're Here For You",
+
+              style: TextStyle(
+                fontSize: 34,
+                fontWeight: FontWeight.bold,
+
+                color: isDark
+                    ? Colors.white
+                    : Colors.black,
+              ),
+
+              textAlign: TextAlign.center,
+            ),
+
+            SizedBox(height: 12),
+
+            /// 🔥 SUBTITLE
+            Text(
+              "Feel free to contact us anytime you need help.",
+
+              style: TextStyle(
+                fontSize: 17,
+
+                color: isDark
+                    ? Colors.white70
+                    : Colors.black54,
+              ),
+
+              textAlign: TextAlign.center,
+            ),
+
+            SizedBox(height: 35),
+
+            /// 📸 INSTAGRAM
+            buildContactCard(
+              context: context,
+
+              icon: Icons.camera_alt_rounded,
+
+              iconColor: Color(0xFFFF0A78),
+
+              bgColor: Color(0x33FF0A78),
+
+              title: "Instagram",
+
+              subtitle: "@medlife_eg",
+
+              onTap: () {
+                openLink(
+                  "https://instagram.com/medlife_eg",
+                );
+              },
+            ),
+
+            /// 📘 FACEBOOK
+            buildContactCard(
+              context: context,
+
+              icon: Icons.facebook_rounded,
+
+              iconColor: Color(0xFF1877F2),
+
+              bgColor: Color(0x331877F2),
+
+              title: "Facebook",
+
+              subtitle: "MedLife",
+
+              onTap: () {
+                openLink(
+                  "https://facebook.com/",
+                );
+              },
+            ),
+
+            /// 🎵 TIKTOK
+            buildContactCard(
+              context: context,
+
+              icon: Icons.music_note_rounded,
+
+              iconColor: isDark
+                  ? Colors.white
+                  : Colors.black,
+
+              bgColor: isDark
+                  ? Colors.white10
+                  : Colors.black12,
+
+              title: "TikTok",
+
+              subtitle: "@medlife_eg",
+
+              onTap: () {
+                openLink(
+                  "https://tiktok.com/@medlife_eg",
+                );
+              },
+            ),
+
+            /// 💬 WHATSAPP
+            buildContactCard(
+              context: context,
+
+              icon: Icons.chat,
+
+              iconColor: Color(0xFF25D366),
+
+              bgColor: Color(0x3325D366),
+
+              title: "WhatsApp",
+
+              subtitle: "+20 1010 520 993",
+
+              onTap: () {
+                openLink(
+                  "https://wa.me/201010520993",
+                );
+              },
+            ),
+
+            /// 📧 EMAIL
+            buildContactCard(
+              context: context,
+
+              icon: Icons.email_rounded,
+
+              iconColor: Colors.orange,
+
+              bgColor: Colors.orange.withOpacity(0.2),
+
+              title: "Support Email",
+
+              subtitle: "support@medlife-eg.com",
+
+              onTap: () {
+                openLink(
+                  "mailto:support@medlife-eg.com",
+                );
+              },
+            ),
+
+            SizedBox(height: 10),
+
+            //// 🔒 PRIVACY
+Container(
+  width: double.infinity,
+  padding: EdgeInsets.all(20),
+
+  decoration: BoxDecoration(
+    borderRadius: BorderRadius.circular(20),
+
+    color: isDark
+        ? Colors.white.withOpacity(0.05)
+        : Colors.black.withOpacity(0.03),
+
+    border: Border.all(
+      color: isDark
+          ? Colors.white10
+          : Colors.black12,
+    ),
+
+    boxShadow: [
+      BoxShadow(
+        color: isDark
+            ? Colors.black.withOpacity(0.25)
+            : Colors.black.withOpacity(0.08),
+        blurRadius: 12,
+        offset: Offset(0, 5),
+      ),
+    ],
+  ),
+
+  child: Row(
+    children: [
+
+      Container(
+        padding: EdgeInsets.all(12),
+
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+
+          color: isDark
+              ? Colors.white.withOpacity(0.06)
+              : Colors.black.withOpacity(0.04),
+        ),
+
+        child: Icon(
+          Icons.shield_outlined,
+          color: isDark
+              ? Colors.white
+              : Colors.black87,
+        ),
+      ),
+
+      SizedBox(width: 15),
+
+      Expanded(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+
+            Text(
+              "We value your privacy",
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 16,
+
+                color: isDark
+                    ? Colors.white
+                    : Colors.black87,
+              ),
+            ),
+
+            SizedBox(height: 5),
+
+            Text(
+              "Your information is safe with us and will never be shared.",
+              style: TextStyle(
+                color: isDark
+                    ? Colors.white70
+                    : Colors.black54,
+              ),
+            ),
+          ],
+        ),
+      ),
+    ],
+  ),
+)
+            ],
+          ),
+        ),
+      );
+  }
+}
+
 ///////////////////// 📦 DETAILS /////////////////////
 
 class ProductDetailsScreen extends StatefulWidget {
   final dynamic product;
   final List<Map<String, dynamic>> cart;
+  final VoidCallback onAddToCart;
 
-  ProductDetailsScreen({required this.product, required this.cart});
+  ProductDetailsScreen({
+    required this.product,
+    required this.cart,
+    required this.onAddToCart,
+  });
 
   @override
   State<ProductDetailsScreen> createState() =>
@@ -3345,6 +3989,7 @@ Row(
                       "size": selectedSize,
                       "quantity": quantity,
                     });
+                    widget.onAddToCart();
                   }
 
                   // 🔥 Firebase
