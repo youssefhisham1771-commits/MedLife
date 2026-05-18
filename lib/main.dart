@@ -816,6 +816,92 @@ return Column(
     /// 🔥 البانر فوق
     BannerSlider(isAdmin: isAdmin),
 
+/// 🔥 OUR PRODUCTS
+Padding(
+  padding: const EdgeInsets.symmetric(
+    vertical: 18,
+    horizontal: 20,
+  ),
+
+  child: Builder(
+    builder: (context) {
+
+      final bool isDark =
+          Theme.of(context).brightness ==
+              Brightness.dark;
+
+      final Color textColor =
+          isDark
+              ? Colors.white
+              : const Color(0xFF1D1B20);
+
+      final Color lineColor =
+          isDark
+              ? const Color(0xFF6EA6C1)
+              : const Color(0xFF5B8DA8);
+
+      return Row(
+        children: [
+
+          /// LEFT LINE
+          Expanded(
+            child: Container(
+              height: 2,
+
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    Colors.transparent,
+                    lineColor.withOpacity(.9),
+                  ],
+
+                  begin: Alignment.centerLeft,
+                  end: Alignment.centerRight,
+                ),
+              ),
+            ),
+          ),
+
+          const SizedBox(width: 14),
+
+          /// TEXT
+          Text(
+            "Our Products",
+
+            style: GoogleFonts.poppins(
+              color: textColor,
+              fontSize: 22,
+              fontWeight: FontWeight.bold,
+              letterSpacing: 1,
+            ),
+          ),
+
+          const SizedBox(width: 14),
+
+          /// RIGHT LINE
+          Expanded(
+            child: Container(
+              height: 2,
+
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    lineColor.withOpacity(.9),
+                    Colors.transparent,
+                  ],
+
+                  begin: Alignment.centerLeft,
+                  end: Alignment.centerRight,
+                ),
+              ),
+            ),
+          ),
+        ],
+      );
+    },
+  ),
+),
+
     /// 🔥 المنتجات تحت
     Expanded(
       child: GridView.builder(
@@ -1201,14 +1287,18 @@ Padding(
       children: [
 
         /// 🔥 ICON
-        Container(
-          padding: EdgeInsets.all(8),
-          child: Icon(
-            Icons.percent,
-            color: Colors.white,
-            size: 28,
-          ),
-        ),
+       Container(
+  padding: EdgeInsets.all(8),
+  child: Icon(
+    Icons.percent,
+    color:
+        Theme.of(context).brightness ==
+                Brightness.dark
+            ? Colors.white
+            : Colors.black,
+    size: 28,
+  ),
+),
 
         /// 🔴 BADGE
         if (!salesSeen && salesCount > 0)
@@ -1395,6 +1485,7 @@ bottomNavigationBar: BottomNavigationBar(
 );
   }
 }
+
 class SalesScreen extends StatelessWidget {
 
   final bool isAdmin;
@@ -1404,29 +1495,93 @@ class SalesScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
 
+    final bool isDark =
+        Theme.of(context).brightness == Brightness.dark;
+
     return Scaffold(
 
+      backgroundColor:
+          isDark
+              ? const Color(0xFF141118)
+              : const Color(0xFFF5F5F7),
+
       appBar: AppBar(
-        title: Text("Sales 🔥"),
+        backgroundColor:
+            isDark
+                ? const Color(0xFF141118)
+                : const Color(0xFFF5F5F7),
+
+        elevation: 0,
+
+        title: Text(
+          "Sales",
+          style: TextStyle(
+            color:
+                isDark ? Colors.white : Colors.black,
+            fontWeight: FontWeight.bold,
+            fontSize: 30,
+          ),
+        ),
+
+        iconTheme: IconThemeData(
+          color:
+              isDark ? Colors.white : Colors.black,
+        ),
       ),
 
       /// 👑 ADD SALE
       floatingActionButton: isAdmin
-          ? FloatingActionButton(
-              backgroundColor: Colors.orange,
+          ? Container(
 
-              child: Icon(Icons.add),
+              decoration: BoxDecoration(
 
-              onPressed: () {
+                borderRadius: BorderRadius.circular(18),
 
-                Navigator.push(
-                  context,
+                gradient: isDark
+                    ? const LinearGradient(
+                        colors: [
+                          Color(0xFF1D1B20),
+                          Color(0xFF2C4A61),
+                        ],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      )
+                    : null,
 
-                  MaterialPageRoute(
-                    builder: (_) => AddSaleScreen(),
+                color: isDark
+                    ? null
+                    : const Color(0xFF2C4A61),
+
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.18),
+                    blurRadius: 10,
+                    offset: const Offset(0, 5),
                   ),
-                );
-              },
+                ],
+              ),
+
+              child: FloatingActionButton(
+
+                backgroundColor: Colors.transparent,
+                elevation: 0,
+
+                child: const Icon(
+                  Icons.add,
+                  color: Colors.white,
+                ),
+
+                onPressed: () {
+
+                  Navigator.push(
+                    context,
+
+                    MaterialPageRoute(
+                      builder: (_) => AddSaleScreen(),
+                    ),
+                  );
+                },
+              ),
             )
           : null,
 
@@ -1444,7 +1599,7 @@ class SalesScreen extends StatelessWidget {
 
           if (!snapshot.hasData) {
 
-            return Center(
+            return const Center(
               child: CircularProgressIndicator(),
             );
           }
@@ -1454,13 +1609,20 @@ class SalesScreen extends StatelessWidget {
           if (sales.isEmpty) {
 
             return Center(
-              child: Text("No Sales Yet 🔥"),
+              child: Text(
+                "No Sales Yet",
+                style: TextStyle(
+                  color: isDark
+                      ? Colors.white
+                      : Colors.black,
+                ),
+              ),
             );
           }
 
           return ListView.builder(
 
-            padding: EdgeInsets.all(15),
+            padding: const EdgeInsets.all(15),
 
             itemCount: sales.length,
 
@@ -1472,27 +1634,33 @@ class SalesScreen extends StatelessWidget {
 
               return Container(
 
-                height: 185,
+                height: 160,
 
-                margin: EdgeInsets.only(bottom: 18),
+                margin:
+                    const EdgeInsets.only(bottom: 16),
 
-                padding: EdgeInsets.all(20),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 14,
+                ),
 
                 decoration: BoxDecoration(
 
                   borderRadius:
-                      BorderRadius.circular(30),
+                      BorderRadius.circular(28),
 
-                  gradient: LinearGradient(
-                    colors: [
+                  color: isDark
+                      ? const Color(0xFF1D1B20)
+                      : Colors.white,
 
-                      Colors.orange,
-
-                      Colors.deepOrangeAccent,
-
-                      Colors.pink,
-                    ],
-                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color:
+                          Colors.black.withOpacity(0.10),
+                      blurRadius: 12,
+                      offset: const Offset(0, 5),
+                    ),
+                  ],
                 ),
 
                 child: Row(
@@ -1507,14 +1675,14 @@ class SalesScreen extends StatelessWidget {
                         ? ClipRRect(
 
                             borderRadius:
-                                BorderRadius.circular(20),
+                                BorderRadius.circular(18),
 
                             child: Image.network(
 
                               sale['image'],
 
-                              width: 110,
-                              height: 110,
+                              width: 92,
+                              height: 92,
 
                               fit: BoxFit.cover,
 
@@ -1527,22 +1695,27 @@ class SalesScreen extends StatelessWidget {
 
                                 return Container(
 
-                                  width: 110,
-                                  height: 110,
+                                  width: 92,
+                                  height: 92,
 
                                   decoration: BoxDecoration(
-                                    color: Colors.white24,
+                                    color: isDark
+                                        ? Colors.white10
+                                        : const Color(
+                                            0xFFF0F0F0,
+                                          ),
 
                                     borderRadius:
                                         BorderRadius.circular(
-                                      20,
+                                      18,
                                     ),
                                   ),
 
-                                  child: Icon(
+                                  child: const Icon(
                                     Icons.image,
-                                    color: Colors.white,
-                                    size: 45,
+                                    color:
+                                        Color(0xFF8B949E),
+                                    size: 38,
                                   ),
                                 );
                               },
@@ -1551,247 +1724,313 @@ class SalesScreen extends StatelessWidget {
 
                         : Container(
 
-                            width: 110,
-                            height: 110,
+                            width: 92,
+                            height: 92,
 
                             decoration: BoxDecoration(
-                              color: Colors.white24,
+                              color: isDark
+                                  ? Colors.white10
+                                  : const Color(
+                                      0xFFF0F0F0,
+                                    ),
 
                               borderRadius:
-                                  BorderRadius.circular(20),
+                                  BorderRadius.circular(18),
                             ),
 
-                            child: Icon(
+                            child: const Icon(
                               Icons.local_offer,
-                              color: Colors.white,
-                              size: 45,
+                              color: Color(0xFF8B949E),
+                              size: 38,
                             ),
                           ),
 
-                    SizedBox(width: 15),
+                    const SizedBox(width: 14),
 
                     /// 📄 INFO
-                    Expanded(
+Expanded(
 
-                      child: Column(
+  child: Column(
 
-                        crossAxisAlignment:
-                            CrossAxisAlignment.start,
+    crossAxisAlignment:
+        CrossAxisAlignment.center,
 
-                        mainAxisAlignment:
-                            MainAxisAlignment.spaceEvenly,
+    mainAxisAlignment:
+        MainAxisAlignment.center,
 
-                        children: [
+    children: [
 
-                          /// 🔥 TITLE
-                          Text(
+      /// 🔥 TITLE
+      Text(
 
-                            sale['title'] ?? "",
+        sale['title'] ?? "",
 
-                            maxLines: 1,
+        maxLines: 1,
 
-                            overflow:
-                                TextOverflow.ellipsis,
+        overflow:
+            TextOverflow.ellipsis,
 
-                            style: TextStyle(
-                              color: Colors.white,
+        textAlign: TextAlign.center,
 
-                              fontSize: 22,
+        style: TextStyle(
+          color: isDark
+              ? Colors.white
+              : Colors.black,
 
-                              fontWeight:
-                                  FontWeight.bold,
-                            ),
-                          ),
+          fontSize: 20,
 
-                          SizedBox(height: 10),
-
-                          /// 📝 DETAILS
-                          Text(
-
-                            sale['details'] ?? "",
-
-                            maxLines: 2,
-
-                            overflow:
-                                TextOverflow.ellipsis,
-
-                            style: TextStyle(
-                              color: Colors.white,
-
-                              fontSize: 14,
-                            ),
-                          ),
-
-                          SizedBox(height: 15),
-
-                          /// 💸 DISCOUNT
-                          Row(
-                            children: [
-
-                              Icon(
-                                Icons.percent,
-                                color: Colors.white,
-                              ),
-
-                              SizedBox(width: 8),
-
-                              Text(
-
-                                "${sale['discount']}% OFF",
-
-                                style: TextStyle(
-                                  color: Colors.white,
-
-                                  fontSize: 20,
-
-                                  fontWeight:
-                                      FontWeight.bold,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-Column(
-  mainAxisAlignment: MainAxisAlignment.center,
-  children: [
-
-    /// ➡️ DETAILS
-    GestureDetector(
-
-      onTap: () async {
-
-        var product = await FirebaseFirestore.instance
-            .collection('Products')
-            .doc(sale['productId'])
-            .get();
-
-        if (product.exists) {
-
-          Navigator.push(
-
-            context,
-
-            MaterialPageRoute(
-
-              builder: (_) => ProductDetailsScreen(
-
-                product: product,
-
-                cart: [],
-
-                onAddToCart: () {},
-              ),
-            ),
-          );
-        }
-      },
-
-      child: Container(
-
-        padding: EdgeInsets.all(8),
-
-        decoration: BoxDecoration(
-
-          color: Colors.white.withOpacity(0.15),
-
-          borderRadius:
-              BorderRadius.circular(12),
-        ),
-
-        child: Icon(
-          Icons.arrow_forward_ios,
-          color: Colors.white,
-        ),
-      ),
-    ),
-
-    /// 👑 ADMIN BUTTONS
-    if (isAdmin) ...[
-
-      SizedBox(height: 12),
-
-      /// ✏️ EDIT
-      GestureDetector(
-
-        onTap: () {
-
-          Navigator.push(
-
-            context,
-
-            MaterialPageRoute(
-
-              builder: (_) => EditSaleScreen(
-                saleId: sales[index].id,
-                saleData: sale,
-              ),
-            ),
-          );
-        },
-
-        child: Container(
-
-          padding: EdgeInsets.all(8),
-
-          decoration: BoxDecoration(
-
-            color: Colors.white.withOpacity(0.15),
-
-            borderRadius:
-                BorderRadius.circular(12),
-          ),
-
-          child: Icon(
-            Icons.edit,
-            color: Colors.white,
-          ),
+          fontWeight:
+              FontWeight.bold,
         ),
       ),
 
-      SizedBox(height: 12),
+      const SizedBox(height: 6),
 
-      /// 🗑 DELETE
-      GestureDetector(
+      /// 📝 DETAILS
+      Text(
 
-        onTap: () async {
+        sale['details'] ?? "",
 
-          await FirebaseFirestore.instance
-              .collection('sales')
-              .doc(sales[index].id)
-              .delete();
+        maxLines: 2,
 
-          ScaffoldMessenger.of(context)
-              .showSnackBar(
+        overflow:
+            TextOverflow.ellipsis,
 
-            SnackBar(
-              content: Text("Sale Deleted"),
-            ),
-          );
-        },
+        textAlign: TextAlign.center,
 
-        child: Container(
+        style: TextStyle(
+          color: isDark
+              ? Colors.white70
+              : Colors.black54,
 
-          padding: EdgeInsets.all(8),
+          fontSize: 13.5,
 
-          decoration: BoxDecoration(
-
-            color: Colors.red.withOpacity(0.3),
-
-            borderRadius:
-                BorderRadius.circular(12),
-          ),
-
-          child: Icon(
-            Icons.delete,
-            color: Colors.white,
-          ),
+          height: 1.3,
         ),
+      ),
+
+      const SizedBox(height: 10),
+
+      /// 💸 DISCOUNT
+      Row(
+
+        mainAxisAlignment:
+            MainAxisAlignment.center,
+
+        children: [
+
+          const Icon(
+            Icons.percent,
+            color:
+                Color(0xFF8B949E),
+            size: 22,
+          ),
+
+          const SizedBox(width: 6),
+
+          Text(
+
+            "${sale['discount']}% OFF",
+
+            style: TextStyle(
+              color: isDark
+                  ? Colors.white
+                  : Colors.black,
+
+              fontSize: 18,
+
+              fontWeight:
+                  FontWeight.bold,
+            ),
+          ),
+        ],
       ),
     ],
-  ],
+  ),
 ),
+
+                    Column(
+                      mainAxisAlignment:
+                          MainAxisAlignment.center,
+
+                      children: [
+
+                        /// ➡️ DETAILS
+                        GestureDetector(
+
+                          onTap: () async {
+
+                            var product =
+                                await FirebaseFirestore
+                                    .instance
+                                    .collection('Products')
+                                    .doc(
+                                      sale['productId'],
+                                    )
+                                    .get();
+
+                            if (product.exists) {
+
+                              Navigator.push(
+
+                                context,
+
+                                MaterialPageRoute(
+
+                                  builder: (_) =>
+                                      ProductDetailsScreen(
+
+                                    product: product,
+
+                                    cart: [],
+
+                                    onAddToCart: () {},
+                                  ),
+                                ),
+                              );
+                            }
+                          },
+
+                          child: Container(
+
+                            padding:
+                                const EdgeInsets.all(8),
+
+                            decoration: BoxDecoration(
+
+                              color: isDark
+                                  ? const Color(
+                                      0xFF2E2B31,
+                                    )
+                                  : const Color(
+                                      0xFFF1F1F1,
+                                    ),
+
+                              borderRadius:
+                                  BorderRadius.circular(
+                                10,
+                              ),
+                            ),
+
+                            child: const Icon(
+                              Icons.arrow_forward_ios,
+                              color:
+                                  Color(0xFF6EA6C1),
+                              size: 17,
+                            ),
+                          ),
+                        ),
+
+                        /// 👑 ADMIN BUTTONS
+                        if (isAdmin) ...[
+
+                          const SizedBox(height: 7),
+
+                          /// ✏️ EDIT
+                          GestureDetector(
+
+                            onTap: () {
+
+                              Navigator.push(
+
+                                context,
+
+                                MaterialPageRoute(
+
+                                  builder: (_) =>
+                                      EditSaleScreen(
+                                    saleId:
+                                        sales[index].id,
+                                    saleData: sale,
+                                  ),
+                                ),
+                              );
+                            },
+
+                            child: Container(
+
+                              padding:
+                                  const EdgeInsets.all(8),
+
+                              decoration: BoxDecoration(
+
+                                color: isDark
+                                    ? const Color(
+                                        0xFF2E2B31,
+                                      )
+                                    : const Color(
+                                        0xFFF1F1F1,
+                                      ),
+
+                                borderRadius:
+                                    BorderRadius.circular(
+                                  10,
+                                ),
+                              ),
+
+                              child: const Icon(
+                                Icons.edit,
+                                color:
+                                    Color(0xFF6EA6C1),
+                                size: 17,
+                              ),
+                            ),
+                          ),
+
+                          const SizedBox(height: 7),
+
+                          /// 🗑 DELETE
+                          GestureDetector(
+
+                            onTap: () async {
+
+                              await FirebaseFirestore
+                                  .instance
+                                  .collection('sales')
+                                  .doc(sales[index].id)
+                                  .delete();
+
+                              ScaffoldMessenger.of(
+                                context,
+                              ).showSnackBar(
+
+                                const SnackBar(
+                                  content:
+                                      Text("Sale Deleted"),
+                                ),
+                              );
+                            },
+
+                            child: Container(
+
+                              padding:
+                                  const EdgeInsets.all(8),
+
+                              decoration: BoxDecoration(
+
+                                color: isDark
+                                    ? Colors.red
+                                        .withOpacity(0.28)
+                                    : const Color(
+                                        0xFFF8D7DA,
+                                      ),
+
+                                borderRadius:
+                                    BorderRadius.circular(
+                                  10,
+                                ),
+                              ),
+
+                              child: const Icon(
+                                Icons.delete,
+                                color: Colors.white,
+                                size: 17,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
                   ],
                 ),
               );
@@ -2220,7 +2459,7 @@ SizedBox(height: 25),
                 child: isLoading
 
                     ? CircularProgressIndicator(
-                        color: Colors.white,
+                        color: const Color(0xFF6EA6C1),
                       )
 
                     : Text(
@@ -4945,17 +5184,25 @@ class ProfileScreen extends StatelessWidget {
         isDark ? Colors.white70 : Colors.grey.shade700;
 
     final Color cardColor =
-        isDark ? const Color(0xFF171326) : Colors.white;
+        isDark
+            ? const Color(0xFF1D1B20)
+            : Colors.white;
 
     final Color iconBoxColor =
-        isDark ? const Color(0xFF2A223D) : const Color(0xFFF3F3F3);
+        isDark
+            ? const Color(0xFF2A2730)
+            : const Color(0xFFF3F3F3);
 
-    final Color purpleColor =
-        const Color(0xFF8E5CF7);
+    final Color blueColor =
+        isDark
+            ? const Color(0xFF6EA6C1)
+            : const Color(0xFF2D5A74);
 
     return Scaffold(
       backgroundColor:
-          isDark ? const Color(0xFF0D0917) : const Color(0xFFF7F7FA),
+          isDark
+              ? const Color(0xFF141118)
+              : const Color(0xFFF7F7FA),
 
       appBar: AppBar(
         backgroundColor:
@@ -4979,21 +5226,21 @@ class ProfileScreen extends StatelessWidget {
           ),
         ),
         actions: [
-         IconButton(
-  icon: Icon(
-    Icons.edit,
-    color: purpleColor,
-    size: 28,
-  ),
-  onPressed: () {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => EditProfileScreen(),
-      ),
-    );
-  },
-),
+          IconButton(
+            icon: Icon(
+              Icons.edit,
+              color: blueColor,
+              size: 28,
+            ),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => EditProfileScreen(),
+                ),
+              );
+            },
+          ),
           const SizedBox(width: 10),
         ],
       ),
@@ -5067,11 +5314,11 @@ class ProfileScreen extends StatelessWidget {
                             CircleAvatar(
                               radius: 45,
                               backgroundColor:
-                                  purpleColor.withOpacity(.2),
+                                  blueColor.withOpacity(.15),
                               child: Icon(
                                 Icons.person,
                                 size: 50,
-                                color: purpleColor,
+                                color: blueColor,
                               ),
                             ),
 
@@ -5106,7 +5353,7 @@ class ProfileScreen extends StatelessWidget {
                               mainTextColor: mainTextColor,
                               subTextColor: subTextColor,
                               iconBoxColor: iconBoxColor,
-                              purpleColor: purpleColor,
+                              blueColor: blueColor,
                             ),
 
                             const SizedBox(height: 14),
@@ -5118,24 +5365,24 @@ class ProfileScreen extends StatelessWidget {
                               mainTextColor: mainTextColor,
                               subTextColor: subTextColor,
                               iconBoxColor: iconBoxColor,
-                              purpleColor: purpleColor,
+                              blueColor: blueColor,
                             ),
 
                             const SizedBox(height: 14),
 
                             _buildInfoTile(
-  icon: Icons.calendar_month,
-  title: "Member Since",
-  value: user!.metadata.creationTime != null
-      ? DateFormat.yMMMM().format(
-          user!.metadata.creationTime!,
-        )
-      : "Unknown",
-  mainTextColor: mainTextColor,
-  subTextColor: subTextColor,
-  iconBoxColor: iconBoxColor,
-  purpleColor: purpleColor,
-),
+                              icon: Icons.calendar_month,
+                              title: "Member Since",
+                              value: user!.metadata.creationTime != null
+                                  ? DateFormat.yMMMM().format(
+                                      user!.metadata.creationTime!,
+                                    )
+                                  : "Unknown",
+                              mainTextColor: mainTextColor,
+                              subTextColor: subTextColor,
+                              iconBoxColor: iconBoxColor,
+                              blueColor: blueColor,
+                            ),
                           ],
                         ),
                       ),
@@ -5152,20 +5399,20 @@ class ProfileScreen extends StatelessWidget {
                         child: Column(
                           children: [
                             _menuTile(
-  icon: Icons.location_on_outlined,
-  title: "My Addresses",
-  color: mainTextColor,
+                              icon: Icons.location_on_outlined,
+                              title: "My Addresses",
+                              color: mainTextColor,
 
-  onTap: () {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) =>
-            const MyAddressesScreen(),
-      ),
-    );
-  },
-),
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) =>
+                                        const MyAddressesScreen(),
+                                  ),
+                                );
+                              },
+                            ),
 
                             _menuTile(
                               icon: Icons.credit_card,
@@ -5186,18 +5433,19 @@ class ProfileScreen extends StatelessWidget {
                             ),
 
                             _menuTile(
-  icon: Icons.info_outline,
-  title: "About MedLife",
-  color: mainTextColor,
-  onTap: () {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => AboutMedLifeScreen(),
-      ),
-    );
-  },
-),
+                              icon: Icons.info_outline,
+                              title: "About MedLife",
+                              color: mainTextColor,
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) =>
+                                        AboutMedLifeScreen(),
+                                  ),
+                                );
+                              },
+                            ),
                           ],
                         ),
                       ),
@@ -5249,7 +5497,7 @@ class ProfileScreen extends StatelessWidget {
     required Color mainTextColor,
     required Color subTextColor,
     required Color iconBoxColor,
-    required Color purpleColor,
+    required Color blueColor,
   }) {
     return Row(
       children: [
@@ -5262,7 +5510,7 @@ class ProfileScreen extends StatelessWidget {
           ),
           child: Icon(
             icon,
-            color: purpleColor,
+            color: blueColor,
           ),
         ),
         const SizedBox(width: 14),
@@ -5295,59 +5543,66 @@ class ProfileScreen extends StatelessWidget {
   }
 
   Widget _menuTile({
-  required IconData icon,
-  required String title,
-  required Color color,
-  VoidCallback? onTap, // 👈 ضف دي
-}) {
-  return ListTile(
-    leading: Icon(
-      icon,
-      color: const Color(0xFF8E5CF7),
-    ),
-    title: Text(
-      title,
-      style: TextStyle(
-        color: color,
-        fontWeight: FontWeight.w600,
+    required IconData icon,
+    required String title,
+    required Color color,
+    VoidCallback? onTap,
+  }) {
+    return ListTile(
+      leading: Icon(
+        icon,
+        color: const Color(0xFF6EA6C1),
       ),
-    ),
-    trailing: const Icon(
-      Icons.arrow_forward_ios,
-      size: 18,
-    ),
-    onTap: onTap, // 👈 استخدمها هنا
-  );
-}
+      title: Text(
+        title,
+        style: TextStyle(
+          color: color,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+      trailing: const Icon(
+        Icons.arrow_forward_ios,
+        size: 18,
+      ),
+      onTap: onTap,
+    );
+  }
 }
 
 class EditProfileScreen extends StatefulWidget {
   const EditProfileScreen({super.key});
 
   @override
-  State<EditProfileScreen> createState() => _EditProfileScreenState();
+  State<EditProfileScreen> createState() =>
+      _EditProfileScreenState();
 }
 
-class _EditProfileScreenState extends State<EditProfileScreen> {
+class _EditProfileScreenState
+    extends State<EditProfileScreen> {
+
   final user = FirebaseAuth.instance.currentUser;
 
   final TextEditingController oldPasswordController =
-    TextEditingController();
+      TextEditingController();
 
   final TextEditingController newPasswordController =
-    TextEditingController();
+      TextEditingController();
 
   final TextEditingController emailController =
-    TextEditingController();
+      TextEditingController();
 
-  final TextEditingController nameController = TextEditingController();
-  final TextEditingController phoneController = TextEditingController();
+  final TextEditingController nameController =
+      TextEditingController();
+
+  final TextEditingController phoneController =
+      TextEditingController();
 
   bool obscureOldPassword = true;
   bool obscureNewPassword = true;
   bool isLoading = false;
 
-  final Color purpleColor = const Color(0xFF8E5CF7);
+  final Color purpleColor =
+      const Color(0xFF6EA6C1);
 
   @override
   void initState() {
@@ -5356,156 +5611,246 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   }
 
   Future<void> getUserData() async {
+
     final doc = await FirebaseFirestore.instance
         .collection('users')
         .doc(user!.uid)
         .get();
 
-   if (doc.exists) {
-  final data = doc.data()!;
+    if (doc.exists) {
 
-  nameController.text = data['name'] ?? '';
-  phoneController.text = data['phone'] ?? '';
-  emailController.text = data['email'] ?? '';
-}
+      final data = doc.data()!;
+
+      nameController.text =
+          data['name'] ?? '';
+
+      phoneController.text =
+          data['phone'] ?? '';
+
+      emailController.text =
+          data['email'] ?? '';
+    }
   }
 
-Future<void> saveChanges() async {
-  try {
-    setState(() {
-      isLoading = true;
-    });
+  Future<void> saveChanges() async {
 
-    /// تحديث الاسم والموبايل
-    await FirebaseFirestore.instance
-        .collection('users')
-        .doc(user!.uid)
-        .update({
-      'name': nameController.text.trim(),
-      'phone': phoneController.text.trim(),
-      'email': emailController.text.trim(),
-    });
+    try {
 
-    /// تحديث الايميل في Authentication
-    if (emailController.text.trim() != user!.email) {
-      await user!.updateEmail(
-        emailController.text.trim(),
+      setState(() {
+        isLoading = true;
+      });
+
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user!.uid)
+          .update({
+
+        'name':
+            nameController.text.trim(),
+
+        'phone':
+            phoneController.text.trim(),
+
+        'email':
+            emailController.text.trim(),
+      });
+
+      if (emailController.text.trim()
+          != user!.email) {
+
+        await user!.updateEmail(
+          emailController.text.trim(),
+        );
+      }
+
+      if (oldPasswordController
+              .text
+              .isNotEmpty &&
+          newPasswordController
+              .text
+              .isNotEmpty) {
+
+        AuthCredential credential =
+            EmailAuthProvider.credential(
+
+          email: user!.email!,
+
+          password:
+              oldPasswordController.text.trim(),
+        );
+
+        await user!
+            .reauthenticateWithCredential(
+          credential,
+        );
+
+        await user!.updatePassword(
+          newPasswordController.text.trim(),
+        );
+      }
+
+      setState(() {
+        isLoading = false;
+      });
+
+      ScaffoldMessenger.of(context)
+          .showSnackBar(
+
+        SnackBar(
+          content: Text(
+              "Profile Updated Successfully ✅"),
+        ),
+      );
+
+      Navigator.pop(context);
+
+    } on FirebaseAuthException catch (e) {
+
+      setState(() {
+        isLoading = false;
+      });
+
+      String message =
+          e.message ?? "Error";
+
+      ScaffoldMessenger.of(context)
+          .showSnackBar(
+
+        SnackBar(
+          content: Text(message),
+        ),
       );
     }
-
-    /// تغيير الباسورد
-    if (oldPasswordController.text.isNotEmpty &&
-        newPasswordController.text.isNotEmpty) {
-      AuthCredential credential =
-          EmailAuthProvider.credential(
-        email: user!.email!,
-        password: oldPasswordController.text.trim(),
-      );
-
-      await user!.reauthenticateWithCredential(
-        credential,
-      );
-
-      await user!.updatePassword(
-        newPasswordController.text.trim(),
-      );
-    }
-
-    setState(() {
-      isLoading = false;
-    });
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text("Profile Updated Successfully ✅"),
-      ),
-    );
-
-    Navigator.pop(context);
-  } on FirebaseAuthException catch (e) {
-    setState(() {
-      isLoading = false;
-    });
-
-    String message = e.message ?? "Error";
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message)),
-    );
   }
-}
 
   @override
   Widget build(BuildContext context) {
+
     final bool isDark =
-        Theme.of(context).brightness == Brightness.dark;
+        Theme.of(context).brightness ==
+            Brightness.dark;
 
     final Color bgColor =
-        isDark ? const Color(0xFF0D0917) : const Color(0xFFF7F7FA);
+        isDark
+            ? const Color(0xFF141118)
+            : const Color(0xFFF7F7FA);
 
     final Color cardColor =
-        isDark ? const Color(0xFF171326) : Colors.white;
+        isDark
+            ? const Color(0xFF1D1B20)
+            : Colors.white;
 
     final Color textColor =
-        isDark ? Colors.white : Colors.black;
+        isDark
+            ? Colors.white
+            : Colors.black;
 
     final Color subTextColor =
-        isDark ? Colors.white70 : Colors.grey.shade700;
+        isDark
+            ? Colors.white70
+            : Colors.grey.shade700;
+
+    final Color iconBoxColor =
+        isDark
+            ? const Color(0xFF2E2B31)
+            : const Color(0xFFF3F3F3);
 
     return Scaffold(
+
       backgroundColor: bgColor,
+
       appBar: AppBar(
+
         backgroundColor:
-            isDark ? Colors.black : Colors.white,
+            isDark
+                ? Colors.black
+                : Colors.white,
+
         elevation: 0,
+
         leading: IconButton(
+
           icon: Icon(
             Icons.arrow_back,
             color: textColor,
           ),
+
           onPressed: () {
             Navigator.pop(context);
           },
         ),
+
         title: Text(
+
           "Edit Profile",
+
           style: TextStyle(
             color: textColor,
-            fontWeight: FontWeight.bold,
+            fontWeight:
+                FontWeight.bold,
             fontSize: 28,
           ),
         ),
+
         actions: [
+
           TextButton(
-            onPressed: isLoading ? null : saveChanges,
+
+            onPressed:
+                isLoading
+                    ? null
+                    : saveChanges,
+
             child: Text(
+
               "Save",
+
               style: TextStyle(
                 color: purpleColor,
                 fontSize: 18,
-                fontWeight: FontWeight.bold,
+                fontWeight:
+                    FontWeight.bold,
               ),
             ),
           )
         ],
       ),
+
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
+
+        padding:
+            const EdgeInsets.all(16),
+
         child: Container(
-          padding: const EdgeInsets.all(20),
+
+          padding:
+              const EdgeInsets.all(20),
+
           decoration: BoxDecoration(
+
             color: cardColor,
-            borderRadius: BorderRadius.circular(24),
+
+            borderRadius:
+                BorderRadius.circular(24),
           ),
+
           child: Column(
+
             children: [
+
               CircleAvatar(
+
                 radius: 50,
+
                 backgroundColor:
-                    purpleColor.withOpacity(.2),
+                    iconBoxColor,
+
                 child: Icon(
+
                   Icons.person,
+
                   size: 55,
+
                   color: purpleColor,
                 ),
               ),
@@ -5513,7 +5858,9 @@ Future<void> saveChanges() async {
               const SizedBox(height: 16),
 
               Text(
+
                 "Always remember, We care about you! ♡",
+
                 style: TextStyle(
                   color: subTextColor,
                   fontSize: 15,
@@ -5523,159 +5870,342 @@ Future<void> saveChanges() async {
               const SizedBox(height: 30),
 
               _buildTextField(
-                controller: nameController,
+
+                controller:
+                    nameController,
+
                 label: "Full Name",
-                icon: Icons.person_outline,
+
+                icon:
+                    Icons.person_outline,
+
                 textColor: textColor,
+
                 cardColor: cardColor,
+
+                iconBoxColor:
+                    iconBoxColor,
               ),
 
               const SizedBox(height: 18),
 
               _buildTextField(
-  controller: emailController,
-  label: "Email Address",
-  icon: Icons.email_outlined,
-  textColor: textColor,
-  cardColor: cardColor,
-),
+
+                controller:
+                    emailController,
+
+                label:
+                    "Email Address",
+
+                icon:
+                    Icons.email_outlined,
+
+                textColor: textColor,
+
+                cardColor: cardColor,
+
+                iconBoxColor:
+                    iconBoxColor,
+              ),
 
               const SizedBox(height: 18),
 
               _buildTextField(
-                controller: phoneController,
-                label: "Phone Number",
-                icon: Icons.phone_outlined,
+
+                controller:
+                    phoneController,
+
+                label:
+                    "Phone Number",
+
+                icon:
+                    Icons.phone_outlined,
+
                 textColor: textColor,
+
                 cardColor: cardColor,
+
+                iconBoxColor:
+                    iconBoxColor,
               ),
 
-const SizedBox(height: 25),
+              const SizedBox(height: 25),
 
-Align(
-  alignment: Alignment.centerLeft,
-  child: Text(
-    "Change Password",
-    style: TextStyle(
-      color: textColor,
-      fontSize: 18,
-      fontWeight: FontWeight.bold,
-    ),
-  ),
-),
+              Align(
 
-const SizedBox(height: 18),
+                alignment:
+                    Alignment.centerLeft,
 
-/// OLD PASSWORD
-TextField(
-  controller: oldPasswordController,
-  obscureText: obscureOldPassword,
-  style: TextStyle(color: textColor),
-  decoration: InputDecoration(
-    labelText: "Old Password",
-    prefixIcon: Icon(
-      Icons.lock_outline,
-      color: purpleColor,
-    ),
-    suffixIcon: IconButton(
-      icon: Icon(
-        obscureOldPassword
-            ? Icons.visibility_off
-            : Icons.visibility,
-      ),
-      onPressed: () {
-        setState(() {
-          obscureOldPassword =
-              !obscureOldPassword;
-        });
-      },
-    ),
-    border: OutlineInputBorder(
-      borderRadius: BorderRadius.circular(18),
-    ),
-  ),
-),
+                child: Text(
 
-const SizedBox(height: 18),
+                  "Change Password",
 
-/// NEW PASSWORD
-TextField(
-  controller: newPasswordController,
-  obscureText: obscureNewPassword,
-  style: TextStyle(color: textColor),
-  decoration: InputDecoration(
-    labelText: "New Password",
-    prefixIcon: Icon(
-      Icons.lock,
-      color: purpleColor,
-    ),
-    suffixIcon: IconButton(
-      icon: Icon(
-        obscureNewPassword
-            ? Icons.visibility_off
-            : Icons.visibility,
-      ),
-      onPressed: () {
-        setState(() {
-          obscureNewPassword =
-              !obscureNewPassword;
-        });
-      },
-    ),
-    border: OutlineInputBorder(
-      borderRadius: BorderRadius.circular(18),
-    ),
-  ),
-),
+                  style: TextStyle(
+                    color: textColor,
+                    fontSize: 18,
+                    fontWeight:
+                        FontWeight.bold,
+                  ),
+                ),
+              ),
 
-const SizedBox(height: 10),
+              const SizedBox(height: 18),
 
-Align(
-  alignment: Alignment.centerRight,
-  child: GestureDetector(
-    onTap: () {
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (_) => ForgotPasswordScreen(),
-        ),
-      );
-    },
-    child: Text(
-      "Forgot my password?",
-      style: TextStyle(
-        color: purpleColor,
-        fontWeight: FontWeight.bold,
-      ),
-    ),
-  ),
-),
+              TextField(
+
+                controller:
+                    oldPasswordController,
+
+                obscureText:
+                    obscureOldPassword,
+
+                style: TextStyle(
+                  color: textColor,
+                ),
+
+                decoration: InputDecoration(
+
+                  labelText:
+                      "Old Password",
+
+                  labelStyle:
+                      TextStyle(
+                    color:
+                        subTextColor,
+                  ),
+
+                  prefixIcon: Icon(
+                    Icons.lock_outline,
+                    color:
+                        purpleColor,
+                  ),
+
+                  suffixIcon:
+                      IconButton(
+
+                    icon: Icon(
+
+                      obscureOldPassword
+                          ? Icons
+                              .visibility_off
+                          : Icons
+                              .visibility,
+
+                      color:
+                          purpleColor,
+                    ),
+
+                    onPressed: () {
+
+                      setState(() {
+
+                        obscureOldPassword =
+                            !obscureOldPassword;
+                      });
+                    },
+                  ),
+
+                  filled: true,
+
+                  fillColor:
+                      cardColor,
+
+                  border:
+                      OutlineInputBorder(
+
+                    borderRadius:
+                        BorderRadius.circular(
+                            18),
+                  ),
+
+                  enabledBorder:
+                      OutlineInputBorder(
+
+                    borderRadius:
+                        BorderRadius.circular(
+                            18),
+
+                    borderSide:
+                        BorderSide(
+                      color:
+                          iconBoxColor,
+                    ),
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 18),
+
+              TextField(
+
+                controller:
+                    newPasswordController,
+
+                obscureText:
+                    obscureNewPassword,
+
+                style: TextStyle(
+                  color: textColor,
+                ),
+
+                decoration: InputDecoration(
+
+                  labelText:
+                      "New Password",
+
+                  labelStyle:
+                      TextStyle(
+                    color:
+                        subTextColor,
+                  ),
+
+                  prefixIcon: Icon(
+                    Icons.lock,
+                    color:
+                        purpleColor,
+                  ),
+
+                  suffixIcon:
+                      IconButton(
+
+                    icon: Icon(
+
+                      obscureNewPassword
+                          ? Icons
+                              .visibility_off
+                          : Icons
+                              .visibility,
+
+                      color:
+                          purpleColor,
+                    ),
+
+                    onPressed: () {
+
+                      setState(() {
+
+                        obscureNewPassword =
+                            !obscureNewPassword;
+                      });
+                    },
+                  ),
+
+                  filled: true,
+
+                  fillColor:
+                      cardColor,
+
+                  border:
+                      OutlineInputBorder(
+
+                    borderRadius:
+                        BorderRadius.circular(
+                            18),
+                  ),
+
+                  enabledBorder:
+                      OutlineInputBorder(
+
+                    borderRadius:
+                        BorderRadius.circular(
+                            18),
+
+                    borderSide:
+                        BorderSide(
+                      color:
+                          iconBoxColor,
+                    ),
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 10),
+
+              Align(
+
+                alignment:
+                    Alignment.centerRight,
+
+                child: GestureDetector(
+
+                  onTap: () {
+
+                    Navigator.push(
+
+                      context,
+
+                      MaterialPageRoute(
+
+                        builder: (_) =>
+                            ForgotPasswordScreen(),
+                      ),
+                    );
+                  },
+
+                  child: Text(
+
+                    "Forgot my password?",
+
+                    style: TextStyle(
+                      color:
+                          purpleColor,
+                      fontWeight:
+                          FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ),
 
               const SizedBox(height: 35),
 
               SizedBox(
+
                 width: double.infinity,
+
                 height: 58,
+
                 child: ElevatedButton(
+
                   onPressed:
-                      isLoading ? null : saveChanges,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: purpleColor,
-                    shape: RoundedRectangleBorder(
+                      isLoading
+                          ? null
+                          : saveChanges,
+
+                  style:
+                      ElevatedButton.styleFrom(
+
+                    backgroundColor:
+                        purpleColor,
+
+                    shape:
+                        RoundedRectangleBorder(
+
                       borderRadius:
-                          BorderRadius.circular(18),
+                          BorderRadius.circular(
+                              18),
                     ),
                   ),
+
                   child: isLoading
+
                       ? const CircularProgressIndicator(
-                          color: Colors.white,
+                          color:
+                              Colors.white,
                         )
+
                       : const Text(
+
                           "Save Changes",
+
                           style: TextStyle(
+
                             fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
+
+                            fontWeight:
+                                FontWeight.bold,
+
+                            color:
+                                Colors.white,
                           ),
                         ),
                 ),
@@ -5688,39 +6218,64 @@ Align(
   }
 
   Widget _buildTextField({
-    required TextEditingController controller,
+
+    required TextEditingController
+        controller,
+
     required String label,
+
     required IconData icon,
+
     required Color textColor,
+
     required Color cardColor,
+
+    required Color iconBoxColor,
+
     bool enabled = true,
   }) {
+
     return TextField(
+
       controller: controller,
+
       enabled: enabled,
+
       style: TextStyle(
         color: textColor,
       ),
+
       decoration: InputDecoration(
+
         labelText: label,
+
         labelStyle: TextStyle(
           color: Colors.grey,
         ),
+
         prefixIcon: Icon(
           icon,
           color: purpleColor,
         ),
+
         filled: true,
+
         fillColor: cardColor,
+
         border: OutlineInputBorder(
+
           borderRadius:
               BorderRadius.circular(18),
         ),
-        enabledBorder: OutlineInputBorder(
+
+        enabledBorder:
+            OutlineInputBorder(
+
           borderRadius:
               BorderRadius.circular(18),
+
           borderSide: BorderSide(
-            color: Colors.grey.shade300,
+            color: iconBoxColor,
           ),
         ),
       ),
@@ -6946,13 +7501,13 @@ class AboutMedLifeScreen extends StatelessWidget {
         Theme.of(context).brightness == Brightness.dark;
 
     final Color bgColor =
-        isDark ? const Color(0xFF0D0917) : const Color(0xFFF7F7FA);
+        isDark ? const Color(0xFF0D0917) : const Color(0xFFF3F3F5);
 
     final Color cardColor =
-        isDark ? const Color(0xFF171326) : Colors.white;
+        isDark ? const Color(0xFF1D1B20) : Colors.white;
 
     final Color boxColor =
-        isDark ? const Color(0xFF221A3A) : const Color(0xFFF0F0F0);
+        isDark ? const Color(0xFF2A2730) : const Color(0xFFF4F4F4);
 
     final Color mainText =
         isDark ? Colors.white : Colors.black;
@@ -6960,7 +7515,7 @@ class AboutMedLifeScreen extends StatelessWidget {
     final Color subText =
         isDark ? Colors.white70 : Colors.grey.shade700;
 
-    const Color purple = Color(0xFF8E5CF7);
+    const Color primaryBlue = Color(0xFF6EA6C1);
 
     return Scaffold(
       backgroundColor: bgColor,
@@ -6993,12 +7548,12 @@ class AboutMedLifeScreen extends StatelessWidget {
                 gradient: LinearGradient(
                   colors: isDark
                       ? [
-                          const Color(0xFF2B1E4B),
-                          const Color(0xFF1A1333),
+                          const Color(0xFF26222D),
+                          const Color(0xFF1D1B20),
                         ]
                       : [
-                          const Color(0xFFEDE7FF),
-                          const Color(0xFFF8F6FF),
+                          Colors.white,
+                          const Color(0xFFF5F5F5),
                         ],
                 ),
               ),
@@ -7011,7 +7566,7 @@ class AboutMedLifeScreen extends StatelessWidget {
 
                       const Icon(
                         Icons.favorite,
-                        color: purple,
+                        color: primaryBlue,
                         size: 50,
                       ),
 
@@ -7195,7 +7750,7 @@ class AboutMedLifeScreen extends StatelessWidget {
 
                       const Icon(
                         Icons.phone,
-                        color: purple,
+                        color: primaryBlue,
                       ),
 
                       const SizedBox(width: 10),
@@ -7212,42 +7767,42 @@ class AboutMedLifeScreen extends StatelessWidget {
 
                   const SizedBox(height: 12),
 
-                 Row(
-  children: [
+                  Row(
+                    children: [
 
-    const Icon(
-      Icons.email,
-      color: purple,
-    ),
+                      const Icon(
+                        Icons.email,
+                        color: primaryBlue,
+                      ),
 
-    const SizedBox(width: 10),
+                      const SizedBox(width: 10),
 
-    GestureDetector(
-      onTap: () async {
+                      GestureDetector(
+                        onTap: () async {
 
-        final Uri emailUri = Uri(
-          scheme: 'mailto',
-          path: 'medlife.supportteam@gmail.com',
-          query:
-              'subject=MedLife Support',
-        );
+                          final Uri emailUri = Uri(
+                            scheme: 'mailto',
+                            path: 'medlife.supportteam@gmail.com',
+                            query:
+                                'subject=MedLife Support',
+                          );
 
-        await launchUrl(emailUri);
-      },
+                          await launchUrl(emailUri);
+                        },
 
-      child: Text(
-        "medlife.supportteam@gmail.com",
-        style: TextStyle(
-          color: purple,
-          fontSize: 16,
-          fontWeight: FontWeight.w600,
-          decoration:
-              TextDecoration.underline,
-        ),
-      ),
-    ),
-  ],
-),
+                        child: Text(
+                          "medlife.supportteam@gmail.com",
+                          style: TextStyle(
+                            color: primaryBlue,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                            decoration:
+                                TextDecoration.underline,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ],
               ),
             ),
@@ -7279,7 +7834,7 @@ class AboutMedLifeScreen extends StatelessWidget {
 
           Icon(
             icon,
-            color: const Color(0xFF8E5CF7),
+            color: Color(0xFF6EA6C1),
             size: 32,
           ),
 
@@ -7381,7 +7936,7 @@ class AboutMedLifeScreen extends StatelessWidget {
           Icon(
             icon,
             size: 32,
-            color: const Color(0xFF8E5CF7),
+            color: const Color(0xFF6EA6C1),
           ),
 
           const SizedBox(height: 10),
