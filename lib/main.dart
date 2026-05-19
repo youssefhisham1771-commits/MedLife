@@ -2965,29 +2965,53 @@ class _ReviewsScreenState
         Theme.of(context).brightness ==
             Brightness.dark;
 
+    const Color bgColor = Color(0xFF141118);
+
+    const Color cardColor = Color(0xFF1D1B20);
+
+    const Color blueColor = Color(0xFF6EA6C1);
+
     return Scaffold(
 
-      backgroundColor:
-          isDark ? Colors.black : Colors.white,
+      backgroundColor: bgColor,
 
       appBar: AppBar(
 
-        backgroundColor:
-            isDark ? Colors.black : Colors.white,
+  backgroundColor:
+      isDark
+          ? const Color(0xFF141118)
+          : Colors.white,
 
-        elevation: 0,
+  elevation: 0,
 
-        title: Text(
-          "Our Customers Reviews ⭐",
+  leading: IconButton(
+    icon: Icon(
+      Icons.arrow_back,
+      color:
+          isDark
+              ? Colors.white
+              : Colors.black,
+    ),
 
-          style: TextStyle(
-            color:
-                isDark
-                    ? Colors.white
-                    : Colors.black,
-          ),
-        ),
-      ),
+    onPressed: () {
+      Navigator.pop(context);
+    },
+  ),
+
+  title: Text(
+    "Our Customers Reviews",
+
+    style: TextStyle(
+      color:
+          isDark
+              ? Colors.white
+              : Colors.black,
+
+      fontWeight: FontWeight.bold,
+      fontSize: 24,
+    ),
+  ),
+),
 
       body: StreamBuilder(
 
@@ -3003,7 +3027,9 @@ class _ReviewsScreenState
 
           if (!snapshot.hasData) {
             return Center(
-              child: CircularProgressIndicator(),
+              child: CircularProgressIndicator(
+                color: blueColor,
+              ),
             );
           }
 
@@ -3070,10 +3096,7 @@ class _ReviewsScreenState
                           fontWeight:
                               FontWeight.bold,
 
-                          color:
-                              isDark
-                                  ? Colors.white
-                                  : Colors.black,
+                          color: Colors.white,
                         ),
                       ),
 
@@ -3090,7 +3113,7 @@ class _ReviewsScreenState
                                 ? Icons.star
                                 : Icons.star_border,
 
-                            color: Colors.amber,
+                            color: blueColor,
                             size: 30,
                           ),
                         ),
@@ -3102,12 +3125,7 @@ class _ReviewsScreenState
                         "Based on ${reviews.length} Reviews",
 
                         style: TextStyle(
-
-                          color:
-                              isDark
-                                  ? Colors.white70
-                                  : Colors.black54,
-
+                          color: Colors.white70,
                           fontSize: 16,
                         ),
                       ),
@@ -3152,24 +3170,10 @@ class _ReviewsScreenState
 
                   decoration: BoxDecoration(
 
+                    color: cardColor,
+
                     borderRadius:
                         BorderRadius.circular(30),
-
-                    gradient: LinearGradient(
-
-  begin: Alignment.topLeft,
-  end: Alignment.bottomRight,
-
-  colors: isDark
-      ? [
-          Color(0xFF2D5A74),
-          Color(0xFF123249),
-        ]
-      : [
-          Color(0xFFEAF6FF),
-          Color(0xFFD6ECFF),
-        ],
-),
                   ),
 
                   child: Column(
@@ -3179,17 +3183,11 @@ class _ReviewsScreenState
                     children: [
 
                       Text(
-                        "Rate Our App ⭐",
+                        "Rate Our App",
 
                         style: TextStyle(
-
-                          color:
-                              isDark
-                                  ? Colors.white
-                                  : Colors.black,
-
+                          color: Colors.white,
                           fontSize: 24,
-
                           fontWeight:
                               FontWeight.bold,
                         ),
@@ -3227,7 +3225,7 @@ class _ReviewsScreenState
                                       ? Icons.star
                                       : Icons.star_border,
 
-                                  color: Colors.white,
+                                  color: blueColor,
 
                                   size: star == selectedRating
                                       ? 40
@@ -3249,10 +3247,7 @@ class _ReviewsScreenState
                         maxLines: 4,
 
                         style: TextStyle(
-                          color:
-                              isDark
-                                  ? Colors.white
-                                  : Colors.black,
+                          color: Colors.white,
                         ),
 
                         decoration: InputDecoration(
@@ -3261,19 +3256,13 @@ class _ReviewsScreenState
                               "Write your review...",
 
                           hintStyle: TextStyle(
-
-                            color:
-                                isDark
-                                    ? Colors.white70
-                                    : Colors.black45,
+                            color: Colors.white70,
                           ),
 
                           filled: true,
 
                           fillColor:
-                              isDark
-                                  ? Colors.white.withOpacity(0.15)
-                                  : Colors.white,
+                              bgColor,
 
                           border: OutlineInputBorder(
 
@@ -3303,14 +3292,10 @@ class _ReviewsScreenState
                               ElevatedButton.styleFrom(
 
                             backgroundColor:
-                                isDark
-                                    ? Colors.white
-                                    : Colors.black,
+                                blueColor,
 
                             foregroundColor:
-                                isDark
-                                    ? Colors.black
-                                    : Colors.white,
+                                Colors.white,
 
                             padding:
                                 EdgeInsets.symmetric(
@@ -3319,7 +3304,9 @@ class _ReviewsScreenState
                           ),
 
                           child: isLoading
-                              ? CircularProgressIndicator()
+                              ? CircularProgressIndicator(
+                                  color: Colors.white,
+                                )
                               : Text(
                                   "Submit Review",
                                 ),
@@ -3336,14 +3323,8 @@ class _ReviewsScreenState
                   "Users Reviews",
 
                   style: TextStyle(
-
-                    color:
-                        isDark
-                            ? Colors.white
-                            : Colors.black,
-
+                    color: Colors.white,
                     fontSize: 24,
-
                     fontWeight: FontWeight.bold,
                   ),
                 ),
@@ -3359,12 +3340,7 @@ class _ReviewsScreenState
                         "No Reviews Yet ⭐",
 
                         style: TextStyle(
-
-                          color:
-                              isDark
-                                  ? Colors.white70
-                                  : Colors.black54,
-
+                          color: Colors.white70,
                           fontSize: 18,
                         ),
                       ),
@@ -3409,11 +3385,7 @@ class _ReviewsScreenState
             "$star",
 
             style: TextStyle(
-
-              color:
-                  isDark
-                      ? Colors.white
-                      : Colors.black,
+              color: Colors.white,
             ),
           ),
 
@@ -3421,7 +3393,7 @@ class _ReviewsScreenState
 
           Icon(
             Icons.star,
-            color: Colors.amber,
+            color: Color(0xFF6EA6C1),
             size: 18,
           ),
 
@@ -3440,13 +3412,11 @@ class _ReviewsScreenState
                 minHeight: 10,
 
                 backgroundColor:
-                    isDark
-                        ? Colors.white12
-                        : Colors.black12,
+                    Colors.white12,
 
                 valueColor:
                     AlwaysStoppedAnimation(
-                  Colors.orange,
+                  Color(0xFF6EA6C1),
                 ),
               ),
             ),
@@ -3458,11 +3428,7 @@ class _ReviewsScreenState
             "${(value * 100).toInt()}%",
 
             style: TextStyle(
-
-              color:
-                  isDark
-                      ? Colors.white70
-                      : Colors.black54,
+              color: Colors.white70,
             ),
           ),
         ],
@@ -3486,10 +3452,7 @@ class _ReviewsScreenState
 
       decoration: BoxDecoration(
 
-        color:
-            isDark
-                ? Colors.white.withOpacity(0.05)
-                : Colors.black.withOpacity(0.04),
+        color: Color(0xFF1D1B20),
 
         borderRadius:
             BorderRadius.circular(22),
@@ -3506,7 +3469,7 @@ class _ReviewsScreenState
 
               CircleAvatar(
                 backgroundColor:
-                    Colors.orange,
+                    Color(0xFF6EA6C1),
 
                 child: Text(
                   name[0].toUpperCase(),
@@ -3520,15 +3483,9 @@ class _ReviewsScreenState
                   name,
 
                   style: TextStyle(
-
-                    color:
-                        isDark
-                            ? Colors.white
-                            : Colors.black,
-
+                    color: Colors.white,
                     fontWeight:
                         FontWeight.bold,
-
                     fontSize: 16,
                   ),
                 ),
@@ -3543,7 +3500,7 @@ class _ReviewsScreenState
               stars,
                   (index) => Icon(
                 Icons.star,
-                color: Colors.amber,
+                color: Color(0xFF6EA6C1),
                 size: 20,
               ),
             ),
@@ -3555,12 +3512,7 @@ class _ReviewsScreenState
             review,
 
             style: TextStyle(
-
-              color:
-                  isDark
-                      ? Colors.white70
-                      : Colors.black87,
-
+              color: Colors.white70,
               fontSize: 15,
             ),
           ),
@@ -3577,15 +3529,21 @@ class ContactUsScreen extends StatelessWidget {
 
   /// 🔗 OPEN LINKS
   Future<void> openLink(String url) async {
-    final Uri uri = Uri.parse(url);
 
-    if (await canLaunchUrl(uri)) {
-      await launchUrl(
-        uri,
-        mode: LaunchMode.externalApplication,
-      );
-    }
+  final Uri uri = Uri.parse(url);
+
+  try {
+
+    await launchUrl(
+      uri,
+      mode: LaunchMode.externalApplication,
+    );
+
+  } catch (e) {
+
+    debugPrint("Error: $e");
   }
+}
 
   /// 🔹 CONTACT CARD
   Widget buildContactCard({
@@ -3605,7 +3563,7 @@ class ContactUsScreen extends StatelessWidget {
         borderRadius: BorderRadius.circular(24),
 
         color: isDark
-            ? Colors.white.withOpacity(0.05)
+            ? const Color(0xFF1D1B20)
             : Colors.black.withOpacity(0.03),
 
         border: Border.all(
@@ -3706,9 +3664,7 @@ class ContactUsScreen extends StatelessWidget {
                 /// ➜ ARROW
                 Icon(
                   Icons.arrow_forward_ios_rounded,
-                  color: isDark
-                      ? Colors.white70
-                      : Colors.black54,
+                  color: const Color(0xFF6EA6C1),
                 ),
               ],
             ),
@@ -3724,17 +3680,26 @@ class ContactUsScreen extends StatelessWidget {
 
     return Scaffold(
       backgroundColor:
-          isDark ? Colors.black : Colors.white,
+          isDark
+              ? const Color(0xFF141118)
+              : Colors.white,
 
       appBar: AppBar(
-        title: Text("Contact Us"),
+        title: Text(
+          "Contact Us",
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+          ),
+        ),
 
         centerTitle: true,
 
         elevation: 0,
 
         backgroundColor:
-            isDark ? Colors.black : Colors.white,
+            isDark
+                ? const Color(0xFF141118)
+                : Colors.white,
 
         foregroundColor:
             isDark ? Colors.white : Colors.black,
@@ -3756,7 +3721,7 @@ class ContactUsScreen extends StatelessWidget {
                 shape: BoxShape.circle,
 
                 color: isDark
-                    ? Colors.white.withOpacity(0.06)
+                    ? const Color(0xFF1D1B20)
                     : Colors.black.withOpacity(0.04),
 
                 border: Border.all(
@@ -3770,9 +3735,7 @@ class ContactUsScreen extends StatelessWidget {
                 Icons.support_agent_rounded,
                 size: 70,
 
-                color: isDark
-                    ? Colors.white
-                    : Color(0xFF123249),
+                color: const Color(0xFF6EA6C1),
               ),
             ),
 
@@ -3814,206 +3777,199 @@ class ContactUsScreen extends StatelessWidget {
             SizedBox(height: 35),
 
             /// 📸 INSTAGRAM
-            buildContactCard(
-              context: context,
+buildContactCard(
+  context: context,
 
-              icon: Icons.camera_alt_rounded,
+  icon: Icons.camera_alt_rounded,
 
-              iconColor: Color(0xFFFF0A78),
+  iconColor: const Color(0xFF6EA6C1),
 
-              bgColor: Color(0x33FF0A78),
+  bgColor: const Color(0x336EA6C1),
 
-              title: "Instagram",
+  title: "Instagram",
 
-              subtitle: "@medlife_eg",
+  subtitle: "@medlife_eg",
 
-              onTap: () {
-                openLink(
-                  "https://instagram.com/medlife_eg",
-                );
-              },
-            ),
+  onTap: () {
+    openLink(
+      "https://www.instagram.com/medlife_eg?igsh=aWlxb20ybGZvamk2",
+    );
+  },
+),
 
-            /// 📘 FACEBOOK
-            buildContactCard(
-              context: context,
+/// 📘 FACEBOOK
+buildContactCard(
+  context: context,
 
-              icon: Icons.facebook_rounded,
+  icon: Icons.facebook_rounded,
 
-              iconColor: Color(0xFF1877F2),
+  iconColor: const Color(0xFF6EA6C1),
 
-              bgColor: Color(0x331877F2),
+  bgColor: const Color(0x336EA6C1),
 
-              title: "Facebook",
+  title: "Facebook",
 
-              subtitle: "MedLife",
+  subtitle: "MedLife",
 
-              onTap: () {
-                openLink(
-                  "https://facebook.com/",
-                );
-              },
-            ),
+  onTap: () {
+    openLink(
+      "https://www.facebook.com/profile.php?id=61574319662590",
+    );
+  },
+),
 
-            /// 🎵 TIKTOK
-            buildContactCard(
-              context: context,
+/// 🎵 TIKTOK
+buildContactCard(
+  context: context,
 
-              icon: Icons.music_note_rounded,
+  icon: Icons.music_note_rounded,
 
-              iconColor: isDark
-                  ? Colors.white
-                  : Colors.black,
+  iconColor: const Color(0xFF6EA6C1),
 
-              bgColor: isDark
-                  ? Colors.white10
-                  : Colors.black12,
+  bgColor: const Color(0x336EA6C1),
 
-              title: "TikTok",
+  title: "TikTok",
 
-              subtitle: "@medlife_eg",
+  subtitle: "@medlife_eg",
 
-              onTap: () {
-                openLink(
-                  "https://tiktok.com/@medlife_eg",
-                );
-              },
-            ),
+  onTap: () {
+    openLink(
+      "https://www.tiktok.com/@medlife_eg",
+    );
+  },
+),
 
-            /// 💬 WHATSAPP
-            buildContactCard(
-              context: context,
+/// 💬 WHATSAPP
+buildContactCard(
+  context: context,
 
-              icon: Icons.chat,
+  icon: Icons.chat,
 
-              iconColor: Color(0xFF25D366),
+  iconColor: const Color(0xFF6EA6C1),
 
-              bgColor: Color(0x3325D366),
+  bgColor: const Color(0x336EA6C1),
 
-              title: "WhatsApp",
+  title: "WhatsApp",
 
-              subtitle: "+20 1010 520 993",
+  subtitle: "+20 1010 520 993",
 
-              onTap: () {
-                openLink(
-                  "https://wa.me/201010520993",
-                );
-              },
-            ),
+  onTap: () {
+    openLink(
+      "https://wa.me/201010520993",
+    );
+  },
+),
 
-            /// 📧 EMAIL
-            buildContactCard(
-              context: context,
+/// 📧 EMAIL
+buildContactCard(
+  context: context,
 
-              icon: Icons.email_rounded,
+  icon: Icons.email_rounded,
 
-              iconColor: Colors.orange,
+  iconColor: const Color(0xFF6EA6C1),
 
-              bgColor: Colors.orange.withOpacity(0.2),
+  bgColor: const Color(0x336EA6C1),
 
-              title: "Support Email",
+  title: "Support Email",
 
-              subtitle: "support@medlife-eg.com",
+  subtitle: "medlife.supportteam@gmail.com",
 
-              onTap: () {
-                openLink(
-                  "mailto:support@medlife-eg.com",
-                );
-              },
-            ),
+  onTap: () {
+    openLink(
+      "mailto:medlife.supportteam@gmail.com",
+    );
+  },
+),
 
             SizedBox(height: 10),
 
             //// 🔒 PRIVACY
-Container(
-  width: double.infinity,
-  padding: EdgeInsets.all(20),
+            Container(
+              width: double.infinity,
+              padding: EdgeInsets.all(20),
 
-  decoration: BoxDecoration(
-    borderRadius: BorderRadius.circular(20),
-
-    color: isDark
-        ? Colors.white.withOpacity(0.05)
-        : Colors.black.withOpacity(0.03),
-
-    border: Border.all(
-      color: isDark
-          ? Colors.white10
-          : Colors.black12,
-    ),
-
-    boxShadow: [
-      BoxShadow(
-        color: isDark
-            ? Colors.black.withOpacity(0.25)
-            : Colors.black.withOpacity(0.08),
-        blurRadius: 12,
-        offset: Offset(0, 5),
-      ),
-    ],
-  ),
-
-  child: Row(
-    children: [
-
-      Container(
-        padding: EdgeInsets.all(12),
-
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-
-          color: isDark
-              ? Colors.white.withOpacity(0.06)
-              : Colors.black.withOpacity(0.04),
-        ),
-
-        child: Icon(
-          Icons.shield_outlined,
-          color: isDark
-              ? Colors.white
-              : Colors.black87,
-        ),
-      ),
-
-      SizedBox(width: 15),
-
-      Expanded(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-
-            Text(
-              "We value your privacy",
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: 16,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(20),
 
                 color: isDark
-                    ? Colors.white
-                    : Colors.black87,
-              ),
-            ),
+                    ? const Color(0xFF1D1B20)
+                    : Colors.black.withOpacity(0.03),
 
-            SizedBox(height: 5),
+                border: Border.all(
+                  color: isDark
+                      ? Colors.white10
+                      : Colors.black12,
+                ),
 
-            Text(
-              "Your information is safe with us and will never be shared.",
-              style: TextStyle(
-                color: isDark
-                    ? Colors.white70
-                    : Colors.black54,
+                boxShadow: [
+                  BoxShadow(
+                    color: isDark
+                        ? Colors.black.withOpacity(0.25)
+                        : Colors.black.withOpacity(0.08),
+                    blurRadius: 12,
+                    offset: Offset(0, 5),
+                  ),
+                ],
               ),
-            ),
+
+              child: Row(
+                children: [
+
+                  Container(
+                    padding: EdgeInsets.all(12),
+
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+
+                      color: const Color(0x336EA6C1),
+                    ),
+
+                    child: Icon(
+                      Icons.shield_outlined,
+                      color: const Color(0xFF6EA6C1),
+                    ),
+                  ),
+
+                  SizedBox(width: 15),
+
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment:
+                          CrossAxisAlignment.start,
+                      children: [
+
+                        Text(
+                          "We value your privacy",
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+
+                            color: isDark
+                                ? Colors.white
+                                : Colors.black87,
+                          ),
+                        ),
+
+                        SizedBox(height: 5),
+
+                        Text(
+                          "Your information is safe with us and will never be shared.",
+                          style: TextStyle(
+                            color: isDark
+                                ? Colors.white70
+                                : Colors.black54,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            )
           ],
         ),
       ),
-    ],
-  ),
-)
-            ],
-          ),
-        ),
-      );
+    );
   }
 }
 
@@ -5415,22 +5371,52 @@ class ProfileScreen extends StatelessWidget {
                             ),
 
                             _menuTile(
-                              icon: Icons.credit_card,
-                              title: "Payment Methods",
-                              color: mainTextColor,
-                            ),
+  icon: Icons.credit_card,
+  title: "Payment Methods",
+  color: mainTextColor,
 
-                            _menuTile(
-                              icon: Icons.notifications_none,
-                              title: "Notifications",
-                              color: mainTextColor,
-                            ),
+  onTap: () {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text(
+          "Will Be Available Soon!",
+        ),
+      ),
+    );
+  },
+),
 
-                            _menuTile(
-                              icon: Icons.help_outline,
-                              title: "Help & Support",
-                              color: mainTextColor,
-                            ),
+_menuTile(
+  icon: Icons.notifications_none,
+  title: "Notifications",
+  color: mainTextColor,
+
+  onTap: () {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text(
+          "Will Be Available Soon!",
+        ),
+      ),
+    );
+  },
+),
+
+_menuTile(
+  icon: Icons.help_outline,
+  title: "Help & Support",
+  color: mainTextColor,
+
+  onTap: () {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text(
+          "Will Be Available Soon!",
+        ),
+      ),
+    );
+  },
+),
 
                             _menuTile(
                               icon: Icons.info_outline,
@@ -6580,18 +6566,61 @@ class MyAddressesScreen extends StatefulWidget {
 class _MyAddressesScreenState
     extends State<MyAddressesScreen> {
 
-  /// EMPTY LIST
-  final List<Map<String, String>> addresses = [];
+  final List<Map<String, dynamic>> addresses = [];
+
+  bool isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadAddresses();
+  }
+
+  /// 🔥 LOAD ADDRESSES INSTANTLY
+  Future<void> _loadAddresses() async {
+
+    final user = FirebaseAuth.instance.currentUser;
+
+    if (user == null) {
+      setState(() {
+        isLoading = false;
+      });
+      return;
+    }
+
+    final snapshot = await FirebaseFirestore.instance
+        .collection('users')
+        .doc(user.uid)
+        .collection('addresses')
+        .get();
+
+    addresses.clear();
+
+    for (var doc in snapshot.docs) {
+
+      addresses.add({
+        "id": doc.id,
+        "title": doc['title'],
+        "address": doc['address'],
+      });
+    }
+
+    setState(() {
+      isLoading = false;
+    });
+  }
 
   void _showAddAddressDialog() {
 
     if (addresses.length >= 3) {
+
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content:
               Text("Maximum 3 addresses allowed"),
         ),
       );
+
       return;
     }
 
@@ -6601,17 +6630,14 @@ class _MyAddressesScreenState
     final addressController =
         TextEditingController();
 
-    final bool isDark =
-        Theme.of(context).brightness ==
-            Brightness.dark;
-
     showModalBottomSheet(
+
       context: context,
+
       isScrollControlled: true,
+
       backgroundColor:
-          isDark
-              ? const Color(0xFF171326)
-              : Colors.white,
+          const Color(0xFF1D1B20),
 
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(
@@ -6620,7 +6646,9 @@ class _MyAddressesScreenState
       ),
 
       builder: (context) {
+
         return Padding(
+
           padding: EdgeInsets.only(
             left: 20,
             right: 20,
@@ -6633,6 +6661,7 @@ class _MyAddressesScreenState
           ),
 
           child: Column(
+
             mainAxisSize: MainAxisSize.min,
 
             children: [
@@ -6643,6 +6672,7 @@ class _MyAddressesScreenState
 
                 decoration: BoxDecoration(
                   color: Colors.grey.withOpacity(.4),
+
                   borderRadius:
                       BorderRadius.circular(20),
                 ),
@@ -6652,36 +6682,65 @@ class _MyAddressesScreenState
 
               const Text(
                 "Add New Address",
+
                 style: TextStyle(
                   fontSize: 24,
                   fontWeight: FontWeight.bold,
+                  color: Colors.white,
                 ),
               ),
 
               const SizedBox(height: 24),
 
               TextField(
+
                 controller: titleController,
 
-                style: TextStyle(
-                  color:
-                      isDark
-                          ? Colors.white
-                          : Colors.black,
+                style: const TextStyle(
+                  color: Colors.white,
                 ),
 
                 decoration: InputDecoration(
+
                   labelText: "Title",
+
+                  labelStyle: const TextStyle(
+                    color: Colors.white70,
+                  ),
+
                   hintText:
                       "Home / Work / University",
 
-                  prefixIcon: const Icon(
-                    Icons.title,
+                  hintStyle: const TextStyle(
+                    color: Colors.white38,
                   ),
 
-                  border: OutlineInputBorder(
+                  prefixIcon: const Icon(
+                    Icons.title,
+                    color: Color(0xFF6EA6C1),
+                  ),
+
+                  enabledBorder:
+                      OutlineInputBorder(
                     borderRadius:
                         BorderRadius.circular(18),
+
+                    borderSide:
+                        const BorderSide(
+                      color: Color(0xFF6EA6C1),
+                    ),
+                  ),
+
+                  focusedBorder:
+                      OutlineInputBorder(
+                    borderRadius:
+                        BorderRadius.circular(18),
+
+                    borderSide:
+                        const BorderSide(
+                      color: Color(0xFF6EA6C1),
+                      width: 2,
+                    ),
                   ),
                 ),
               ),
@@ -6689,33 +6748,62 @@ class _MyAddressesScreenState
               const SizedBox(height: 18),
 
               TextField(
+
                 controller: addressController,
+
                 maxLines: 3,
 
-                style: TextStyle(
-                  color:
-                      isDark
-                          ? Colors.white
-                          : Colors.black,
+                style: const TextStyle(
+                  color: Colors.white,
                 ),
 
                 decoration: InputDecoration(
+
                   labelText: "Address",
+
+                  labelStyle: const TextStyle(
+                    color: Colors.white70,
+                  ),
+
                   hintText:
                       "Enter full address details",
+
+                  hintStyle: const TextStyle(
+                    color: Colors.white38,
+                  ),
 
                   prefixIcon: const Padding(
                     padding: EdgeInsets.only(
                       bottom: 50,
                     ),
+
                     child: Icon(
                       Icons.location_on,
+                      color: Color(0xFF6EA6C1),
                     ),
                   ),
 
-                  border: OutlineInputBorder(
+                  enabledBorder:
+                      OutlineInputBorder(
                     borderRadius:
                         BorderRadius.circular(18),
+
+                    borderSide:
+                        const BorderSide(
+                      color: Color(0xFF6EA6C1),
+                    ),
+                  ),
+
+                  focusedBorder:
+                      OutlineInputBorder(
+                    borderRadius:
+                        BorderRadius.circular(18),
+
+                    borderSide:
+                        const BorderSide(
+                      color: Color(0xFF6EA6C1),
+                      width: 2,
+                    ),
                   ),
                 ),
               ),
@@ -6723,13 +6811,16 @@ class _MyAddressesScreenState
               const SizedBox(height: 24),
 
               SizedBox(
+
                 width: double.infinity,
                 height: 56,
 
                 child: ElevatedButton(
+
                   style: ElevatedButton.styleFrom(
+
                     backgroundColor:
-                        const Color(0xFF8E5CF7),
+                        const Color(0xFF6EA6C1),
 
                     shape: RoundedRectangleBorder(
                       borderRadius:
@@ -6739,7 +6830,7 @@ class _MyAddressesScreenState
                     ),
                   ),
 
-                  onPressed: () {
+                  onPressed: () async {
 
                     if (titleController.text
                             .trim()
@@ -6750,24 +6841,64 @@ class _MyAddressesScreenState
                       return;
                     }
 
+                    final user =
+                        FirebaseAuth.instance
+                            .currentUser;
+
+                    if (user == null) return;
+
+                    final newAddress = {
+                      "title":
+                          titleController.text
+                              .trim(),
+
+                      "address":
+                          addressController.text
+                              .trim(),
+                    };
+
+                    /// 🔥 INSTANT UI UPDATE
                     setState(() {
 
                       addresses.add({
-                        "title":
-                            titleController.text
-                                .trim(),
-
-                        "address":
-                            addressController.text
-                                .trim(),
+                        "id": "",
+                        ...newAddress,
                       });
                     });
 
                     Navigator.pop(context);
+
+                    /// 🔥 SAVE TO FIREBASE
+                    final doc =
+                        await FirebaseFirestore
+                            .instance
+                            .collection('users')
+                            .doc(user.uid)
+                            .collection(
+                              'addresses',
+                            )
+                            .add(newAddress);
+
+                    /// 🔥 UPDATE ID
+                    final index =
+                        addresses.indexWhere(
+                      (e) => e["id"] == "",
+                    );
+
+                    if (index != -1) {
+
+                      setState(() {
+
+                        addresses[index]["id"] =
+                            doc.id;
+                      });
+                    }
                   },
 
                   child: const Text(
+
                     "Save Address",
+
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight:
@@ -6784,10 +6915,31 @@ class _MyAddressesScreenState
     );
   }
 
-  void _deleteAddress(int index) {
+  void _deleteAddress(int index) async {
+
+    final user =
+        FirebaseAuth.instance.currentUser;
+
+    if (user == null) return;
+
+    final addressId =
+        addresses[index]["id"];
+
+    /// 🔥 DELETE INSTANTLY
     setState(() {
       addresses.removeAt(index);
     });
+
+    if (addressId != null &&
+        addressId.toString().isNotEmpty) {
+
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .collection('addresses')
+          .doc(addressId)
+          .delete();
+    }
   }
 
   IconData _getAddressIcon(String title) {
@@ -6811,46 +6963,37 @@ class _MyAddressesScreenState
   @override
   Widget build(BuildContext context) {
 
-    final bool isDark =
-        Theme.of(context).brightness ==
-            Brightness.dark;
+    const Color bgColor =
+        Color(0xFF141118);
 
-    final Color bgColor =
-        isDark
-            ? const Color(0xFF0D0917)
-            : const Color(0xFFF7F7FA);
+    const Color cardColor =
+        Color(0xFF1D1B20);
 
-    final Color cardColor =
-        isDark
-            ? const Color(0xFF171326)
-            : Colors.white;
+    const Color mainText =
+        Colors.white;
 
-    final Color mainText =
-        isDark ? Colors.white : Colors.black;
+    const Color subText =
+        Colors.white70;
 
-    final Color subText =
-        isDark
-            ? Colors.white70
-            : Colors.grey.shade700;
-
-    const Color purple =
-        Color(0xFF8E5CF7);
+    const Color blue =
+        Color(0xFF6EA6C1);
 
     return Scaffold(
+
       backgroundColor: bgColor,
 
       appBar: AppBar(
+
         backgroundColor:
-            isDark
-                ? Colors.black
-                : Colors.white,
+            const Color(0xFF141118),
 
         elevation: 0,
 
         leading: IconButton(
-          icon: Icon(
+
+          icon: const Icon(
             Icons.arrow_back,
-            color: mainText,
+            color: Colors.white,
           ),
 
           onPressed: () {
@@ -6858,11 +7001,12 @@ class _MyAddressesScreenState
           },
         ),
 
-        title: Text(
+        title: const Text(
+
           "My Addresses",
 
           style: TextStyle(
-            color: mainText,
+            color: Colors.white,
             fontWeight:
                 FontWeight.bold,
             fontSize: 30,
@@ -6874,19 +7018,21 @@ class _MyAddressesScreenState
           if (addresses.length < 3)
 
             TextButton.icon(
+
               onPressed:
                   _showAddAddressDialog,
 
               icon: const Icon(
                 Icons.add,
-                color: purple,
+                color: blue,
               ),
 
               label: const Text(
+
                 "Add",
 
                 style: TextStyle(
-                  color: purple,
+                  color: blue,
                   fontSize: 16,
                   fontWeight:
                       FontWeight.bold,
@@ -6901,9 +7047,10 @@ class _MyAddressesScreenState
       floatingActionButton:
           addresses.isNotEmpty &&
                   addresses.length < 3
+
               ? FloatingActionButton.extended(
 
-                backgroundColor: purple,
+                backgroundColor: blue,
 
                 onPressed:
                     _showAddAddressDialog,
@@ -6914,6 +7061,7 @@ class _MyAddressesScreenState
                 ),
 
                 label: const Text(
+
                   "Add Address",
 
                   style: TextStyle(
@@ -6923,571 +7071,663 @@ class _MyAddressesScreenState
                   ),
                 ),
               )
+
               : null,
 
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
+      body:
+          isLoading
 
-        child: Column(
-          crossAxisAlignment:
-              CrossAxisAlignment.start,
-
-          children: [
-
-            /// TOP CARD
-            Container(
-              width: double.infinity,
-              padding:
-                  const EdgeInsets.all(20),
-
-              decoration: BoxDecoration(
-                borderRadius:
-                    BorderRadius.circular(
-                      24,
-                    ),
-
-                gradient: LinearGradient(
-                  colors:
-                      isDark
-                          ? [
-                            const Color(
-                              0xFF2B1E4B,
-                            ),
-
-                            const Color(
-                              0xFF171326,
-                            ),
-                          ]
-                          : [
-                            const Color(
-                              0xFFEDE7FF,
-                            ),
-
-                            Colors.white,
-                          ],
-                ),
-              ),
-
-              child: Row(
-                children: [
-
-                  Container(
-                    width: 70,
-                    height: 70,
-
-                    decoration: BoxDecoration(
-                      color: purple
-                          .withOpacity(.15),
-
-                      shape: BoxShape.circle,
-                    ),
-
-                    child: const Icon(
-                      Icons.location_on,
-                      color: purple,
-                      size: 36,
-                    ),
+              ? const Center(
+                  child:
+                      CircularProgressIndicator(
+                    color: blue,
                   ),
+                )
 
-                  const SizedBox(width: 18),
+              : SingleChildScrollView(
 
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment:
-                          CrossAxisAlignment
-                              .start,
-
-                      children: [
-
-                        Text(
-                          "Manage your addresses",
-
-                          style: TextStyle(
-                            color: mainText,
-                            fontSize: 22,
-                            fontWeight:
-                                FontWeight.bold,
-                          ),
-                        ),
-
-                        const SizedBox(
-                          height: 6,
-                        ),
-
-                        Text(
-                          "You can add up to 3 addresses",
-
-                          style: TextStyle(
-                            color: subText,
-                            fontSize: 15,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  Container(
-                    padding:
-                        const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 12,
-                        ),
-
-                    decoration: BoxDecoration(
-                      color: purple
-                          .withOpacity(.15),
-
-                      borderRadius:
-                          BorderRadius.circular(
-                            18,
-                          ),
-                    ),
-
-                    child: Text(
-                      "${addresses.length}/3",
-
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight:
-                            FontWeight.bold,
-                        fontSize: 20,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-            const SizedBox(height: 26),
-
-            Text(
-              "Your Addresses",
-
-              style: TextStyle(
-                color: mainText,
-                fontSize: 28,
-                fontWeight:
-                    FontWeight.bold,
-              ),
-            ),
-
-            const SizedBox(height: 18),
-
-            /// EMPTY STATE
-            if (addresses.isEmpty)
-
-              Container(
-                width: double.infinity,
                 padding:
-                    const EdgeInsets.all(30),
-
-                decoration: BoxDecoration(
-                  color: cardColor,
-
-                  borderRadius:
-                      BorderRadius.circular(
-                        28,
-                      ),
-                ),
+                    const EdgeInsets.all(16),
 
                 child: Column(
+
+                  crossAxisAlignment:
+                      CrossAxisAlignment.start,
+
                   children: [
 
+                    /// TOP CARD
                     Container(
-                      width: 90,
-                      height: 90,
+
+                      width: double.infinity,
+
+                      padding:
+                          const EdgeInsets.all(
+                            20,
+                          ),
 
                       decoration: BoxDecoration(
-                        color: purple
-                            .withOpacity(.15),
 
-                        shape: BoxShape.circle,
-                      ),
-
-                      child: const Icon(
-                        Icons.location_off_outlined,
-                        color: purple,
-                        size: 45,
-                      ),
-                    ),
-
-                    const SizedBox(
-                      height: 22,
-                    ),
-
-                    Text(
-                      "No Addresses Yet",
-
-                      style: TextStyle(
-                        color: mainText,
-                        fontSize: 24,
-                        fontWeight:
-                            FontWeight.bold,
-                      ),
-                    ),
-
-                    const SizedBox(
-                      height: 10,
-                    ),
-
-                    Text(
-                      "Add your first address to make ordering faster and easier.",
-
-                      textAlign:
-                          TextAlign.center,
-
-                      style: TextStyle(
-                        color: subText,
-                        fontSize: 15,
-                        height: 1.5,
-                      ),
-                    ),
-
-                    const SizedBox(
-                      height: 24,
-                    ),
-
-                    SizedBox(
-                      width: double.infinity,
-                      height: 56,
-
-                      child:
-                          ElevatedButton.icon(
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor:
-                                  purple,
-
-                              shape: RoundedRectangleBorder(
-                                borderRadius:
-                                    BorderRadius.circular(
-                                      18,
-                                    ),
-                              ),
+                        borderRadius:
+                            BorderRadius.circular(
+                              24,
                             ),
 
-                            onPressed:
-                                _showAddAddressDialog,
+                        gradient:
+                            const LinearGradient(
 
-                            icon: const Icon(
-                              Icons.add,
+                              colors: [
+                                Color(0xFF1D1B20),
+                                Color(0xFF141118),
+                              ],
+                            ),
+                      ),
+
+                      child: Row(
+                        children: [
+
+                          Container(
+
+                            width: 70,
+                            height: 70,
+
+                            decoration: BoxDecoration(
                               color:
-                                  Colors.white,
+                                  blue.withOpacity(
+                                    .15,
+                                  ),
+
+                              shape:
+                                  BoxShape.circle,
                             ),
 
-                            label: const Text(
-                              "Add Address",
+                            child: const Icon(
+                              Icons.location_on,
+                              color: blue,
+                              size: 36,
+                            ),
+                          ),
 
-                              style: TextStyle(
+                          const SizedBox(
+                            width: 18,
+                          ),
+
+                          Expanded(
+
+                            child: Column(
+
+                              crossAxisAlignment:
+                                  CrossAxisAlignment
+                                      .start,
+
+                              children: [
+
+                                const Text(
+
+                                  "Manage your addresses",
+
+                                  style: TextStyle(
+                                    color:
+                                        mainText,
+
+                                    fontSize:
+                                        22,
+
+                                    fontWeight:
+                                        FontWeight
+                                            .bold,
+                                  ),
+                                ),
+
+                                const SizedBox(
+                                  height: 6,
+                                ),
+
+                                const Text(
+
+                                  "You can add up to 3 addresses",
+
+                                  style: TextStyle(
+                                    color:
+                                        subText,
+
+                                    fontSize:
+                                        15,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+
+                          Container(
+
+                            padding:
+                                const EdgeInsets.symmetric(
+                                  horizontal:
+                                      16,
+
+                                  vertical:
+                                      12,
+                                ),
+
+                            decoration:
+                                BoxDecoration(
+                              color:
+                                  blue.withOpacity(
+                                    .15,
+                                  ),
+
+                              borderRadius:
+                                  BorderRadius.circular(
+                                    18,
+                                  ),
+                            ),
+
+                            child: Text(
+
+                              "${addresses.length}/3",
+
+                              style:
+                                  const TextStyle(
                                 color:
                                     Colors.white,
+
                                 fontWeight:
                                     FontWeight
                                         .bold,
-                                fontSize: 18,
+
+                                fontSize:
+                                    20,
                               ),
                             ),
                           ),
-                    ),
-                  ],
-                ),
-              ),
-
-            /// ADDRESS LIST
-            ...List.generate(
-              addresses.length,
-
-              (index) {
-
-                final item =
-                    addresses[index];
-
-                return Padding(
-                  padding:
-                      const EdgeInsets.only(
-                        bottom: 18,
+                        ],
                       ),
-
-                  child: Container(
-                    width: double.infinity,
-                    padding:
-                        const EdgeInsets.all(
-                          18,
-                        ),
-
-                    decoration: BoxDecoration(
-                      color: cardColor,
-
-                      borderRadius:
-                          BorderRadius.circular(
-                            28,
-                          ),
-
-                      boxShadow: [
-                        BoxShadow(
-                          color:
-                              Colors.black12,
-                          blurRadius: 10,
-                          offset:
-                              const Offset(
-                                0,
-                                4,
-                              ),
-                        ),
-                      ],
                     ),
 
-                    child: Row(
-                      crossAxisAlignment:
-                          CrossAxisAlignment
-                              .start,
+                    const SizedBox(height: 26),
 
-                      children: [
+                    const Text(
 
-                        Container(
-                          width: 70,
-                          height: 70,
+                      "Your Addresses",
 
-                          decoration: BoxDecoration(
-                            color: purple
-                                .withOpacity(
-                                  .15,
-                                ),
+                      style: TextStyle(
+                        color: mainText,
+                        fontSize: 28,
+                        fontWeight:
+                            FontWeight.bold,
+                      ),
+                    ),
 
-                            borderRadius:
-                                BorderRadius.circular(
-                                  22,
-                                ),
-                          ),
+                    const SizedBox(height: 18),
 
-                          child: Icon(
-                            _getAddressIcon(
-                              item['title']!,
+                    if (addresses.isEmpty)
+
+                      Container(
+
+                        width: double.infinity,
+
+                        padding:
+                            const EdgeInsets.all(
+                              30,
                             ),
 
-                            color: purple,
-                            size: 34,
-                          ),
+                        decoration: BoxDecoration(
+                          color: cardColor,
+
+                          borderRadius:
+                              BorderRadius.circular(
+                                28,
+                              ),
                         ),
 
-                        const SizedBox(
-                          width: 16,
-                        ),
+                        child: Column(
+                          children: [
 
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment:
-                                CrossAxisAlignment
-                                    .start,
+                            Container(
 
-                            children: [
+                              width: 90,
+                              height: 90,
 
-                              Row(
-                                children: [
-
-                                  Text(
-                                    item['title']!,
-
-                                    style: TextStyle(
-                                      color:
-                                          mainText,
-
-                                      fontSize:
-                                          24,
-
-                                      fontWeight:
-                                          FontWeight
-                                              .bold,
+                              decoration:
+                                  BoxDecoration(
+                                color:
+                                    blue.withOpacity(
+                                      .15,
                                     ),
-                                  ),
 
-                                  const SizedBox(
-                                    width:
-                                        10,
-                                  ),
+                                shape:
+                                    BoxShape.circle,
+                              ),
 
-                                  if (index ==
-                                      0)
+                              child: const Icon(
+                                Icons
+                                    .location_off_outlined,
 
-                                    Container(
-                                      padding:
-                                          const EdgeInsets.symmetric(
-                                            horizontal:
-                                                12,
+                                color: blue,
+                                size: 45,
+                              ),
+                            ),
 
-                                            vertical:
-                                                6,
-                                          ),
+                            const SizedBox(
+                              height: 22,
+                            ),
 
-                                      decoration: BoxDecoration(
-                                        color: purple
-                                            .withOpacity(
-                                              .15,
-                                            ),
+                            const Text(
 
+                              "No Addresses Yet",
+
+                              style: TextStyle(
+                                color:
+                                    mainText,
+
+                                fontSize: 24,
+
+                                fontWeight:
+                                    FontWeight
+                                        .bold,
+                              ),
+                            ),
+
+                            const SizedBox(
+                              height: 10,
+                            ),
+
+                            const Text(
+
+                              "Add your first address to make ordering faster and easier.",
+
+                              textAlign:
+                                  TextAlign.center,
+
+                              style: TextStyle(
+                                color:
+                                    subText,
+
+                                fontSize:
+                                    15,
+
+                                height:
+                                    1.5,
+                              ),
+                            ),
+
+                            const SizedBox(
+                              height: 24,
+                            ),
+
+                            SizedBox(
+
+                              width:
+                                  double.infinity,
+
+                              height: 56,
+
+                              child:
+                                  ElevatedButton.icon(
+
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor:
+                                          blue,
+
+                                      shape: RoundedRectangleBorder(
                                         borderRadius:
                                             BorderRadius.circular(
-                                              14,
+                                              18,
                                             ),
                                       ),
+                                    ),
 
-                                      child:
-                                          const Text(
-                                            "Default",
+                                    onPressed:
+                                        _showAddAddressDialog,
 
-                                            style: TextStyle(
+                                    icon:
+                                        const Icon(
+                                      Icons.add,
+                                      color:
+                                          Colors
+                                              .white,
+                                    ),
+
+                                    label:
+                                        const Text(
+
+                                          "Add Address",
+
+                                          style:
+                                              TextStyle(
+                                            color:
+                                                Colors
+                                                    .white,
+
+                                            fontWeight:
+                                                FontWeight.bold,
+
+                                            fontSize:
+                                                18,
+                                          ),
+                                        ),
+                                  ),
+                            ),
+                          ],
+                        ),
+                      ),
+
+                    ...List.generate(
+                      addresses.length,
+
+                      (index) {
+
+                        final item =
+                            addresses[index];
+
+                        return Padding(
+
+                          padding:
+                              const EdgeInsets.only(
+                                bottom: 18,
+                              ),
+
+                          child: Container(
+
+                            width:
+                                double.infinity,
+
+                            padding:
+                                const EdgeInsets.all(
+                                  18,
+                                ),
+
+                            decoration:
+                                BoxDecoration(
+                              color: cardColor,
+
+                              borderRadius:
+                                  BorderRadius.circular(
+                                    28,
+                                  ),
+                            ),
+
+                            child: Row(
+
+                              crossAxisAlignment:
+                                  CrossAxisAlignment
+                                      .start,
+
+                              children: [
+
+                                Container(
+
+                                  width: 70,
+                                  height: 70,
+
+                                  decoration:
+                                      BoxDecoration(
+                                    color:
+                                        blue.withOpacity(
+                                          .15,
+                                        ),
+
+                                    borderRadius:
+                                        BorderRadius.circular(
+                                          22,
+                                        ),
+                                  ),
+
+                                  child: Icon(
+
+                                    _getAddressIcon(
+                                      item['title'],
+                                    ),
+
+                                    color: blue,
+                                    size: 34,
+                                  ),
+                                ),
+
+                                const SizedBox(
+                                  width: 16,
+                                ),
+
+                                Expanded(
+
+                                  child: Column(
+
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment
+                                            .start,
+
+                                    children: [
+
+                                      Row(
+                                        children: [
+
+                                          Text(
+
+                                            item['title'],
+
+                                            style:
+                                                const TextStyle(
                                               color:
-                                                  purple,
+                                                  mainText,
+
+                                              fontSize:
+                                                  24,
 
                                               fontWeight:
                                                   FontWeight.bold,
                                             ),
                                           ),
-                                    ),
-                                ],
-                              ),
 
-                              const SizedBox(
-                                height: 12,
-                              ),
-
-                              Text(
-                                item['address']!,
-
-                                style: TextStyle(
-                                  color:
-                                      subText,
-
-                                  fontSize:
-                                      16,
-
-                                  height:
-                                      1.5,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-
-                        PopupMenuButton(
-                          color: cardColor,
-
-                          icon: Icon(
-                            Icons.more_vert,
-                            color: subText,
-                          ),
-
-                          itemBuilder:
-                              (context) => [
-
-                                PopupMenuItem(
-                                  onTap: () {
-
-                                    Future.delayed(
-                                      Duration
-                                          .zero,
-
-                                      () {
-
-                                        _deleteAddress(
-                                          index,
-                                        );
-                                      },
-                                    );
-                                  },
-
-                                  child:
-                                      const Row(
-                                        children: [
-
-                                          Icon(
-                                            Icons
-                                                .delete,
-
-                                            color:
-                                                Colors.red,
-                                          ),
-
-                                          SizedBox(
+                                          const SizedBox(
                                             width:
                                                 10,
                                           ),
 
-                                          Text(
-                                            "Delete",
-                                          ),
+                                          if (index ==
+                                              0)
+
+                                            Container(
+
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                    horizontal:
+                                                        12,
+
+                                                    vertical:
+                                                        6,
+                                                  ),
+
+                                              decoration:
+                                                  BoxDecoration(
+                                                color:
+                                                    blue.withOpacity(
+                                                      .15,
+                                                    ),
+
+                                                borderRadius:
+                                                    BorderRadius.circular(
+                                                      14,
+                                                    ),
+                                              ),
+
+                                              child:
+                                                  const Text(
+
+                                                    "Default",
+
+                                                    style:
+                                                        TextStyle(
+                                                      color:
+                                                          blue,
+
+                                                      fontWeight:
+                                                          FontWeight.bold,
+                                                    ),
+                                                  ),
+                                            ),
                                         ],
                                       ),
+
+                                      const SizedBox(
+                                        height: 12,
+                                      ),
+
+                                      Text(
+
+                                        item['address'],
+
+                                        style:
+                                            const TextStyle(
+                                          color:
+                                              subText,
+
+                                          fontSize:
+                                              16,
+
+                                          height:
+                                              1.5,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+
+                                PopupMenuButton(
+
+                                  color:
+                                      cardColor,
+
+                                  icon: const Icon(
+                                    Icons.more_vert,
+                                    color:
+                                        subText,
+                                  ),
+
+                                  itemBuilder:
+                                      (context) => [
+
+                                        PopupMenuItem(
+
+                                          onTap: () {
+
+                                            Future.delayed(
+                                              Duration
+                                                  .zero,
+
+                                              () {
+
+                                                _deleteAddress(
+                                                  index,
+                                                );
+                                              },
+                                            );
+                                          },
+
+                                          child:
+                                              const Row(
+                                                children: [
+
+                                                  Icon(
+                                                    Icons
+                                                        .delete,
+
+                                                    color:
+                                                        Colors.red,
+                                                  ),
+
+                                                  SizedBox(
+                                                    width:
+                                                        10,
+                                                  ),
+
+                                                  Text(
+                                                    "Delete",
+                                                  ),
+                                                ],
+                                              ),
+                                        ),
+                                      ],
                                 ),
                               ],
-                        ),
-                      ],
-                    ),
-                  ),
-                );
-              },
-            ),
-
-            const SizedBox(height: 24),
-
-            /// BOTTOM INFO
-            Container(
-              width: double.infinity,
-              padding:
-                  const EdgeInsets.all(20),
-
-              decoration: BoxDecoration(
-                color: cardColor,
-
-                borderRadius:
-                    BorderRadius.circular(
-                      24,
-                    ),
-              ),
-
-              child: Row(
-                children: [
-
-                  Container(
-                    width: 55,
-                    height: 55,
-
-                    decoration: BoxDecoration(
-                      color: purple
-                          .withOpacity(.15),
-
-                      borderRadius:
-                          BorderRadius.circular(
-                            18,
+                            ),
                           ),
+                        );
+                      },
                     ),
 
-                    child: const Icon(
-                      Icons.shield_outlined,
-                      color: purple,
-                    ),
-                  ),
+                    const SizedBox(height: 24),
 
-                  const SizedBox(width: 16),
+                    Container(
 
-                  Expanded(
-                    child: Text(
-                      "Your addresses are saved securely and used to deliver your orders.",
+                      width: double.infinity,
 
-                      style: TextStyle(
-                        color: subText,
-                        fontSize: 15,
-                        height: 1.5,
+                      padding:
+                          const EdgeInsets.all(
+                            20,
+                          ),
+
+                      decoration: BoxDecoration(
+                        color: cardColor,
+
+                        borderRadius:
+                            BorderRadius.circular(
+                              24,
+                            ),
+                      ),
+
+                      child: Row(
+                        children: [
+
+                          Container(
+
+                            width: 55,
+                            height: 55,
+
+                            decoration:
+                                BoxDecoration(
+                              color:
+                                  blue.withOpacity(
+                                    .15,
+                                  ),
+
+                              borderRadius:
+                                  BorderRadius.circular(
+                                    18,
+                                  ),
+                            ),
+
+                            child: const Icon(
+                              Icons.shield_outlined,
+                              color: blue,
+                            ),
+                          ),
+
+                          const SizedBox(
+                            width: 16,
+                          ),
+
+                          const Expanded(
+
+                            child: Text(
+
+                              "Your addresses are saved securely and used to deliver your orders.",
+
+                              style: TextStyle(
+                                color: subText,
+                                fontSize: 15,
+                                height: 1.5,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                  ),
-                ],
-              ),
-            ),
 
-            const SizedBox(height: 100),
-          ],
-        ),
-      ),
+                    const SizedBox(height: 100),
+                  ],
+                ),
+              ),
     );
   }
 }
