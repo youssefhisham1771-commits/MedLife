@@ -4261,22 +4261,22 @@ class _CartScreenState extends State<CartScreen> {
   double percent = 0;
 
   Future<void> updateQuantityFirebase(int index) async {
-  var user = FirebaseAuth.instance.currentUser;
-  if (user == null) return;
+    var user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
 
-  var cartRef = FirebaseFirestore.instance
-      .collection('users')
-      .doc(user.uid)
-      .collection('cart');
+    var cartRef = FirebaseFirestore.instance
+        .collection('users')
+        .doc(user.uid)
+        .collection('cart');
 
- var docId = widget.cart[index]['docId'];
+    var docId = widget.cart[index]['docId'];
 
-if (docId != null) {
-  await cartRef.doc(docId).update({
-    "quantity": widget.cart[index]["quantity"],
-  });
-}
-}
+    if (docId != null) {
+      await cartRef.doc(docId).update({
+        "quantity": widget.cart[index]["quantity"],
+      });
+    }
+  }
 
   // 🔥 تحميل الكارت من فايربيز
   Future<void> loadCart() async {
@@ -4290,24 +4290,12 @@ if (docId != null) {
         .get();
 
     setState(() {
-     widget.cart = snapshot.docs.map((doc) {
-  var data = doc.data();
-  data['docId'] = doc.id;
-  return data;
-}).toList();
+      widget.cart = snapshot.docs.map((doc) {
+        var data = doc.data();
+        data['docId'] = doc.id;
+        return data;
+      }).toList();
     });
-  }
-
-  // 💾 حفظ منتج واحد
-  Future<void> addToCartFirebase(Map<String, dynamic> item) async {
-    var user = FirebaseAuth.instance.currentUser;
-    if (user == null) return;
-
-    await FirebaseFirestore.instance
-        .collection('users')
-        .doc(user.uid)
-        .collection('cart')
-        .add(item);
   }
 
   // ❌ حذف منتج
@@ -4322,18 +4310,20 @@ if (docId != null) {
 
     var docId = widget.cart[index]['docId'];
 
-if (docId != null) {
-  await cartRef.doc(docId).delete();
-}
+    if (docId != null) {
+      await cartRef.doc(docId).delete();
+    }
   }
 
   // 🧠 الحساب
   double getTotalBeforeDiscount() {
     double t = 0;
+
     for (var item in widget.cart) {
       t += double.parse(item["price"].toString()) *
-     (item["quantity"] ?? 1);
+          (item["quantity"] ?? 1);
     }
+
     return t;
   }
 
@@ -4360,11 +4350,15 @@ if (docId != null) {
       });
 
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("تم تطبيق خصم $percent%")),
+        SnackBar(
+          content: Text("تم تطبيق خصم $percent%"),
+        ),
       );
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("كود غير صحيح ❌")),
+        SnackBar(
+          content: Text("كود غير صحيح ❌"),
+        ),
       );
     }
   }
@@ -4372,291 +4366,859 @@ if (docId != null) {
   @override
   void initState() {
     super.initState();
-    loadCart(); // 🔥 أول ما الشاشة تفتح
+    loadCart();
   }
 
   @override
   Widget build(BuildContext context) {
-    // 🔐 Check Login
+
     if (FirebaseAuth.instance.currentUser == null) {
+
       Future.microtask(() {
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (_) => LoginScreen()),
+          MaterialPageRoute(
+            builder: (_) => LoginScreen(),
+          ),
         );
       });
 
       return Scaffold(
-        body: Center(child: CircularProgressIndicator()),
+        body: Center(
+          child: CircularProgressIndicator(),
+        ),
       );
     }
 
     return Scaffold(
-      body: widget.cart.isEmpty
-          ? Center(child: Text("Cart is empty"))
-          : ListView.builder(
-              itemCount: widget.cart.length,
-              itemBuilder: (context, i) {
-                return ListTile(
-                  leading: Image.network(widget.cart[i]["image"]),
-                  title: Text(widget.cart[i]["name"]),
-                  subtitle: Column(
-  crossAxisAlignment: CrossAxisAlignment.start,
-  children: [
-    Text("${widget.cart[i]["price"]} EGP"),
-    Text("Size: ${widget.cart[i]["size"]}"),
+      backgroundColor: const Color(0xFF0B0713),
 
-    SizedBox(height: 5),
+      appBar: AppBar(
+        backgroundColor: const Color(0xFF0B0713),
+        elevation: 0,
 
-    Row(
-      children: [
-        IconButton(
-          icon: Icon(Icons.remove),
-          onPressed: () async {
-            if ((widget.cart[i]["quantity"] ?? 1) > 1) {
-              setState(() {
-                widget.cart[i]["quantity"]--;
-              });
-
-              await updateQuantityFirebase(i);
-            }
-          },
-        ),
-
-        Text(
-          "${widget.cart[i]["quantity"] ?? 1}",
-          style: TextStyle(fontWeight: FontWeight.bold),
-        ),
-
-        IconButton(
-          icon: Icon(Icons.add),
-          onPressed: () async {
-            setState(() {
-              widget.cart[i]["quantity"]++;
-            });
-
-            await updateQuantityFirebase(i);
-          },
-        ),
-      ],
-    )
-  ],
-),
-                  trailing: IconButton(
-                    icon: Icon(Icons.delete, color: Colors.red),
-                    onPressed: () async {
-                      await removeFromCartFirebase(i);
-
-                      setState(() {
-                        widget.cart.removeAt(i);
-                      });
-
-                      double t = getTotalBeforeDiscount();
-                      discount = t * (percent / 100);
-                    },
-                  ),
-                );
-              },
-            ),
-
-      bottomNavigationBar: Container(
-        padding: EdgeInsets.all(15),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-
-            TextField(
-              controller: promoController,
-              decoration: InputDecoration(
-                hintText: "Enter Promo Code",
-                border: OutlineInputBorder(),
-                suffixIcon: IconButton(
-                  icon: Icon(Icons.check),
-                  onPressed: applyPromo,
-                ),
-              ),
-            ),
-
-            SizedBox(height: 10),
-
-            Text("Discount: $discount EGP"),
-
-            SizedBox(height: 10),
-
-            Text("Total: ${total()} EGP"),
-
-            SizedBox(height: 10),
-
-           ElevatedButton(
-  onPressed: () {
-    if (widget.cart.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("الكارت فاضي ❌")),
-      );
-      return;
-    }
-
-    showDialog(
-      context: context,
-      builder: (context) {
-        TextEditingController nameController = TextEditingController();
-        TextEditingController phoneController = TextEditingController();
-
-        return AlertDialog(
-          title: Text("Enter your data"),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: nameController,
-                decoration: InputDecoration(labelText: "Name"),
-              ),
-              TextField(
-                controller: phoneController,
-                decoration: InputDecoration(labelText: "Phone"),
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () async {
-                var user = FirebaseAuth.instance.currentUser;
-
-                await FirebaseFirestore.instance.collection('orders').add({
-                  "userId": user?.uid,
-                  "name": nameController.text,
-                  "phone": phoneController.text,
-                  "items": widget.cart.map((item) {
-  return {
-    "name": item["name"],
-    "price": item["price"],
-    "quantity": item["quantity"] ?? 1,
-    "image":item["image"],
-    "size": item["size"],
-  };
-}).toList(),
-                  "total": total(),
-                  "date": FieldValue.serverTimestamp(),
-                  "status": "pending"
-                });
-
-                // 🧹 فضي الكارت
-                var cartRef = FirebaseFirestore.instance
-                    .collection('users')
-                    .doc(user!.uid)
-                    .collection('cart');
-
-                var snapshot = await cartRef.get();
-                for (var doc in snapshot.docs) {
-                  await doc.reference.delete();
-                }
-
-                setState(() {
-                  widget.cart.clear();
-                  discount = 0;
-                });
-
-                Navigator.pop(context); // يقفل الديالوج
-  showDialog(
-  context: context,
-  barrierDismissible: false, // ❌ مينفعش يقفل بالضغط برا
-  builder: (context) {
-    return Center(
-      child: Material(
-        color: Colors.transparent,
-        child: Container(
-          width: MediaQuery.of(context).size.width * 0.85,
-          padding: EdgeInsets.all(20),
-          decoration: BoxDecoration(
+        title: Text(
+          "Cart (${widget.cart.length})",
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 32,
             color: Colors.white,
-            borderRadius: BorderRadius.circular(20),
-            boxShadow: [
-              BoxShadow(
-                blurRadius: 20,
-                color: Colors.black26,
-              )
-            ],
           ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // ✅ أيقونة
-              Icon(Icons.check_circle, color: Colors.green, size: 55),
+        ),
+      ),
 
-              SizedBox(height: 15),
-
-              // 🔥 السطر الأول
-              Text(
-                "Order Sent",
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                ),
-                textAlign: TextAlign.center,
+      body: widget.cart.isEmpty
+          ? Center(
+              child: Text(
+                "Cart is empty",
+                style: TextStyle(color: Colors.white),
               ),
+            )
+          : ListView(
+              padding: EdgeInsets.all(16),
+              children: [
 
-              SizedBox(height: 10),
+                /// 🛒 المنتجات
+                ...List.generate(widget.cart.length, (i) {
 
-              // 🔥 السطر الثاني
-              Text(
-                "سيتم التواصل معك اليوم لتاكيد الاوردر و تحديد مكان الاستلام",
-                textAlign: TextAlign.center,
+                  return Container(
+                    margin: EdgeInsets.only(bottom: 16),
 
-              ),
+                    padding: EdgeInsets.all(14),
 
-              SizedBox(height: 10),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(24),
 
-              // 🔥 السطر الثالث
-              Text(
-                "الاستلام يكون في خلال 2 ايام 💨",
-                textAlign: TextAlign.center,
-              ),
+                      color: const Color(0xFF141118),
 
-              SizedBox(height: 20),
+                      border: Border.all(
+                        color: Colors.white10,
+                      ),
 
-              // ✅ زرار OK
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: () {
-                    Navigator.pop(context); // يقفل البوب اب
-                  },
-                  style: ElevatedButton.styleFrom(
-                    padding: EdgeInsets.symmetric(vertical: 12),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.35),
+                          blurRadius: 20,
+                          offset: Offset(0, 10),
+                        ),
+                      ],
+                    ),
+
+                    child: Row(
+                      crossAxisAlignment:
+                          CrossAxisAlignment.start,
+
+                      children: [
+
+                        /// 📸 صورة المنتج
+                        ClipRRect(
+                          borderRadius:
+                              BorderRadius.circular(18),
+
+                          child: Image.network(
+                            widget.cart[i]["image"],
+
+                            width: 110,
+                            height: 110,
+                            fit: BoxFit.cover,
+                          ),
+                        ),
+
+                        SizedBox(width: 14),
+
+                        /// 🔥 البيانات
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment:
+                                CrossAxisAlignment.start,
+
+                            children: [
+
+                              Row(
+                                crossAxisAlignment:
+                                    CrossAxisAlignment.start,
+
+                                children: [
+
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+
+                                      children: [
+
+                                        Text(
+                                          widget.cart[i]["name"],
+
+                                          style: TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 24,
+                                            fontWeight:
+                                                FontWeight.bold,
+                                          ),
+                                        ),
+
+                                        SizedBox(height: 6),
+
+                                        Text(
+                                          "${widget.cart[i]["price"]} EGP",
+
+                                          style: TextStyle(
+                                            color: Color(0xFF6EA6C1),
+                                            fontSize: 18,
+                                            fontWeight:
+                                                FontWeight.w600,
+                                          ),
+                                        ),
+
+                                        SizedBox(height: 5),
+
+                                        Text(
+                                          "Size: ${widget.cart[i]["size"]}",
+
+                                          style: TextStyle(
+                                            color: Colors.white70,
+                                            fontSize: 16,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+
+                                  /// 🗑 حذف
+                                  IconButton(
+                                    onPressed: () async {
+
+                                      await removeFromCartFirebase(i);
+
+                                      setState(() {
+
+                                        widget.cart.removeAt(i);
+                                      });
+
+                                      double t =
+                                          getTotalBeforeDiscount();
+
+                                      discount =
+                                          t * (percent / 100);
+                                    },
+
+                                    icon: Icon(
+                                      Icons.delete_outline_rounded,
+                                      color: Color(0xFF6EA6C1),
+                                      size: 30,
+                                    ),
+                                  ),
+                                ],
+                              ),
+
+                              SizedBox(height: 14),
+
+                              /// ➖➕ الكمية
+                              Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+
+                                children: [
+
+                                  Container(
+                                    decoration: BoxDecoration(
+                                      borderRadius:
+                                          BorderRadius.circular(
+                                              14),
+
+                                      border: Border.all(
+                                        color: Colors.white10,
+                                      ),
+                                    ),
+
+                                    child: Row(
+                                      children: [
+
+                                        IconButton(
+                                          icon: Icon(
+                                            Icons.remove,
+                                            color: Colors.white,
+                                          ),
+
+                                          onPressed: () async {
+
+                                            if ((widget.cart[i]
+                                                        ["quantity"] ??
+                                                    1) >
+                                                1) {
+
+                                              setState(() {
+
+                                                widget.cart[i]
+                                                    ["quantity"]--;
+                                              });
+
+                                              await updateQuantityFirebase(
+                                                  i);
+                                            }
+                                          },
+                                        ),
+
+                                        Text(
+                                          "${widget.cart[i]["quantity"] ?? 1}",
+
+                                          style: TextStyle(
+                                            color: Colors.white,
+                                            fontWeight:
+                                                FontWeight.bold,
+                                            fontSize: 18,
+                                          ),
+                                        ),
+
+                                        IconButton(
+                                          icon: Icon(
+                                            Icons.add,
+                                            color: Colors.white,
+                                          ),
+
+                                          onPressed: () async {
+
+                                            setState(() {
+
+                                              widget.cart[i]
+                                                  ["quantity"]++;
+                                            });
+
+                                            await updateQuantityFirebase(
+                                                i);
+                                          },
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+
+                                  /// 💰 السعر النهائي
+                                  Text(
+                                    "${(double.parse(widget.cart[i]["price"].toString()) * (widget.cart[i]["quantity"] ?? 1)).toStringAsFixed(0)} EGP",
+
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 24,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                }),
+
+                /// 🎁 Promo Code
+                Container(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 4,
+                  ),
+
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF141118),
+
+                    borderRadius:
+                        BorderRadius.circular(20),
+
+                    border: Border.all(
+                      color: Colors.white10,
                     ),
                   ),
-                  child: Text("OK"),
+
+                  child: TextField(
+                    controller: promoController,
+
+                    style: TextStyle(color: Colors.white),
+
+                    decoration: InputDecoration(
+                      border: InputBorder.none,
+
+                      hintText: "Enter Promo Code",
+
+                      hintStyle:
+                          TextStyle(color: Colors.white38),
+
+                      prefixIcon: Icon(
+                        Icons.discount_outlined,
+                        color: Colors.white38,
+                      ),
+
+                      suffixIcon: TextButton(
+                        onPressed: applyPromo,
+
+                        child: Text(
+                          "Apply",
+
+                          style: TextStyle(
+                            color: Color(0xFF6EA6C1),
+                            fontWeight: FontWeight.bold,
+                            fontSize: 18,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
                 ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  },
-);
-              },
-              child: Text("Confirm"),
-            )
-          ],
-        );
-      },
-    );
-  },
-  child: Text("Place Order"),
-)
-          ],
-        ),
-      ),
+
+                SizedBox(height: 18),
+
+                /// 💳 Summary
+                Container(
+                  padding: EdgeInsets.all(20),
+
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF141118),
+
+                    borderRadius:
+                        BorderRadius.circular(24),
+
+                    border: Border.all(
+                      color: Colors.white10,
+                    ),
+                  ),
+
+                  child: Column(
+                    children: [
+
+                      Row(
+                        mainAxisAlignment:
+                            MainAxisAlignment.spaceBetween,
+
+                        children: [
+
+                          Text(
+                            "Subtotal",
+
+                            style: TextStyle(
+                              color: Colors.white70,
+                              fontSize: 20,
+                            ),
+                          ),
+
+                          Text(
+                            "${getTotalBeforeDiscount().toStringAsFixed(1)} EGP",
+
+                            style: TextStyle(
+                              color: Colors.white70,
+                              fontSize: 20,
+                            ),
+                          ),
+                        ],
+                      ),
+
+                      SizedBox(height: 12),
+
+                      Row(
+                        mainAxisAlignment:
+                            MainAxisAlignment.spaceBetween,
+
+                        children: [
+
+                          Text(
+                            "Discount",
+
+                            style: TextStyle(
+                              color: Colors.white70,
+                              fontSize: 20,
+                            ),
+                          ),
+
+                          Text(
+                            "- ${discount.toStringAsFixed(1)} EGP",
+
+                            style: TextStyle(
+                              color: Color(0xFF6EA6C1),
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
+
+                      Divider(
+                        height: 35,
+                        color: Colors.white12,
+                      ),
+
+                      Row(
+                        mainAxisAlignment:
+                            MainAxisAlignment.spaceBetween,
+
+                        children: [
+
+                          Text(
+                            "Total",
+
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 28,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+
+                          Text(
+                            "${total().toStringAsFixed(1)} EGP",
+
+                            style: TextStyle(
+                              color: Color(0xFF6EA6C1),
+                              fontSize: 32,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+
+                SizedBox(height: 22),
+
+                /// ✅ PLACE ORDER
+                SizedBox(
+                  height: 68,
+                  width: double.infinity,
+
+                  child: ElevatedButton.icon(
+
+                    onPressed: () {
+
+                      if (widget.cart.isEmpty) {
+
+                        ScaffoldMessenger.of(context)
+                            .showSnackBar(
+                          SnackBar(
+                            content:
+                                Text("الكارت فاضي ❌"),
+                          ),
+                        );
+
+                        return;
+                      }
+
+                      showDialog(
+                        context: context,
+
+                        builder: (context) {
+
+                          TextEditingController
+                              nameController =
+                              TextEditingController();
+
+                          TextEditingController
+                              phoneController =
+                              TextEditingController();
+
+                          return AlertDialog(
+
+                            backgroundColor:
+                                const Color(0xFF141118),
+
+                            shape: RoundedRectangleBorder(
+                              borderRadius:
+                                  BorderRadius.circular(20),
+                            ),
+
+                            title: Text(
+                              "Enter your data",
+
+                              style:
+                                  TextStyle(color: Colors.white),
+                            ),
+
+                            content: Column(
+                              mainAxisSize:
+                                  MainAxisSize.min,
+
+                              children: [
+
+                                TextField(
+                                  controller:
+                                      nameController,
+
+                                  style: TextStyle(
+                                      color: Colors.white),
+
+                                  decoration: InputDecoration(
+                                    labelText: "Name",
+
+                                    labelStyle: TextStyle(
+                                        color: Colors.white70),
+                                  ),
+                                ),
+
+                                SizedBox(height: 15),
+
+                                TextField(
+                                  controller:
+                                      phoneController,
+
+                                  style: TextStyle(
+                                      color: Colors.white),
+
+                                  decoration: InputDecoration(
+                                    labelText: "Phone",
+
+                                    labelStyle: TextStyle(
+                                        color: Colors.white70),
+                                  ),
+                                ),
+                              ],
+                            ),
+
+                            actions: [
+
+                              TextButton(
+                                onPressed: () async {
+
+                                  var user = FirebaseAuth
+                                      .instance.currentUser;
+
+                                  await FirebaseFirestore
+                                      .instance
+                                      .collection('orders')
+                                      .add({
+
+                                    "userId": user?.uid,
+
+                                    "name":
+                                        nameController.text,
+
+                                    "phone":
+                                        phoneController.text,
+
+                                    "items": widget.cart
+                                        .map((item) {
+
+                                      return {
+
+                                        "name": item["name"],
+
+                                        "price":
+                                            item["price"],
+
+                                        "quantity":
+                                            item["quantity"] ?? 1,
+
+                                        "image":
+                                            item["image"],
+
+                                        "size":
+                                            item["size"],
+                                      };
+
+                                    }).toList(),
+
+                                    "total": total(),
+
+                                    "orderedAt": FieldValue.serverTimestamp(),
+"deliveredAt": null,
+
+                                    "status": "pending"
+                                  });
+
+                                  /// 🧹 فضي الكارت
+                                  var cartRef =
+                                      FirebaseFirestore
+                                          .instance
+                                          .collection('users')
+                                          .doc(user!.uid)
+                                          .collection('cart');
+
+                                  var snapshot =
+                                      await cartRef.get();
+
+                                  for (var doc
+                                      in snapshot.docs) {
+
+                                    await doc.reference
+                                        .delete();
+                                  }
+
+                                  setState(() {
+
+                                    widget.cart.clear();
+
+                                    discount = 0;
+                                  });
+
+                                  Navigator.pop(context);
+
+                                  showDialog(
+                                    context: context,
+
+                                    barrierDismissible:
+                                        false,
+
+                                    builder: (context) {
+
+                                      return Center(
+                                        child: Material(
+                                          color:
+                                              Colors.transparent,
+
+                                          child: Container(
+                                            width:
+                                                MediaQuery.of(context)
+                                                        .size
+                                                        .width *
+                                                    0.85,
+
+                                            padding:
+                                                EdgeInsets.all(
+                                                    20),
+
+                                            decoration:
+                                                BoxDecoration(
+                                              color:
+                                                  const Color(
+                                                      0xFF141118),
+
+                                              borderRadius:
+                                                  BorderRadius
+                                                      .circular(
+                                                          24),
+                                            ),
+
+                                            child: Column(
+                                              mainAxisSize:
+                                                  MainAxisSize
+                                                      .min,
+
+                                              children: [
+
+                                                Icon(
+                                                  Icons
+                                                      .check_circle,
+
+                                                  color: Color(
+                                                      0xFF6EA6C1),
+
+                                                  size: 70,
+                                                ),
+
+                                                SizedBox(
+                                                    height:
+                                                        20),
+
+                                                Text(
+                                                  "Order Sent",
+
+                                                  style:
+                                                      TextStyle(
+                                                    color: Colors
+                                                        .white,
+
+                                                    fontSize:
+                                                        24,
+
+                                                    fontWeight:
+                                                        FontWeight
+                                                            .bold,
+                                                  ),
+                                                ),
+
+                                                SizedBox(
+                                                    height:
+                                                        12),
+
+                                                Text(
+                                                  "سيتم التواصل معك اليوم لتأكيد الأوردر وتحديد مكان الاستلام",
+
+                                                  textAlign:
+                                                      TextAlign
+                                                          .center,
+
+                                                  style:
+                                                      TextStyle(
+                                                    color: Colors
+                                                        .white70,
+
+                                                    fontSize:
+                                                        16,
+                                                  ),
+                                                ),
+
+                                                SizedBox(
+                                                    height:
+                                                        10),
+
+                                                Text(
+                                                  "الاستلام يكون خلال يومين 💨",
+
+                                                  textAlign:
+                                                      TextAlign
+                                                          .center,
+
+                                                  style:
+                                                      TextStyle(
+                                                    color: Colors
+                                                        .white70,
+
+                                                    fontSize:
+                                                        16,
+                                                  ),
+                                                ),
+
+                                                SizedBox(
+                                                    height:
+                                                        22),
+
+                                                SizedBox(
+                                                  width:
+                                                      double.infinity,
+
+                                                  height: 55,
+
+                                                  child:
+                                                      ElevatedButton(
+                                                    onPressed:
+                                                        () {
+
+                                                      Navigator.pop(
+                                                          context);
+                                                    },
+
+                                                    style:
+                                                        ElevatedButton
+                                                            .styleFrom(
+
+                                                      backgroundColor:
+                                                          Color(
+                                                              0xFF6EA6C1),
+
+                                                      shape:
+                                                          RoundedRectangleBorder(
+                                                        borderRadius:
+                                                            BorderRadius.circular(
+                                                                18),
+                                                      ),
+                                                    ),
+
+                                                    child:
+                                                        Text(
+                                                      "OK",
+
+                                                      style:
+                                                          TextStyle(
+                                                        color:
+                                                            Colors.white,
+
+                                                        fontSize:
+                                                            18,
+
+                                                        fontWeight:
+                                                            FontWeight.bold,
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        ),
+                                      );
+                                    },
+                                  );
+                                },
+
+                                child: Text(
+                                  "Confirm",
+
+                                  style: TextStyle(
+                                    color: Color(0xFF6EA6C1),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          );
+                        },
+                      );
+                    },
+
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor:
+                          const Color(0xFF6EA6C1),
+
+                      shape: RoundedRectangleBorder(
+                        borderRadius:
+                            BorderRadius.circular(22),
+                      ),
+                    ),
+
+                    icon: Icon(
+                      Icons.shopping_bag_outlined,
+                      color: Colors.white,
+                    ),
+
+                    label: Text(
+                      "Place Order",
+
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ),
+
+                SizedBox(height: 20),
+              ],
+            ),
     );
   }
+
   @override
-void dispose() {
-  promoController.dispose();
-  super.dispose();
-}
+  void dispose() {
+    promoController.dispose();
+    super.dispose();
+  }
 }
 
 ///////////////////// ➕ ADD / EDIT /////////////////////
@@ -4942,6 +5504,21 @@ class AdminOrdersScreen extends StatelessWidget {
             itemBuilder: (context, i) {
               var order = orders[i];
               final data = order.data() as Map<String, dynamic>;
+
+Timestamp? orderedAt = data['orderedAt'];
+Timestamp? deliveredAt = data['deliveredAt'];
+
+String orderedDate = orderedAt != null
+    ? DateFormat('dd MMM yyyy').format(
+        orderedAt.toDate(),
+      )
+    : '';
+
+String deliveredDate = deliveredAt != null
+    ? DateFormat('dd MMM yyyy').format(
+        deliveredAt.toDate(),
+      )
+    : '';
 
               List items = data['items'] ?? [];
 
@@ -5463,9 +6040,17 @@ _menuTile(
                             color: Colors.red,
                           ),
                           onTap: () async {
-                            await FirebaseAuth.instance
-                                .signOut();
-                          },
+
+  await FirebaseAuth.instance.signOut();
+
+  Navigator.pushAndRemoveUntil(
+    context,
+    MaterialPageRoute(
+      builder: (context) => LoginScreen(),
+    ),
+    (route) => false,
+  );
+},
                         ),
                       ),
                     ],
@@ -6423,131 +7008,664 @@ class _ForgotPasswordScreenState
 
     return Scaffold(
 
+      backgroundColor: const Color(0xFF141118),
+
       appBar: AppBar(
-        title: Text("Forgot Password"),
+
+        backgroundColor: const Color(0xFF141118),
+
+        elevation: 0,
+
+        foregroundColor: Colors.white,
+
+        title: Text(
+          "Forgot Password",
+
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            color: Colors.white,
+          ),
+        ),
       ),
 
-      body: Padding(
-        padding: EdgeInsets.all(20),
+      body: SingleChildScrollView(
+
+        padding: EdgeInsets.all(24),
 
         child: Column(
           children: [
 
-            Row(
-              mainAxisAlignment:
-                  MainAxisAlignment.center,
-              children: [
+            SizedBox(height: 10),
 
-                ChoiceChip(
-                  label: Text("Email"),
+            /// 🔥 TOP ICON
+            Container(
+              padding: EdgeInsets.all(35),
 
-                  selected: useEmail,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
 
-                  onSelected: (value) {
-                    setState(() {
-                      useEmail = true;
-                      codeSent = false;
-                    });
-                  },
+                gradient: RadialGradient(
+                  colors: [
+                    Color(0x221D1B20),
+                    Color(0x661D1B20),
+                  ],
                 ),
+              ),
 
-                SizedBox(width: 10),
+              child: Stack(
+                alignment: Alignment.center,
 
-                ChoiceChip(
-                  label: Text("Phone"),
+                children: [
 
-                  selected: !useEmail,
-
-                  onSelected: (value) {
-                    setState(() {
-                      useEmail = false;
-                      codeSent = false;
-                    });
-                  },
-                ),
-              ],
-            ),
-
-            SizedBox(height: 20),
-
-            TextField(
-              controller:
-                  useEmail
-                      ? emailController
-                      : phoneController,
-
-              keyboardType:
-                  useEmail
-                      ? TextInputType.emailAddress
-                      : TextInputType.phone,
-
-              decoration: InputDecoration(
-                labelText:
+                  Icon(
                     useEmail
-                        ? "Email Address"
-                        : "Phone Number",
+                        ? Icons.lock_reset_rounded
+                        : Icons.phone_android_rounded,
 
-                border: OutlineInputBorder(),
+                    size: 110,
+                    color: Color(0xFF6EA6C1),
+                  ),
+
+                  Positioned(
+                    right: 0,
+                    bottom: 5,
+
+                    child: Container(
+                      padding: EdgeInsets.all(12),
+
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: Color(0xFF6EA6C1),
+                      ),
+
+                      child: Icon(
+                        useEmail
+                            ? Icons.email_outlined
+                            : Icons.phone,
+
+                        color: Colors.white,
+                        size: 28,
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
 
-            SizedBox(height: 20),
+            SizedBox(height: 25),
 
-            if (!codeSent || useEmail)
-              ElevatedButton(
-                onPressed: sendCode,
-                child: Text(
-                  useEmail
-                      ? "Send Reset Email"
-                      : "Send Code",
-                ),
-              ),
+            /// 🔥 TITLE
+            RichText(
+              textAlign: TextAlign.center,
 
-            if (codeSent && !useEmail) ...[
+              text: TextSpan(
+                children: [
 
-              TextField(
-                controller: codeController,
-                decoration: InputDecoration(
-                  labelText: "Verification Code",
-                  border: OutlineInputBorder(),
-                ),
-              ),
+                  TextSpan(
+                    text: "Reset ",
 
-              SizedBox(height: 20),
-
-              TextField(
-                controller: newPasswordController,
-                obscureText: obscurePassword,
-
-                decoration: InputDecoration(
-                  labelText: "New Password",
-
-                  border: OutlineInputBorder(),
-
-                  suffixIcon: IconButton(
-                    icon: Icon(
-                      obscurePassword
-                          ? Icons.visibility_off
-                          : Icons.visibility,
+                    style: TextStyle(
+                      color: Color(0xFF6EA6C1),
+                      fontSize: 42,
+                      fontWeight: FontWeight.bold,
                     ),
-                    onPressed: () {
-                      setState(() {
-                        obscurePassword =
-                            !obscurePassword;
-                      });
-                    },
+                  ),
+
+                  TextSpan(
+                    text: "Your Password",
+
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 42,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            SizedBox(height: 18),
+
+            /// 🔥 SUBTITLE
+            Text(
+
+              useEmail
+                  ? "Enter your email address and we’ll send you a link to reset your password. (CHECK SPAM!!)"
+                  : "Enter your phone number and we’ll send you a code to reset your password. (CHECK SPAM!!)",
+
+              textAlign: TextAlign.center,
+
+              style: TextStyle(
+                color: Colors.white70,
+                fontSize: 20,
+                height: 1.5,
+              ),
+            ),
+
+            SizedBox(height: 40),
+
+            /// 🔥 TOGGLE BUTTONS
+            Container(
+              padding: EdgeInsets.all(5),
+
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(40),
+
+                border: Border.all(
+                  color: Colors.white12,
+                ),
+
+                color: const Color(0xFF1D1B20),
+              ),
+
+              child: Row(
+                children: [
+
+                  /// EMAIL
+                  Expanded(
+                    child: GestureDetector(
+
+                      onTap: () {
+                        setState(() {
+                          useEmail = true;
+                          codeSent = false;
+                        });
+                      },
+
+                      child: AnimatedContainer(
+                        duration:
+                            Duration(milliseconds: 250),
+
+                        padding: EdgeInsets.symmetric(
+                          vertical: 16,
+                        ),
+
+                        decoration: BoxDecoration(
+                          borderRadius:
+                              BorderRadius.circular(40),
+
+                          gradient: useEmail
+                              ? LinearGradient(
+                                  colors: [
+                                    Color(0xFF6EA6C1),
+                                    Color(0xFF8CC6E3),
+                                  ],
+                                )
+                              : null,
+                        ),
+
+                        child: Row(
+                          mainAxisAlignment:
+                              MainAxisAlignment.center,
+                          children: [
+
+                            Icon(
+                              Icons.email_outlined,
+                              color: Colors.white,
+                            ),
+
+                            SizedBox(width: 10),
+
+                            Text(
+                              "Email",
+
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontWeight:
+                                    FontWeight.bold,
+                                fontSize: 18,
+                              ),
+                            ),
+
+                            if (useEmail) ...[
+                              SizedBox(width: 10),
+
+                              Icon(
+                                Icons.check,
+                                color: Colors.white,
+                                size: 20,
+                              ),
+                            ]
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+
+                  /// PHONE
+                  Expanded(
+                    child: GestureDetector(
+
+                      onTap: () {
+                        setState(() {
+                          useEmail = false;
+                          codeSent = false;
+                        });
+                      },
+
+                      child: AnimatedContainer(
+                        duration:
+                            Duration(milliseconds: 250),
+
+                        padding: EdgeInsets.symmetric(
+                          vertical: 16,
+                        ),
+
+                        decoration: BoxDecoration(
+                          borderRadius:
+                              BorderRadius.circular(40),
+
+                          gradient: !useEmail
+                              ? LinearGradient(
+                                  colors: [
+                                    Color(0xFF6EA6C1),
+                                    Color(0xFF8CC6E3),
+                                  ],
+                                )
+                              : null,
+                        ),
+
+                        child: Row(
+                          mainAxisAlignment:
+                              MainAxisAlignment.center,
+                          children: [
+
+                            Icon(
+                              Icons.phone_outlined,
+                              color: Colors.white,
+                            ),
+
+                            SizedBox(width: 10),
+
+                            Text(
+                              "Phone",
+
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontWeight:
+                                    FontWeight.bold,
+                                fontSize: 18,
+                              ),
+                            ),
+
+                            if (!useEmail) ...[
+                              SizedBox(width: 10),
+
+                              Icon(
+                                Icons.check,
+                                color: Colors.white,
+                                size: 20,
+                              ),
+                            ]
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            SizedBox(height: 35),
+
+            /// 🔥 INPUT TITLE
+            Align(
+              alignment: Alignment.centerLeft,
+
+              child: Text(
+                useEmail
+                    ? "Email Address"
+                    : "Phone Number",
+
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+
+            SizedBox(height: 15),
+
+            /// 🔥 TEXT FIELD
+            Container(
+              decoration: BoxDecoration(
+                borderRadius:
+                    BorderRadius.circular(24),
+
+                color: const Color(0xFF1D1B20),
+
+                border: Border.all(
+                  color: Colors.white12,
+                ),
+              ),
+
+              child: TextField(
+
+                controller:
+                    useEmail
+                        ? emailController
+                        : phoneController,
+
+                keyboardType:
+                    useEmail
+                        ? TextInputType.emailAddress
+                        : TextInputType.phone,
+
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 18,
+                ),
+
+                decoration: InputDecoration(
+
+                  border: InputBorder.none,
+
+                  contentPadding:
+                      EdgeInsets.symmetric(
+                    vertical: 24,
+                  ),
+
+                  hintText:
+                      useEmail
+                          ? "Enter your email address"
+                          : "Enter your phone number",
+
+                  hintStyle: TextStyle(
+                    color: Colors.white38,
+                    fontSize: 18,
+                  ),
+
+                  prefixIcon: Icon(
+                    useEmail
+                        ? Icons.email_outlined
+                        : Icons.phone_outlined,
+
+                    color: Color(0xFF6EA6C1),
+                    size: 28,
+                  ),
+                ),
+              ),
+            ),
+
+            SizedBox(height: 35),
+
+            /// 🔥 BUTTON
+            if (!codeSent || useEmail)
+              SizedBox(
+                width: double.infinity,
+                height: 68,
+
+                child: ElevatedButton(
+
+                  style: ElevatedButton.styleFrom(
+
+                    backgroundColor:
+                        const Color(0xFF6EA6C1),
+
+                    elevation: 12,
+
+                    shadowColor:
+                        const Color(0x886EA6C1),
+
+                    shape: RoundedRectangleBorder(
+                      borderRadius:
+                          BorderRadius.circular(40),
+                    ),
+                  ),
+
+                  onPressed: sendCode,
+
+                  child: Row(
+                    mainAxisAlignment:
+                        MainAxisAlignment.center,
+
+                    children: [
+
+                      Icon(
+                        Icons.send_rounded,
+                        color: Colors.white,
+                        size: 28,
+                      ),
+
+                      SizedBox(width: 12),
+
+                      Text(
+                        useEmail
+                            ? "Send Reset Email"
+                            : "Send Code",
+
+                        style: TextStyle(
+                          fontSize: 24,
+                          fontWeight:
+                              FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ),
 
-              SizedBox(height: 20),
+            /// 🔥 PHONE VERIFY SECTION
+            if (codeSent && !useEmail) ...[
 
-              ElevatedButton(
-                onPressed:
-                    verifyCodeAndChangePassword,
-                child: Text("Change Password"),
+              SizedBox(height: 35),
+
+              /// CODE FIELD
+              Container(
+                decoration: BoxDecoration(
+                  borderRadius:
+                      BorderRadius.circular(24),
+
+                  color: const Color(0xFF1D1B20),
+
+                  border: Border.all(
+                    color: Colors.white12,
+                  ),
+                ),
+
+                child: TextField(
+
+                  controller: codeController,
+
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 18,
+                  ),
+
+                  decoration: InputDecoration(
+
+                    border: InputBorder.none,
+
+                    contentPadding:
+                        EdgeInsets.symmetric(
+                      vertical: 24,
+                    ),
+
+                    hintText: "Verification Code",
+
+                    hintStyle: TextStyle(
+                      color: Colors.white38,
+                      fontSize: 18,
+                    ),
+
+                    prefixIcon: Icon(
+                      Icons.lock_outline,
+                      color: Color(0xFF6EA6C1),
+                    ),
+                  ),
+                ),
               ),
-            ]
+
+              SizedBox(height: 25),
+
+              /// PASSWORD FIELD
+              Container(
+                decoration: BoxDecoration(
+                  borderRadius:
+                      BorderRadius.circular(24),
+
+                  color: const Color(0xFF1D1B20),
+
+                  border: Border.all(
+                    color: Colors.white12,
+                  ),
+                ),
+
+                child: TextField(
+
+                  controller:
+                      newPasswordController,
+
+                  obscureText: obscurePassword,
+
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 18,
+                  ),
+
+                  decoration: InputDecoration(
+
+                    border: InputBorder.none,
+
+                    contentPadding:
+                        EdgeInsets.symmetric(
+                      vertical: 24,
+                    ),
+
+                    hintText: "New Password",
+
+                    hintStyle: TextStyle(
+                      color: Colors.white38,
+                      fontSize: 18,
+                    ),
+
+                    prefixIcon: Icon(
+                      Icons.lock_outline,
+                      color: Color(0xFF6EA6C1),
+                    ),
+
+                    suffixIcon: IconButton(
+
+                      icon: Icon(
+                        obscurePassword
+                            ? Icons.visibility_off
+                            : Icons.visibility,
+
+                        color: Colors.white70,
+                      ),
+
+                      onPressed: () {
+
+                        setState(() {
+                          obscurePassword =
+                              !obscurePassword;
+                        });
+                      },
+                    ),
+                  ),
+                ),
+              ),
+
+              SizedBox(height: 30),
+
+              /// CHANGE PASSWORD BUTTON
+              SizedBox(
+                width: double.infinity,
+                height: 68,
+
+                child: ElevatedButton(
+
+                  style: ElevatedButton.styleFrom(
+
+                    backgroundColor:
+                        const Color(0xFF6EA6C1),
+
+                    elevation: 12,
+
+                    shadowColor:
+                        const Color(0x886EA6C1),
+
+                    shape: RoundedRectangleBorder(
+                      borderRadius:
+                          BorderRadius.circular(40),
+                    ),
+                  ),
+
+                  onPressed:
+                      verifyCodeAndChangePassword,
+
+                  child: Text(
+                    "Change Password",
+
+                    style: TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+
+            SizedBox(height: 35),
+
+            /// 🔒 PRIVACY
+            Container(
+              padding: EdgeInsets.all(18),
+
+              decoration: BoxDecoration(
+                borderRadius:
+                    BorderRadius.circular(22),
+
+                color: const Color(0xFF1D1B20),
+
+                border: Border.all(
+                  color: Colors.white10,
+                ),
+              ),
+
+              child: Row(
+                children: [
+
+                  Container(
+                    padding: EdgeInsets.all(12),
+
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color:
+                          const Color(0x336EA6C1),
+                    ),
+
+                    child: Icon(
+                      Icons.shield_outlined,
+                      color:
+                          const Color(0xFF6EA6C1),
+                    ),
+                  ),
+
+                  SizedBox(width: 15),
+
+                  Expanded(
+                    child: Text(
+
+                      useEmail
+                          ? "We’ll never share your email with anyone else."
+                          : "We’ll never share your phone number with anyone else.",
+
+                      style: TextStyle(
+                        color: Colors.white70,
+                        fontSize: 16,
+                        height: 1.4,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            SizedBox(height: 30),
           ],
         ),
       ),
@@ -8199,28 +9317,182 @@ class AboutMedLifeScreen extends StatelessWidget {
 class MyOrdersScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
+
     return DefaultTabController(
       length: 2,
+
       child: Column(
         children: [
-         TabBar(
-  labelColor: Colors.deepPurpleAccent, // اللون عند الاختيار
-  unselectedLabelColor: Colors.grey, // اللون العادي
 
-  indicatorColor: Colors.deepPurpleAccent, // الخط البنفسجي تحت
-  indicatorWeight: 4,
+          const SizedBox(height: 12),
 
-  tabs: [
-    Tab(text: "Pending 🟠"),
-    Tab(text: "Delivered 🟢"),
-  ],
-),
-          Expanded(
-            child: TabBarView(
-              children: [
-                OrdersList(status: "pending"),
-                OrdersList(status: "delivered"),
+          /// 🔥 TAB BAR
+          Container(
+            margin: EdgeInsets.symmetric(horizontal: 16),
+
+            padding: EdgeInsets.all(6),
+
+            decoration: BoxDecoration(
+              color: const Color(0xFF141118),
+
+              borderRadius: BorderRadius.circular(18),
+
+              border: Border.all(
+                color: Colors.white10,
+              ),
+
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(.35),
+                  blurRadius: 18,
+                  offset: Offset(0, 8),
+                ),
               ],
+            ),
+
+            child: TabBar(
+
+              dividerColor: Colors.transparent,
+
+              indicator: BoxDecoration(
+                color: const Color(0xFF6EA6C1),
+
+                borderRadius: BorderRadius.circular(14),
+
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFF6EA6C1)
+                        .withOpacity(.35),
+
+                    blurRadius: 14,
+                    offset: Offset(0, 4),
+                  ),
+                ],
+              ),
+
+              indicatorSize: TabBarIndicatorSize.tab,
+
+              labelColor: Colors.white,
+
+              unselectedLabelColor: Colors.white60,
+
+              labelStyle: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 16,
+              ),
+
+              unselectedLabelStyle: TextStyle(
+                fontWeight: FontWeight.w600,
+                fontSize: 15,
+              ),
+
+              tabs: [
+
+                /// 🟠 PENDING
+                Container(
+                  height: 52,
+
+                  alignment: Alignment.center,
+
+                  child: Row(
+                    mainAxisAlignment:
+                        MainAxisAlignment.center,
+
+                    children: [
+
+                      Text(
+                        "Pending",
+                      ),
+
+                      SizedBox(width: 6),
+
+                      Container(
+                        width: 10,
+                        height: 10,
+
+                        decoration: BoxDecoration(
+                          color: Colors.orange,
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                /// 🟢 DELIVERED
+                Container(
+                  height: 52,
+
+                  alignment: Alignment.center,
+
+                  child: Row(
+                    mainAxisAlignment:
+                        MainAxisAlignment.center,
+
+                    children: [
+
+                      Text(
+                        "Delivered",
+                      ),
+
+                      SizedBox(width: 6),
+
+                      Container(
+                        width: 10,
+                        height: 10,
+
+                        decoration: BoxDecoration(
+                          color: Colors.green,
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          const SizedBox(height: 14),
+
+          /// 🔥 ORDERS
+          Expanded(
+            child: Container(
+
+              margin: EdgeInsets.symmetric(horizontal: 10),
+
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(24),
+              ),
+
+              child: TabBarView(
+                children: [
+
+                  /// 🟠 Pending
+                  Container(
+                    decoration: BoxDecoration(
+                      borderRadius:
+                          BorderRadius.circular(24),
+                    ),
+
+                    child: OrdersList(
+                      status: "pending",
+                    ),
+                  ),
+
+                  /// 🟢 Delivered
+                  Container(
+                    decoration: BoxDecoration(
+                      borderRadius:
+                          BorderRadius.circular(24),
+                    ),
+
+                    child: OrdersList(
+                      status: "delivered",
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ],
@@ -8243,7 +9515,7 @@ stream: FirebaseFirestore.instance
 .collection('orders')
 .where("userId", isEqualTo: user!.uid)
 .where("status", isEqualTo: status)
-.orderBy("date", descending: false) 
+.orderBy("orderedAt", descending: true)
 .snapshots(),
 builder: (context, snapshot) {
 
@@ -8266,6 +9538,21 @@ return Center(child: CircularProgressIndicator()); }
             var order = orders[i];
             var data = order.data() as Map<String, dynamic>;
 
+Timestamp? orderedAt = data['orderedAt'];
+Timestamp? deliveredAt = data['deliveredAt'];
+
+String orderedDate = orderedAt != null
+    ? DateFormat('dd MMM yyyy').format(
+        orderedAt.toDate(),
+      )
+    : '';
+
+String deliveredDate = deliveredAt != null
+    ? DateFormat('dd MMM yyyy').format(
+        deliveredAt.toDate(),
+      )
+    : '';
+
             List items = data['items'] ?? [];
 
             return Card(
@@ -8284,6 +9571,67 @@ return Center(child: CircularProgressIndicator()); }
                     }).toList(),
 
                     SizedBox(height: 8),
+
+                    Column(
+  crossAxisAlignment: CrossAxisAlignment.start,
+  children: [
+
+    /// 🔥 ORDER DATE
+    Row(
+      children: [
+
+        Icon(
+          Icons.calendar_month_outlined,
+          color: Colors.white70,
+          size: 18,
+        ),
+
+        SizedBox(width: 8),
+
+        Text(
+          orderedDate,
+
+          style: TextStyle(
+            color: Colors.white70,
+            fontSize: 15,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+      ],
+    ),
+
+    /// 🔥 DELIVERED DATE
+    if (data['status'] == "delivered" &&
+        deliveredDate.isNotEmpty)
+
+      Padding(
+        padding: const EdgeInsets.only(top: 8),
+
+        child: Row(
+          children: [
+
+            Icon(
+              Icons.check_circle,
+              color: Color(0xFF6EA6C1),
+              size: 18,
+            ),
+
+            SizedBox(width: 8),
+
+            Text(
+              "Delivered: $deliveredDate",
+
+              style: TextStyle(
+                color: Color(0xFF6EA6C1),
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ),
+      ),
+  ],
+),
 
                     // 💰 التوتال
                     Text(
