@@ -6375,195 +6375,869 @@ class _AddEditProductScreenState
 }
 
 class AdminOrdersScreen extends StatelessWidget {
+  const AdminOrdersScreen({super.key});
+
   @override
   Widget build(BuildContext context) {
+    final bool isDark =
+        Theme.of(context).brightness ==
+            Brightness.dark;
+
     return Scaffold(
+      backgroundColor: const Color(0xFF07070A),
+
       appBar: AppBar(
-        title: Text("Admin Dashboard 📊"),
+        backgroundColor: const Color(0xFF07070A),
+        elevation: 0,
+
+        title: const Text(
+          "Admin Dashboard 📊",
+
+          style: TextStyle(
+            fontSize: 24,
+            fontWeight: FontWeight.bold,
+            color: Colors.white,
+          ),
+        ),
+
+        iconTheme:
+            const IconThemeData(color: Colors.white),
+
+        actions: [
+          IconButton(
+            onPressed: () {},
+
+            icon: const Icon(
+              Icons.search,
+              size: 26,
+            ),
+          ),
+
+          IconButton(
+            onPressed: () {},
+
+            icon: const Icon(
+              Icons.filter_list_rounded,
+              size: 26,
+            ),
+          ),
+
+          const SizedBox(width: 6),
+        ],
       ),
+
       body: StreamBuilder(
         stream: FirebaseFirestore.instance
             .collection('orders')
-            .orderBy('date', descending: false)
+            .orderBy(
+              'date',
+              descending: true,
+            )
             .snapshots(),
+
         builder: (context, snapshot) {
           if (!snapshot.hasData) {
-            return Center(child: CircularProgressIndicator());
+            return const Center(
+              child:
+                  CircularProgressIndicator(),
+            );
           }
 
           var orders = snapshot.data!.docs;
 
           if (orders.isEmpty) {
-            return Center(child: Text("No Orders Yet"));
+            return const Center(
+              child: Text(
+                "No Orders Yet",
+
+                style: TextStyle(
+                  color: Colors.white,
+                ),
+              ),
+            );
           }
 
-          return ListView.builder(
-            itemCount: orders.length,
-            itemBuilder: (context, i) {
-              var order = orders[i];
-              final data = order.data() as Map<String, dynamic>;
+          int totalOrders = orders.length;
 
-Timestamp? orderedAt = data['orderedAt'];
-Timestamp? deliveredAt = data['deliveredAt'];
+          int deliveredCount = orders
+              .where(
+                (e) =>
+                    (e['status'] ?? '') ==
+                    'delivered',
+              )
+              .length;
 
-String orderedDate = orderedAt != null
-    ? DateFormat('dd MMM yyyy').format(
-        orderedAt.toDate(),
-      )
-    : '';
+          int pendingCount = orders
+              .where(
+                (e) =>
+                    (e['status'] ?? '') ==
+                    'pending',
+              )
+              .length;
 
-String deliveredDate = deliveredAt != null
-    ? DateFormat('dd MMM yyyy').format(
-        deliveredAt.toDate(),
-      )
-    : '';
+          int processingCount = orders
+              .where(
+                (e) =>
+                    (e['status'] ?? '') ==
+                    'processing',
+              )
+              .length;
 
-              List items = data['items'] ?? [];
+          return ListView(
+            padding:
+                const EdgeInsets.all(16),
 
-              bool isDelivered =
-                  (data['status'] ?? 'pending') == 'delivered';
+            children: [
+              /// STATS
+              Row(
+                children: [
+                  Expanded(
+                    child: dashboardStat(
+                      icon:
+                          Icons.shopping_bag_outlined,
 
-              return Card(
-                margin: EdgeInsets.all(10),
-                child: ListTile(
-                  title: Text("Order #${i + 1}"),
-                  subtitle: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text("Name: ${data['name'] ?? 'No Name'}"),
-                      Text("Phone: ${data['phone'] ?? 'No Phone'}"),
+                      title: "Total Orders",
 
-                      SizedBox(height: 5),
+                      value:
+                          totalOrders.toString(),
 
-                      Text(
-                        "Order Details:",
-                        style: TextStyle(fontWeight: FontWeight.bold),
-                      ),
+                      color:
+                          const Color(
+                            0xFF3B82F6,
+                          ),
+                    ),
+                  ),
 
-                      SizedBox(height: 5),
+                  const SizedBox(width: 12),
 
-                      if (items.isEmpty)
-                        Text("No items")
-                      else
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: items.map<Widget>((item) {
-                            return Text(
-                                "- ${item['name']} | ${item['size']} | (${item['price']} EGP) | x${item['quantity'] ?? 1}");
-                          }).toList(),
+                  Expanded(
+                    child: dashboardStat(
+                      icon:
+                          Icons.access_time,
+
+                      title: "Pending",
+
+                      value:
+                          pendingCount.toString(),
+
+                      color:
+                          Colors.orange,
+                    ),
+                  ),
+                ],
+              ),
+
+              const SizedBox(height: 12),
+
+              Row(
+                children: [
+                  Expanded(
+                    child: dashboardStat(
+                      icon:
+                          Icons.local_shipping_outlined,
+
+                      title: "Processing",
+
+                      value:
+                          processingCount
+                              .toString(),
+
+                      color:
+                          Colors.purpleAccent,
+                    ),
+                  ),
+
+                  const SizedBox(width: 12),
+
+                  Expanded(
+                    child: dashboardStat(
+                      icon:
+                          Icons.check_circle_outline,
+
+                      title: "Delivered",
+
+                      value:
+                          deliveredCount
+                              .toString(),
+
+                      color:
+                          Colors.green,
+                    ),
+                  ),
+                ],
+              ),
+
+              const SizedBox(height: 28),
+
+              const Text(
+                "Recent Orders",
+
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 26,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+
+              const SizedBox(height: 18),
+
+              ...List.generate(
+                orders.length,
+                (i) {
+                  var order = orders[i];
+
+                  final data =
+                      order.data()
+                          as Map<
+                            String,
+                            dynamic
+                          >;
+
+                  List items =
+                      data['items'] ?? [];
+
+                  String status =
+                      data['status'] ??
+                          'pending';
+
+                  Color statusColor =
+                      status == 'delivered'
+                          ? Colors.green
+                          : status ==
+                              'processing'
+                          ? Colors.purpleAccent
+                          : Colors.orange;
+
+                  Timestamp? orderedAt =
+                      data['orderedAt'];
+
+                  String orderedDate =
+                      orderedAt != null
+                          ? DateFormat(
+                            'MMM dd, yyyy • hh:mm a',
+                          ).format(
+                            orderedAt
+                                .toDate(),
+                          )
+                          : '';
+
+                  return Container(
+                    margin:
+                        const EdgeInsets.only(
+                          bottom: 18,
                         ),
 
-                      SizedBox(height: 5),
+                    padding:
+                        const EdgeInsets.all(
+                          16,
+                        ),
 
-                      Text("Total: ${data['total'] ?? 0} EGP"),
-                    ],
-                  ),
-
-                  trailing: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      // ✅ Checkbox Toggle
-                      Row(
-                        children: [
-                          Checkbox(
-                            value: isDelivered,
-                            activeColor:
-                                isDelivered ? Colors.green : Colors.orange,
-                            onChanged: (value) async {
-                              String newStatus =
-                                  isDelivered ? "pending" : "delivered";
-
-                              await FirebaseFirestore.instance
-                                  .collection('orders')
-                                  .doc(order.id)
-                                  .update({
-                                "status": newStatus,
-                              });
-
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text(
-                                    isDelivered
-                                        ? "Order is Pending ⏳"
-                                        : "Order marked as Delivered ✅",
-                                  ),
-                                ),
-                              );
-                            },
+                    decoration: BoxDecoration(
+                      borderRadius:
+                          BorderRadius.circular(
+                            28,
                           ),
-                          Text(
-                            isDelivered
-                                ? "Delivered"
-                                : "Mark as Delivered",
+
+                      gradient:
+                          const LinearGradient(
+                            colors: [
+                              Color(
+                                0xFF15121A,
+                              ),
+                              Color(
+                                0xFF0C0B10,
+                              ),
+                            ],
+
+                            begin:
+                                Alignment
+                                    .topLeft,
+
+                            end: Alignment
+                                .bottomRight,
                           ),
-                        ],
+
+                      border: Border.all(
+                        color: Colors.white
+                            .withOpacity(
+                              0.05,
+                            ),
                       ),
+                    ),
 
-                      // 🗑 Delete
-                      IconButton(
-                        icon: Icon(Icons.delete, color: Colors.red),
-                        onPressed: () {
-                          showDialog(
-                            context: context,
-                            builder: (context) {
-                              return AlertDialog(
-                                title: Text("Delete Order"),
-                                content: Text(
-                                    "Are you sure you want to delete this order?"),
-                                actions: [
-                                  TextButton(
-                                    onPressed: () {
-                                      Navigator.pop(context);
-                                    },
-                                    child: Text("Cancel"),
+                    child: Column(
+                      children: [
+                        /// TOP
+                        Row(
+                          children: [
+                            Text(
+                              "#ORD-${1000 + i}",
+
+                              style:
+                                  const TextStyle(
+                                    color:
+                                        Colors
+                                            .white,
+
+                                    fontSize:
+                                        20,
+
+                                    fontWeight:
+                                        FontWeight
+                                            .bold,
                                   ),
-                                  TextButton(
-                                    onPressed: () async {
-                                      await FirebaseFirestore.instance
-                                          .collection('orders')
-                                          .doc(order.id)
-                                          .delete();
+                            ),
 
-                                      Navigator.pop(context);
+                            const SizedBox(
+                              width: 10,
+                            ),
 
-                                      ScaffoldMessenger.of(context)
-                                          .showSnackBar(
-                                        SnackBar(
-                                            content:
-                                                Text("Order deleted ❌")),
-                                      );
-                                    },
-                                    child: Text("Delete",
-                                        style:
-                                            TextStyle(color: Colors.red)),
+                            Container(
+                              padding:
+                                  const EdgeInsets.symmetric(
+                                    horizontal:
+                                        12,
+
+                                    vertical:
+                                        6,
+                                  ),
+
+                              decoration:
+                                  BoxDecoration(
+                                    borderRadius:
+                                        BorderRadius.circular(
+                                          12,
+                                        ),
+
+                                    color:
+                                        statusColor
+                                            .withOpacity(
+                                              0.18,
+                                            ),
+                                  ),
+
+                              child: Text(
+                                status
+                                    .toUpperCase(),
+
+                                style:
+                                    TextStyle(
+                                      color:
+                                          statusColor,
+
+                                      fontWeight:
+                                          FontWeight
+                                              .bold,
+
+                                      fontSize:
+                                          12,
+                                    ),
+                              ),
+                            ),
+
+                            const Spacer(),
+
+                            Text(
+                              orderedDate,
+
+                              style:
+                                  const TextStyle(
+                                    color:
+                                        Colors
+                                            .white54,
+
+                                    fontSize:
+                                        12,
+                                  ),
+                            ),
+                          ],
+                        ),
+
+                        const SizedBox(height: 18),
+
+                        /// USER INFO
+                        Row(
+                          crossAxisAlignment:
+                              CrossAxisAlignment
+                                  .start,
+
+                          children: [
+                            CircleAvatar(
+                              radius: 28,
+
+                              backgroundColor:
+                                  Colors.white12,
+
+                              child: Text(
+                                data['name'] !=
+                                            null &&
+                                        data['name']
+                                            .toString()
+                                            .isNotEmpty
+                                    ? data['name'][0]
+                                    : "U",
+
+                                style:
+                                    const TextStyle(
+                                      color:
+                                          Colors
+                                              .white,
+
+                                      fontWeight:
+                                          FontWeight
+                                              .bold,
+
+                                      fontSize:
+                                          22,
+                                    ),
+                              ),
+                            ),
+
+                            const SizedBox(
+                              width: 14,
+                            ),
+
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment:
+                                    CrossAxisAlignment
+                                        .start,
+
+                                children: [
+                                  Text(
+                                    data['name'] ??
+                                        "No Name",
+
+                                    style:
+                                        const TextStyle(
+                                          color:
+                                              Colors
+                                                  .white,
+
+                                          fontSize:
+                                              20,
+
+                                          fontWeight:
+                                              FontWeight
+                                                  .w700,
+                                        ),
+                                  ),
+
+                                  const SizedBox(
+                                    height: 5,
+                                  ),
+
+                                  Text(
+                                    data['phone'] ??
+                                        "",
+
+                                    style:
+                                        const TextStyle(
+                                          color:
+                                              Colors
+                                                  .white60,
+
+                                          fontSize:
+                                              14,
+                                        ),
+                                  ),
+
+                                  const SizedBox(
+                                    height: 14,
+                                  ),
+
+                                  SizedBox(
+                                    height: 48,
+
+                                    child: ListView
+                                        .builder(
+                                      scrollDirection:
+                                          Axis.horizontal,
+
+                                      itemCount:
+                                          items
+                                              .length,
+
+                                      itemBuilder:
+                                          (
+                                            context,
+                                            index,
+                                          ) {
+                                            var item =
+                                                items[index];
+
+                                            return Container(
+                                              width:
+                                                  48,
+
+                                              margin:
+                                                  const EdgeInsets.only(
+                                                    right:
+                                                        8,
+                                                  ),
+
+                                              decoration:
+                                                  BoxDecoration(
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                          12,
+                                                        ),
+
+                                                    color:
+                                                        Colors.white10,
+                                                  ),
+
+                                              child:
+                                                  item['image'] !=
+                                                              null &&
+                                                          item['image']
+                                                              .toString()
+                                                              .isNotEmpty
+                                                      ? ClipRRect(
+                                                        borderRadius:
+                                                            BorderRadius.circular(
+                                                              12,
+                                                            ),
+
+                                                        child:
+                                                            Image.network(
+                                                          item['image'],
+
+                                                          fit:
+                                                              BoxFit.cover,
+                                                        ),
+                                                      )
+                                                      : const Icon(
+                                                        Icons.image,
+                                                        color:
+                                                            Colors.white38,
+                                                      ),
+                                            );
+                                          },
+                                    ),
                                   ),
                                 ],
-                              );
-                            },
-                          );
-                        },
-                      ),
-
-                      // ➡️ Details
-                      IconButton(
-                        icon: Icon(Icons.arrow_forward),
-                        onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) =>
-                                  OrderDetailsScreen(order: order),
+                              ),
                             ),
-                          );
-                        },
-                      ),
-                    ],
-                  ),
-                ),
-              );
-            },
+
+                            Column(
+                              crossAxisAlignment:
+                                  CrossAxisAlignment
+                                      .end,
+
+                              children: [
+                                const Text(
+                                  "Total Amount",
+
+                                  style:
+                                      TextStyle(
+                                        color:
+                                            Colors
+                                                .white54,
+
+                                        fontSize:
+                                            14,
+                                      ),
+                                ),
+
+                                const SizedBox(
+                                  height: 6,
+                                ),
+
+                                Text(
+                                  "${data['total'] ?? 0} EGP",
+
+                                  style:
+                                      const TextStyle(
+                                        color:
+                                            Colors
+                                                .white,
+
+                                        fontSize:
+                                            26,
+
+                                        fontWeight:
+                                            FontWeight
+                                                .bold,
+                                      ),
+                                ),
+
+                                const SizedBox(
+                                  height: 4,
+                                ),
+
+                                Text(
+                                  "${items.length} Items",
+
+                                  style:
+                                      const TextStyle(
+                                        color:
+                                            Colors
+                                                .white54,
+
+                                        fontSize:
+                                            13,
+                                      ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+
+                        const SizedBox(height: 18),
+
+                        /// BUTTONS
+                        Row(
+                          children: [
+                            Expanded(
+                              child: GestureDetector(
+                                onTap: () {
+                                  Navigator.push(
+                                    context,
+
+                                    MaterialPageRoute(
+                                      builder:
+                                          (_) =>
+                                              OrderDetailsScreen(
+                                                order:
+                                                    order,
+                                              ),
+                                    ),
+                                  );
+                                },
+
+                                child: Container(
+                                  height: 52,
+
+                                  decoration:
+                                      BoxDecoration(
+                                        borderRadius:
+                                            BorderRadius.circular(
+                                              16,
+                                            ),
+
+                                        border: Border.all(
+                                          color:
+                                              const Color(
+                                                0xFF3B82F6,
+                                              ),
+                                        ),
+                                      ),
+
+                                  child:
+                                      const Center(
+                                        child: Text(
+                                          "View Details",
+
+                                          style:
+                                              TextStyle(
+                                                color:
+                                                    Color(
+                                                      0xFF3B82F6,
+                                                    ),
+
+                                                fontWeight:
+                                                    FontWeight.bold,
+
+                                                fontSize:
+                                                    15,
+                                              ),
+                                        ),
+                                      ),
+                                ),
+                              ),
+                            ),
+
+                            const SizedBox(width: 12),
+
+                            GestureDetector(
+                              onTap: () async {
+                                String newStatus =
+                                    status ==
+                                            'delivered'
+                                        ? 'pending'
+                                        : 'delivered';
+
+                                await FirebaseFirestore
+                                    .instance
+                                    .collection(
+                                      'orders',
+                                    )
+                                    .doc(
+                                      order.id,
+                                    )
+                                    .update({
+                                  "status":
+                                      newStatus,
+                                });
+                              },
+
+                              child: Container(
+                                width: 56,
+                                height: 52,
+
+                                decoration:
+                                    BoxDecoration(
+                                      borderRadius:
+                                          BorderRadius.circular(
+                                            16,
+                                          ),
+
+                                      gradient:
+                                          const LinearGradient(
+                                            colors: [
+                                              Color(
+                                                0xFF3B82F6,
+                                              ),
+                                              Color(
+                                                0xFF6CB7FF,
+                                              ),
+                                            ],
+                                          ),
+                                    ),
+
+                                child: const Icon(
+                                  Icons
+                                      .local_shipping_outlined,
+
+                                  color:
+                                      Colors
+                                          .white,
+                                ),
+                              ),
+                            ),
+
+                            const SizedBox(width: 10),
+
+                            GestureDetector(
+                              onTap: () async {
+                                await FirebaseFirestore
+                                    .instance
+                                    .collection(
+                                      'orders',
+                                    )
+                                    .doc(order.id)
+                                    .delete();
+                              },
+
+                              child: Container(
+                                width: 56,
+                                height: 52,
+
+                                decoration:
+                                    BoxDecoration(
+                                      borderRadius:
+                                          BorderRadius.circular(
+                                            16,
+                                          ),
+
+                                      color:
+                                          Colors.red
+                                              .withOpacity(
+                                                0.12,
+                                              ),
+                                    ),
+
+                                child: const Icon(
+                                  Icons
+                                      .delete_outline,
+
+                                  color:
+                                      Colors.red,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              ),
+            ],
           );
         },
+      ),
+    );
+  }
+
+  Widget dashboardStat({
+    required IconData icon,
+    required String title,
+    required String value,
+    required Color color,
+  }) {
+    return Container(
+      height: 140,
+
+      padding: const EdgeInsets.all(18),
+
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(24),
+
+        gradient: const LinearGradient(
+          colors: [
+            Color(0xFF15121A),
+            Color(0xFF0D0B10),
+          ],
+
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+
+        border: Border.all(
+          color: Colors.white.withOpacity(
+            0.05,
+          ),
+        ),
+      ),
+
+      child: Column(
+        crossAxisAlignment:
+            CrossAxisAlignment.start,
+
+        children: [
+          Container(
+            width: 42,
+            height: 42,
+
+            decoration: BoxDecoration(
+              borderRadius:
+                  BorderRadius.circular(14),
+
+              color: color.withOpacity(0.12),
+            ),
+
+            child: Icon(
+              icon,
+              color: color,
+              size: 22,
+            ),
+          ),
+
+          const Spacer(),
+
+          Text(
+            title,
+
+            style: const TextStyle(
+              color: Colors.white60,
+              fontSize: 14,
+            ),
+          ),
+
+          const SizedBox(height: 5),
+
+          Text(
+            value,
+
+            style: TextStyle(
+              color: color,
+              fontSize: 28,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ],
       ),
     );
   }
