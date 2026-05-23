@@ -8732,6 +8732,52 @@ class OrderDetailsScreen extends StatelessWidget {
     required this.order,
   });
 
+  Future<void> callCustomer(String phone) async {
+
+  final Uri phoneUri = Uri(
+    scheme: 'tel',
+    path: phone,
+  );
+
+  if (await canLaunchUrl(phoneUri)) {
+
+    await launchUrl(phoneUri);
+
+  } else {
+
+    throw 'Could not launch phone';
+  }
+}
+
+Future<void> chatCustomer(String phone) async {
+
+  String cleanedPhone =
+      phone.replaceAll(RegExp(r'[^0-9]'), '');
+
+  if (cleanedPhone.startsWith('0')) {
+
+    cleanedPhone =
+        '20${cleanedPhone.substring(1)}';
+  }
+
+  final Uri whatsappUri = Uri.parse(
+    "https://wa.me/$cleanedPhone",
+  );
+
+  if (await canLaunchUrl(whatsappUri)) {
+
+    await launchUrl(
+      whatsappUri,
+      mode:
+          LaunchMode.externalApplication,
+    );
+
+  } else {
+
+    throw 'Could not launch WhatsApp';
+  }
+}
+
   double parseToDouble(dynamic value) {
 
     if (value == null) return 0;
@@ -10134,9 +10180,142 @@ class OrderDetailsScreen extends StatelessWidget {
             ),
           ),
 
-          const SizedBox(
-            height: 20,
+          const SizedBox(height: 20),
+
+/// BUTTONS
+Row(
+
+  children: [
+
+    Expanded(
+
+      child: GestureDetector(
+
+        onTap: () {
+
+          callCustomer(phone);
+        },
+
+        child: Container(
+
+          height: 62,
+
+          decoration: BoxDecoration(
+
+            borderRadius:
+                BorderRadius.circular(20),
+
+            gradient: const LinearGradient(
+
+              colors: [
+
+                Color(0xFFB8D7E5),
+                Color(0xFF6EA6C1),
+              ],
+            ),
           ),
+
+          child: Row(
+
+            mainAxisAlignment:
+                MainAxisAlignment.center,
+
+            children: const [
+
+              Icon(
+                Icons.call_outlined,
+                color: Colors.white,
+              ),
+
+              SizedBox(width: 10),
+
+              Text(
+
+                "Call The Customer",
+
+                style: TextStyle(
+
+                  color: Colors.white,
+
+                  fontSize: 16,
+
+                  fontWeight:
+                      FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    ),
+
+    const SizedBox(width: 14),
+
+    Expanded(
+
+      child: GestureDetector(
+
+        onTap: () {
+
+          chatCustomer(phone);
+        },
+
+        child: Container(
+
+          height: 62,
+
+          decoration: BoxDecoration(
+
+            borderRadius:
+                BorderRadius.circular(20),
+
+            gradient: const LinearGradient(
+
+              colors: [
+
+                Color(0xFF32D951),
+                Color(0xFF128C28),
+              ],
+            ),
+          ),
+
+          child: Row(
+
+            mainAxisAlignment:
+                MainAxisAlignment.center,
+
+            children: const [
+
+              Icon(
+                Icons.chat_bubble_outline,
+                color: Colors.white,
+              ),
+
+              SizedBox(width: 10),
+
+              Text(
+
+                "Chat The Customer",
+
+                style: TextStyle(
+
+                  color: Colors.white,
+
+                  fontSize: 16,
+
+                  fontWeight:
+                      FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    ),
+  ],
+),
+
+const SizedBox(height: 20),
         ],
       ),
     );
