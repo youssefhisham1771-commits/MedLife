@@ -912,7 +912,7 @@ Padding(
         padding: EdgeInsets.all(10),
         gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
           crossAxisCount: 2,
-          childAspectRatio: 0.75,
+          childAspectRatio: 0.55,
           crossAxisSpacing: 10,
           mainAxisSpacing: 10,
         ),
@@ -946,98 +946,374 @@ Padding(
             },
             child: Stack(
               children: [
-                Card(
-                  elevation: 6,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(15),
+                Container(
+  decoration: BoxDecoration(
+    borderRadius: BorderRadius.circular(28),
+
+    gradient: LinearGradient(
+      begin: Alignment.topLeft,
+      end: Alignment.bottomRight,
+      colors: [
+        Color(0xFF111827),
+        Color(0xFF0B1220),
+        Color(0xFF091428),
+      ],
+    ),
+
+    border: Border.all(
+      color: Color(0xFF1F2A44),
+      width: 1,
+    ),
+
+    boxShadow: [
+      BoxShadow(
+        color: Colors.black.withOpacity(.35),
+        blurRadius: 20,
+        offset: Offset(0, 10),
+      ),
+    ],
+  ),
+
+  child: Column(
+    crossAxisAlignment: CrossAxisAlignment.center,
+    children: [
+
+      /// 🔥 IMAGE
+      SizedBox(
+  height: 220,
+        child: Stack(
+          children: [
+
+            ClipRRect(
+              borderRadius: BorderRadius.vertical(
+                top: Radius.circular(28),
+              ),
+
+              child: Image.network(
+                images.isNotEmpty ? images[0] : "",
+                fit: BoxFit.cover,
+                width: double.infinity,
+              ),
+            ),
+
+            /// ❤️ Favourite
+            Positioned(
+              top: 12,
+              left: 12,
+              child: GestureDetector(
+                onTap: () {
+
+                  var item = {
+                    "name": data['name'],
+                    "price": data['price'],
+                    "image": images.isNotEmpty
+                        ? images[0]
+                        : "",
+                  };
+
+                  toggleFavourite(item);
+                },
+
+                child: Container(
+                  width: 46,
+                  height: 46,
+
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: Colors.black.withOpacity(.45),
+                    border: Border.all(
+                      color: Colors.white10,
+                    ),
                   ),
-                  child: Column(
-                    children: [
-                      Expanded(
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.vertical(
-                              top: Radius.circular(15)),
-                          child: Image.network(
-                            images.isNotEmpty ? images[0] : "",
-                            fit: BoxFit.cover,
-                            width: double.infinity,
+
+                  child: Icon(
+                    isFav
+                        ? Icons.favorite
+                        : Icons.favorite_border,
+
+                    color: Colors.white,
+                    size: 24,
+                  ),
+                ),
+              ),
+            ),
+
+            /// 🔥 NEW BADGE
+            if (data['createdAt'] != null &&
+                DateTime.now()
+                        .difference(
+                          (data['createdAt'] as Timestamp)
+                              .toDate(),
+                        )
+                        .inDays <
+                    7)
+
+              Positioned(
+                left: 12,
+                bottom: 12,
+
+                child: Container(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 6,
+                  ),
+
+                  decoration: BoxDecoration(
+                    color: Color(0xFF6EA6C1),
+                    borderRadius:
+                        BorderRadius.circular(12),
+                  ),
+
+                  child: Text(
+                    "NEW",
+
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ),
+
+            /// 🔥 MENU BUTTON
+            if (isAdmin)
+              Positioned(
+                top: 12,
+                right: 12,
+
+                child: PopupMenuButton<String>(
+                  color: Color(0xFF111827),
+
+                  shape: RoundedRectangleBorder(
+                    borderRadius:
+                        BorderRadius.circular(18),
+                  ),
+
+                  onSelected: (value) async {
+
+                    if (value == "edit") {
+
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) =>
+                              AddEditProductScreen(
+                            docId: product.id,
+                            oldData: data,
                           ),
                         ),
-                      ),
-                      Padding(
-                        padding: EdgeInsets.all(8),
-                        child: Column(
-                          children: [
-                            Text(
-                              data['name'],
-                              style: TextStyle(
-                                  fontWeight: FontWeight.bold),
+                      );
+                    }
+
+                    if (value == "delete") {
+
+                      await FirebaseFirestore.instance
+                          .collection('Products')
+                          .doc(product.id)
+                          .delete();
+                    }
+                  },
+
+                  itemBuilder: (context) => [
+
+                    PopupMenuItem(
+                      value: "edit",
+
+                      child: Row(
+                        children: [
+
+                          Icon(
+                            Icons.edit,
+                            color: Color(0xFF6EA6C1),
+                          ),
+
+                          SizedBox(width: 10),
+
+                          Text(
+                            "Edit",
+                            style: TextStyle(
+                              color: Colors.white,
                             ),
-                            Text("${data['price']} EGP"),
-                          ],
-                        ),
+                          ),
+                        ],
                       ),
-                    ],
-                  ),
-                ),
+                    ),
 
-                /// ❤️ Favorite
-                Positioned(
-                  top: 10,
-                  left: 10,
-                  child: GestureDetector(
-                    onTap: () {
-                      var item = {
-                        "name": data['name'],
-                        "price": data['price'],
-                        "image": images.isNotEmpty ? images[0] : "",
-                      };
+                    PopupMenuItem(
+                      value: "delete",
 
-                      toggleFavourite(item);
-                    },
-                    child: CircleAvatar(
-                      backgroundColor: Colors.white,
-                      child: Icon(
-                        isFav ? Icons.favorite : Icons.favorite_border,
-                        color: isFav ? Colors.red : Colors.grey,
+                      child: Row(
+                        children: [
+
+                          Icon(
+                            Icons.delete,
+                            color: Colors.red,
+                          ),
+
+                          SizedBox(width: 10),
+
+                          Text(
+                            "Delete",
+                            style: TextStyle(
+                              color: Colors.white,
+                            ),
+                          ),
+                        ],
                       ),
+                    ),
+                  ],
+
+                  child: Container(
+                    width: 46,
+                    height: 46,
+
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: Colors.black.withOpacity(.45),
+                      border: Border.all(
+                        color: Colors.white10,
+                      ),
+                    ),
+
+                    child: Icon(
+                      Icons.more_vert,
+                      color: Colors.white,
                     ),
                   ),
                 ),
+              ),
+          ],
+        ),
+      ),
 
-                /// 🔥 Admin Controls
-                if (isAdmin)
-                  Positioned(
-                    right: 10,
-                    top: 10,
-                    child: Column(
-                      children: [
-                        IconButton(
-                          icon: Icon(Icons.edit, color: Colors.blue),
-                          onPressed: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => AddEditProductScreen(
-                                  docId: product.id,
-                                  oldData: data,
-                                ),
-                              ),
-                            );
-                          },
-                        ),
-                        IconButton(
-                          icon: Icon(Icons.delete, color: Colors.red),
-                          onPressed: () async {
-                            await FirebaseFirestore.instance
-                                .collection('Products')
-                                .doc(product.id)
-                                .delete();
-                          },
-                        ),
-                      ],
-                    ),
+      /// 🔥 NAME + PRICE
+        Padding(
+          padding: const EdgeInsets.only(
+            top: 5,
+            left: 8,
+            right: 8,
+            bottom: 8,
+          ),
+
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+
+            children: [
+
+              Text(
+                data['name'],
+
+                textAlign: TextAlign.center,
+
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+
+              SizedBox(height: 0.4),
+
+              Text(
+                "${data['price']} EGP",
+
+                textAlign: TextAlign.center,
+
+                style: TextStyle(
+                  color: Color(0xFF6EA6C1),
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+        ),
+
+      /// 🔥 ADD TO CART BUTTON
+      Padding(
+        padding: const EdgeInsets.only(
+          left: 14,
+          right: 14,
+          bottom: 1,
+          top: 6,
+        ),
+
+        child: InkWell(
+          borderRadius: BorderRadius.circular(20),
+
+          onTap: () async {
+
+            var user =
+                FirebaseAuth.instance.currentUser;
+
+            if (user == null) return;
+
+            await FirebaseFirestore.instance
+                .collection('users')
+                .doc(user.uid)
+                .collection('cart')
+                .add({
+              "name": data['name'],
+              "price": data['price'],
+              "image": images.isNotEmpty
+                  ? images[0]
+                  : "",
+            });
+
+            ScaffoldMessenger.of(context)
+                .showSnackBar(
+              SnackBar(
+                content:
+                    Text("Added To Cart 🛒"),
+              ),
+            );
+          },
+
+          child: Container(
+            width: double.infinity,
+            height: 40,
+
+            decoration: BoxDecoration(
+              borderRadius:
+                  BorderRadius.circular(20),
+
+              color: Colors.white.withOpacity(.06),
+
+              border: Border.all(
+                color: Colors.white10,
+              ),
+            ),
+
+            child: Row(
+              mainAxisAlignment:
+                  MainAxisAlignment.center,
+
+              children: [
+
+                Icon(
+                  Icons.shopping_cart_outlined,
+                  color: Color(0xFF6EA6C1),
+                ),
+
+                SizedBox(width: 5),
+
+                Text(
+                  "Add to Cart",
+
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
                   ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    ],
+  ),
+)
               ],
             ),
           );
@@ -1340,7 +1616,6 @@ if (isAdmin)
       );
     },
   ),
-
   // 👤 Profile
   IconButton(
     icon: Icon(Icons.person),
@@ -1414,13 +1689,16 @@ bottomNavigationBar: BottomNavigationBar(
       ? Colors.black
       : Colors.white,
 
-  selectedItemColor: MyApp.of(context)!.isDark
-      ? Colors.white
-      : Colors.deepPurple,
+  selectedItemColor: const Color(0xFF6EA6C1),
 
   unselectedItemColor: Colors.grey,
 
   type: BottomNavigationBarType.fixed,
+  selectedLabelStyle: const TextStyle(
+  fontWeight: FontWeight.bold,
+),
+
+showUnselectedLabels: true,
   elevation: 10,
 
   onTap: (i) {
@@ -6853,6 +7131,8 @@ deliveryText.text.isEmpty) {
 
       "images":
           imageUrls,
+
+      "createdAt": Timestamp.now(),
     };
 
     if (widget.docId == null) {
