@@ -12,7 +12,20 @@
           "package_name": "com.example.my_app"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "502184227984-i4oqtvpcpfa91ujaphu8lk42hgptn2qi.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.my_app",
+            "certificate_hash": "1298271582fbd8c761a4b32b2537a3131ce2a51d"
+          }
+        },
+        {
+          "client_id": "502184227984-6fdvti0ttsjal19iv7jcl5ebveonljej.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyDUg2yp3Q8GEopUFp2rhCxXkqnCfeBFxGk"
@@ -20,7 +33,19 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "502184227984-6fdvti0ttsjal19iv7jcl5ebveonljej.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "502184227984-bbl81b0mh1sppq1bkq7rkrvr5qjr9h1e.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.myApp"
+              }
+            }
+          ]
         }
       }
     },
@@ -31,7 +56,20 @@
           "package_name": "com.medlife.eg"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "502184227984-jr7vf6ddk2oj09i377ngrcvmkkmlqpqe.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.medlife.eg",
+            "certificate_hash": "1298271582fbd8c761a4b32b2537a3131ce2a51d"
+          }
+        },
+        {
+          "client_id": "502184227984-6fdvti0ttsjal19iv7jcl5ebveonljej.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyDUg2yp3Q8GEopUFp2rhCxXkqnCfeBFxGk"
@@ -39,7 +77,19 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "502184227984-6fdvti0ttsjal19iv7jcl5ebveonljej.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "502184227984-bbl81b0mh1sppq1bkq7rkrvr5qjr9h1e.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.myApp"
+              }
+            }
+          ]
         }
       }
     }

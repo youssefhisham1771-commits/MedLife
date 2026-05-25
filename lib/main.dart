@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import 'firebase_options.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -197,13 +198,15 @@ class _LoginScreenState extends State<LoginScreen> {
   final passController = TextEditingController();
 
   bool isLoading = false;
+  bool isGoogleLoading = false;
   bool isPasswordHidden = true;
 
+  /// 🔥 LOGIN WITH EMAIL
   Future<void> login() async {
     if (emailController.text.trim().isEmpty ||
         passController.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("اكتب الايميل والباسورد")),
+        SnackBar(content: Text("Please Write Your Email & Password")),
       );
       return;
     }
@@ -217,12 +220,11 @@ class _LoginScreenState extends State<LoginScreen> {
       );
 
       if (mounted) {
-  Navigator.pushReplacement(
-    context,
-    MaterialPageRoute(builder: (_) => ProductsScreen()),
-  );
-}
-
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => ProductsScreen()),
+        );
+      }
     } on FirebaseAuthException catch (e) {
       String message = "حصل خطأ";
 
@@ -246,135 +248,571 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
+  /// 🔥 GOOGLE SIGN IN
+  Future<void> signInWithGoogle() async {
+    try {
+      setState(() => isGoogleLoading = true);
+
+      final GoogleSignInAccount? googleUser =
+          await GoogleSignIn().signIn();
+
+      if (googleUser == null) {
+        setState(() => isGoogleLoading = false);
+        return;
+      }
+
+      final GoogleSignInAuthentication googleAuth =
+          await googleUser.authentication;
+
+      final credential = GoogleAuthProvider.credential(
+        accessToken: googleAuth.accessToken,
+        idToken: googleAuth.idToken,
+      );
+
+      await FirebaseAuth.instance.signInWithCredential(credential);
+
+      if (mounted) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => ProductsScreen()),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Google Login Failed")),
+      );
+    }
+
+    if (mounted) {
+      setState(() => isGoogleLoading = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: Color(0xffF5F8FD),
 
       body: SafeArea(
-        child: Padding(
-          padding: EdgeInsets.symmetric(horizontal: 25),
-
+        child: SingleChildScrollView(
           child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
 
-              /// 🔥 TITLE
-              Text(
-                "Welcome Back 👋",
-                style: TextStyle(
-                  fontSize: 28,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
+              /// 🔥 TOP DESIGN
+              Stack(
+                children: [
 
-              SizedBox(height: 8),
-
-              Text(
-                "Login to your account",
-                style: TextStyle(
-                  color: Colors.grey,
-                  fontSize: 16,
-                ),
-              ),
-
-              SizedBox(height: 35),
-
-              /// 📧 EMAIL
-              TextField(
-                controller: emailController,
-                keyboardType: TextInputType.emailAddress,
-                decoration: InputDecoration(
-                  hintText: "Email",
-                  filled: true,
-                  fillColor: Colors.grey[100],
-                  contentPadding:
-                      EdgeInsets.symmetric(horizontal: 15, vertical: 18),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(15),
-                    borderSide: BorderSide.none,
-                  ),
-                ),
-              ),
-
-              SizedBox(height: 15),
-
-              /// 🔑 PASSWORD
-              TextField(
-                controller: passController,
-                obscureText: isPasswordHidden,
-                decoration: InputDecoration(
-                  hintText: "Password",
-                  filled: true,
-                  fillColor: Colors.grey[100],
-                  contentPadding:
-                      EdgeInsets.symmetric(horizontal: 15, vertical: 18),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(15),
-                    borderSide: BorderSide.none,
-                  ),
-                  suffixIcon: IconButton(
-                    icon: Icon(
-                      isPasswordHidden
-                          ? Icons.visibility
-                          : Icons.visibility_off,
-                      color: Colors.grey,
+                  Container(
+                    height: 260,
+                    width: double.infinity,
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [
+                          Color(0xffF8FBFF),
+                          Color(0xffEAF3FF),
+                        ],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
                     ),
-                    onPressed: () {
-                      setState(() {
-                        isPasswordHidden = !isPasswordHidden;
-                      });
-                    },
                   ),
-                ),
+
+                  Positioned(
+                    top: -60,
+                    left: -50,
+                    child: Container(
+                      width: 220,
+                      height: 220,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: Colors.white,
+                          width: 2,
+                        ),
+                      ),
+                    ),
+                  ),
+
+                  Positioned(
+                    top: 50,
+                    right: -30,
+                    child: Container(
+                      width: 180,
+                      height: 180,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(40),
+                        color: Colors.white.withOpacity(.25),
+                      ),
+                    ),
+                  ),
+
+                  Padding(
+                    padding: EdgeInsets.only(top: 50),
+                    child: Center(
+                      child: Column(
+                        children: [
+
+                          /// 🔥 LOGO
+                          Image.asset(
+                            "assets/banner.png",
+                            height: 120,
+                          ),
+
+                          SizedBox(height: 10),
+
+                          Text(
+                            "MEDICAL SCRUBS & APPAREL",
+                            style: TextStyle(
+                              color: Color(0xff1D3557),
+                              fontWeight: FontWeight.w600,
+                              letterSpacing: 1.2,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
               ),
 
-              SizedBox(height: 30),
+              /// 🔥 CARD
+              Transform.translate(
+                offset: Offset(0, -20),
+                child: Container(
+                  margin: EdgeInsets.symmetric(horizontal: 22),
+                  padding: EdgeInsets.all(22),
 
-              /// 🔥 LOGIN BUTTON
-              isLoading
-                  ? Center(child: CircularProgressIndicator())
-                  : SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton(
-                        onPressed: login,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.black,
-                          padding: EdgeInsets.symmetric(vertical: 16),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(15),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(30),
+
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.blue.withOpacity(.08),
+                        blurRadius: 20,
+                        offset: Offset(0, 10),
+                      ),
+                    ],
+                  ),
+
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+
+                      /// TITLE
+                      Text(
+                        "Welcome Back 👋",
+                        style: TextStyle(
+                          fontSize: 34,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xff16355C),
+                        ),
+                      ),
+
+                      SizedBox(height: 6),
+
+                      Text(
+                        "Login to your account",
+                        style: TextStyle(
+                          color: Colors.grey.shade600,
+                          fontSize: 17,
+                        ),
+                      ),
+
+                      SizedBox(height: 30),
+
+                      /// EMAIL
+                      Container(
+                        decoration: BoxDecoration(
+                          color: Color(0xffF7F9FC),
+                          borderRadius: BorderRadius.circular(18),
+                          border: Border.all(
+                            color: Colors.grey.shade200,
                           ),
                         ),
-                        child: Text(
-                          "Login",
-                          style: TextStyle(fontSize: 16),
+
+                        child: TextField(
+                          controller: emailController,
+                          keyboardType: TextInputType.emailAddress,
+
+                          decoration: InputDecoration(
+                            border: InputBorder.none,
+
+                            hintText: "Email",
+
+                            prefixIcon: Padding(
+                              padding: EdgeInsets.all(12),
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: Color(0xffEAF3FF),
+                                ),
+
+                                child: Icon(
+                                  Icons.email,
+                                  color: Color(0xff2D7DFF),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+
+                      SizedBox(height: 18),
+
+                      /// PASSWORD
+                      Container(
+                        decoration: BoxDecoration(
+                          color: Color(0xffF7F9FC),
+                          borderRadius: BorderRadius.circular(18),
+                          border: Border.all(
+                            color: Colors.grey.shade200,
+                          ),
+                        ),
+
+                        child: TextField(
+                          controller: passController,
+                          obscureText: isPasswordHidden,
+
+                          decoration: InputDecoration(
+                            border: InputBorder.none,
+                            hintText: "Password",
+
+                            prefixIcon: Padding(
+                              padding: EdgeInsets.all(12),
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: Color(0xffEAF3FF),
+                                ),
+
+                                child: Icon(
+                                  Icons.lock,
+                                  color: Color(0xff2D7DFF),
+                                ),
+                              ),
+                            ),
+
+                            suffixIcon: IconButton(
+                              icon: Icon(
+                                isPasswordHidden
+                                    ? Icons.visibility
+                                    : Icons.visibility_off,
+                                color: Colors.grey,
+                              ),
+                              onPressed: () {
+                                setState(() {
+                                  isPasswordHidden =
+                                      !isPasswordHidden;
+                                });
+                              },
+                            ),
+                          ),
+                        ),
+                      ),
+
+                      SizedBox(height: 12),
+
+                      /// FORGOT PASSWORD
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: TextButton(
+                          onPressed: () async {
+                            if (emailController.text.trim().isEmpty) {
+                              ScaffoldMessenger.of(context)
+                                  .showSnackBar(
+                                SnackBar(
+                                  content: Text(
+                                    "اكتب الايميل الأول",
+                                  ),
+                                ),
+                              );
+                              return;
+                            }
+
+                            await FirebaseAuth.instance
+                                .sendPasswordResetEmail(
+                              email:
+                                  emailController.text.trim(),
+                            );
+
+                            ScaffoldMessenger.of(context)
+                                .showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                  "تم ارسال رابط تغيير الباسورد",
+                                ),
+                              ),
+                            );
+                          },
+                          child: Text(
+                            "Forgot Password?",
+                            style: TextStyle(
+                              color: Color(0xff2D7DFF),
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ),
+
+                      SizedBox(height: 8),
+
+                      /// LOGIN BUTTON
+                      isLoading
+                          ? Center(
+                              child:
+                                  CircularProgressIndicator(),
+                            )
+                          : SizedBox(
+                              width: double.infinity,
+                              height: 58,
+
+                              child: ElevatedButton(
+                                onPressed: login,
+
+                                style:
+                                    ElevatedButton.styleFrom(
+                                  elevation: 0,
+
+                                  backgroundColor:
+                                      Color(0xff1565D8),
+
+                                  shape:
+                                      RoundedRectangleBorder(
+                                    borderRadius:
+                                        BorderRadius.circular(
+                                      18,
+                                    ),
+                                  ),
+                                ),
+
+                                child: Text(
+                                  "Login",
+                                  style: TextStyle(
+                                    fontSize: 18,
+                                    fontWeight:
+                                        FontWeight.bold,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                              ),
+                            ),
+
+                      SizedBox(height: 18),
+
+                      /// REGISTER
+                      Row(
+                        mainAxisAlignment:
+                            MainAxisAlignment.center,
+                        children: [
+
+                          Text(
+                            "Don't have an account?",
+                            style: TextStyle(
+                              color: Colors.black87,
+                            ),
+                          ),
+
+                          TextButton(
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) =>
+                                      RegisterScreen(),
+                                ),
+                              );
+                            },
+
+                            child: Text(
+                              "Register",
+                              style: TextStyle(
+                                fontWeight:
+                                    FontWeight.bold,
+                                color: Color(0xff1565D8),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+
+              /// 🔥 SOCIAL LOGIN
+              Padding(
+                padding: EdgeInsets.symmetric(horizontal: 28),
+
+                child: Row(
+                  children: [
+
+                    Expanded(
+                      child: Divider(
+                        color: Colors.grey.shade300,
+                      ),
+                    ),
+
+                    Padding(
+                      padding:
+                          EdgeInsets.symmetric(horizontal: 12),
+                      child: Text(
+                        "Or continue with",
+                        style: TextStyle(
+                          color: Colors.black54,
                         ),
                       ),
                     ),
 
-              SizedBox(height: 15),
-
-              /// 🔁 REGISTER
-              Center(
-                child: TextButton(
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                          builder: (_) => RegisterScreen()),
-                    );
-                  },
-                  child: Text(
-                    "Don't have an account? Register",
-                    style: TextStyle(color: Colors.black),
-                  ),
+                    Expanded(
+                      child: Divider(
+                        color: Colors.grey.shade300,
+                      ),
+                    ),
+                  ],
                 ),
               ),
+
+              SizedBox(height: 22),
+
+              /// GOOGLE
+              Padding(
+  padding: EdgeInsets.symmetric(horizontal: 22),
+
+  child: Center(
+    child: InkWell(
+      borderRadius: BorderRadius.circular(18),
+
+      onTap:
+          isGoogleLoading ? null : signInWithGoogle,
+
+      child: Container(
+        width: 220,
+        height: 62,
+
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(18),
+
+          border: Border.all(
+            color: Colors.grey.shade200,
+          ),
+        ),
+
+        child: Center(
+          child: isGoogleLoading
+              ? SizedBox(
+                  width: 22,
+                  height: 22,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                  ),
+                )
+              : Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+
+                    Image.network(
+                      "https://cdn-icons-png.flaticon.com/512/2991/2991148.png",
+                      height: 24,
+                    ),
+
+                    SizedBox(width: 10),
+
+                    Text(
+                      "Google",
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 18,
+                        color: Color(0xff0B1F51),
+                      ),
+                    ),
+                  ],
+                ),
+        ),
+      ),
+    ),
+  ),
+),
+
+              SizedBox(height: 40),
+
+              /// 🔥 BOTTOM FEATURES
+              Padding(
+                padding: EdgeInsets.symmetric(horizontal: 20),
+
+                child: Row(
+                  mainAxisAlignment:
+                      MainAxisAlignment.spaceAround,
+
+                  children: [
+
+                    featureItem(
+                      Icons.verified_user_outlined,
+                      "Premium Quality",
+                    ),
+
+                    featureItem(
+                      Icons.local_shipping_outlined,
+                      "Fast Delivery",
+                    ),
+
+                    featureItem(
+                      Icons.support_agent,
+                      "24/7 Support",
+                    ),
+                  ],
+                ),
+              ),
+
+              SizedBox(height: 30),
             ],
           ),
         ),
       ),
+    );
+  }
+
+  Widget featureItem(IconData icon, String title) {
+    return Column(
+      children: [
+
+        Container(
+          width: 65,
+          height: 65,
+
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: Colors.white,
+
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black12,
+                blurRadius: 10,
+              ),
+            ],
+          ),
+
+          child: Icon(
+            icon,
+            color: Color(0xff0B1F51),
+            size: 32,
+          ),
+        ),
+
+        SizedBox(height: 10),
+
+        Text(
+          title,
+          textAlign: TextAlign.center,
+
+          style: TextStyle(
+            fontSize: 13,
+            color: Color(0xff0B1F51),
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+      ],
     );
   }
 
@@ -386,7 +824,7 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 }
 
-///////////////////// 🔐 REGISTER (MODERN CLEAN UI) /////////////////////
+///////////////////// 🔐 REGISTER SCREEN /////////////////////
 
 class RegisterScreen extends StatefulWidget {
   @override
@@ -402,6 +840,63 @@ class _RegisterScreenState extends State<RegisterScreen> {
   bool isLoading = false;
   bool isPasswordHidden = true;
 
+  Future<void> signInWithGoogle() async {
+  try {
+    setState(() => isLoading = true);
+
+    final GoogleSignInAccount? googleUser =
+        await GoogleSignIn().signIn();
+
+    if (googleUser == null) {
+      setState(() => isLoading = false);
+      return;
+    }
+
+    final GoogleSignInAuthentication googleAuth =
+        await googleUser.authentication;
+
+    final credential = GoogleAuthProvider.credential(
+      accessToken: googleAuth.accessToken,
+      idToken: googleAuth.idToken,
+    );
+
+    final userCredential = await FirebaseAuth.instance
+        .signInWithCredential(credential);
+
+    /// 🔥 SAVE USER DATA
+    await FirebaseFirestore.instance
+        .collection('users')
+        .doc(userCredential.user!.uid)
+        .set({
+      'name': userCredential.user!.displayName ?? '',
+      'phone': userCredential.user!.phoneNumber ?? '',
+      'email': userCredential.user!.email ?? '',
+      'role': 'user',
+    }, SetOptions(merge: true));
+
+    if (mounted) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (_) => ProductsScreen(),
+        ),
+      );
+    }
+  } catch (e) {
+    print(e);
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text("Google Sign In Failed"),
+      ),
+    );
+  }
+
+  if (mounted) {
+    setState(() => isLoading = false);
+  }
+}
+
   Future<void> register() async {
     if (name.text.trim().isEmpty ||
         phone.text.trim().isEmpty ||
@@ -413,9 +908,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
       return;
     }
 
-    if (pass.text.length < 6) {
+    if (pass.text.length < 8) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("الباسورد لازم يكون 6 حروف على الأقل")),
+        SnackBar(content: Text("الباسورد لازم يكون 8 حروف على الأقل")),
       );
       return;
     }
@@ -423,14 +918,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
     setState(() => isLoading = true);
 
     try {
-      /// 🔐 إنشاء الحساب
+      /// 🔐 CREATE ACCOUNT
       final userCred = await FirebaseAuth.instance
           .createUserWithEmailAndPassword(
         email: email.text.trim(),
         password: pass.text.trim(),
       );
 
-      /// 🔥 حفظ بيانات اليوزر
+      /// 🔥 SAVE USER DATA
       await FirebaseFirestore.instance
           .collection('users')
           .doc(userCred.user!.uid)
@@ -442,16 +937,19 @@ class _RegisterScreenState extends State<RegisterScreen> {
       });
 
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Account Created Successfully 🎉")),
+        SnackBar(
+          content: Text("Account Created Successfully 🎉"),
+        ),
       );
 
-if (mounted) {
-  Navigator.pushReplacement(
-    context,
-    MaterialPageRoute(builder: (_) => ProductsScreen()),
-  );
-}
-
+      if (mounted) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (_) => ProductsScreen(),
+          ),
+        );
+      }
     } on FirebaseAuthException catch (e) {
       String message = "حصل خطأ";
 
@@ -467,9 +965,12 @@ if (mounted) {
         SnackBar(content: Text(message)),
       );
     } catch (e) {
-      print("ERROR: $e");
+      print(e);
+
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Register Error ❌")),
+        SnackBar(
+          content: Text("Register Error ❌"),
+        ),
       );
     }
 
@@ -478,168 +979,426 @@ if (mounted) {
     }
   }
 
+  
+
+  Widget buildTextField({
+    required TextEditingController controller,
+    required String hint,
+    required IconData icon,
+    bool isPassword = false,
+    TextInputType keyboard = TextInputType.text,
+  }) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(
+          color: Colors.grey.shade200,
+        ),
+      ),
+      child: TextField(
+        controller: controller,
+        obscureText: isPassword ? isPasswordHidden : false,
+        keyboardType: keyboard,
+        decoration: InputDecoration(
+          hintText: hint,
+          hintStyle: TextStyle(
+            color: Color(0xff0B1F51),
+            fontSize: 17,
+            fontWeight: FontWeight.w500,
+          ),
+          prefixIcon: Icon(
+            icon,
+            color: Color(0xff2F80ED),
+          ),
+          suffixIcon: isPassword
+              ? IconButton(
+                  onPressed: () {
+                    setState(() {
+                      isPasswordHidden = !isPasswordHidden;
+                    });
+                  },
+                  icon: Icon(
+                    isPasswordHidden
+                        ? Icons.visibility_outlined
+                        : Icons.visibility_off_outlined,
+                    color: Colors.grey,
+                  ),
+                )
+              : null,
+          border: InputBorder.none,
+          contentPadding:
+              EdgeInsets.symmetric(horizontal: 20, vertical: 22),
+        ),
+      ),
+    );
+  }
+
+  Widget socialButton({
+  required String text,
+  required String image,
+  VoidCallback? onTap,
+}) {
+  return InkWell(
+    onTap: onTap,
+    borderRadius: BorderRadius.circular(18),
+
+    child: Container(
+      width: 220,
+      height: 62,
+
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+
+        border: Border.all(
+          color: Colors.grey.shade200,
+        ),
+      ),
+
+      child: Center(
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+
+            Image.network(
+              image,
+              height: 24,
+            ),
+
+            SizedBox(width: 10),
+
+            Text(
+              text,
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 18,
+                color: Color(0xff0B1F51),
+              ),
+            ),
+          ],
+        ),
+      ),
+    ),
+  );
+}
+
+  Widget featureItem(
+    IconData icon,
+    String title,
+    String subtitle,
+  ) {
+    return Column(
+      children: [
+        CircleAvatar(
+          radius: 28,
+          backgroundColor: Colors.white,
+          child: Icon(
+            icon,
+            color: Color(0xff0B1F51),
+            size: 28,
+          ),
+        ),
+        SizedBox(height: 10),
+        Text(
+          title,
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            color: Color(0xff0B1F51),
+          ),
+        ),
+        SizedBox(height: 4),
+        Text(
+          subtitle,
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            fontSize: 11,
+            color: Colors.grey,
+          ),
+        ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: Color(0xffF5F9FF),
 
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: EdgeInsets.symmetric(horizontal: 25),
+          child: Padding(
+            padding: EdgeInsets.symmetric(horizontal: 22),
 
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
+            child: Column(
+              children: [
 
-              SizedBox(height: 40),
+                SizedBox(height: 20),
 
-              /// 🔥 TITLE
-              Text(
-                "Create Account 🚀",
-                style: TextStyle(
-                  fontSize: 28,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-
-              SizedBox(height: 8),
-
-              Text(
-                "Sign up to get started",
-                style: TextStyle(
-                  color: Colors.grey,
-                  fontSize: 16,
-                ),
-              ),
-
-              SizedBox(height: 30),
-
-              /// 👤 NAME
-              TextField(
-                controller: name,
-                decoration: InputDecoration(
-                  hintText: "Full Name",
-                  filled: true,
-                  fillColor: Colors.grey[100],
-                  contentPadding:
-                      EdgeInsets.symmetric(horizontal: 15, vertical: 18),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(15),
-                    borderSide: BorderSide.none,
-                  ),
-                ),
-              ),
-
-              SizedBox(height: 15),
-
-              /// 📱 PHONE
-              TextField(
-                controller: phone,
-                keyboardType: TextInputType.phone,
-                decoration: InputDecoration(
-                  hintText: "Phone",
-                  filled: true,
-                  fillColor: Colors.grey[100],
-                  contentPadding:
-                      EdgeInsets.symmetric(horizontal: 15, vertical: 18),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(15),
-                    borderSide: BorderSide.none,
-                  ),
-                ),
-              ),
-
-              SizedBox(height: 15),
-
-              /// 📧 EMAIL
-              TextField(
-                controller: email,
-                keyboardType: TextInputType.emailAddress,
-                decoration: InputDecoration(
-                  hintText: "Email",
-                  filled: true,
-                  fillColor: Colors.grey[100],
-                  contentPadding:
-                      EdgeInsets.symmetric(horizontal: 15, vertical: 18),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(15),
-                    borderSide: BorderSide.none,
-                  ),
-                ),
-              ),
-
-              SizedBox(height: 15),
-
-              /// 🔑 PASSWORD
-              TextField(
-                controller: pass,
-                obscureText: isPasswordHidden,
-                decoration: InputDecoration(
-                  hintText: "Password",
-                  filled: true,
-                  fillColor: Colors.grey[100],
-                  contentPadding:
-                      EdgeInsets.symmetric(horizontal: 15, vertical: 18),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(15),
-                    borderSide: BorderSide.none,
-                  ),
-                  suffixIcon: IconButton(
-                    icon: Icon(
-                      isPasswordHidden
-                          ? Icons.visibility
-                          : Icons.visibility_off,
-                      color: Colors.grey,
+                /// 🔙 BACK
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: CircleAvatar(
+                    radius: 24,
+                    backgroundColor: Colors.white,
+                    child: IconButton(
+                      icon: Icon(Icons.arrow_back,
+                      color: Colors.black),
+                      onPressed: () {
+                        Navigator.pop(context);
+                      },
                     ),
-                    onPressed: () {
-                      setState(() {
-                        isPasswordHidden = !isPasswordHidden;
-                      });
-                    },
                   ),
                 ),
-              ),
 
-              SizedBox(height: 30),
+                SizedBox(height: 15),
 
-              /// 🔥 REGISTER BUTTON
-              isLoading
-                  ? Center(child: CircularProgressIndicator())
-                  : SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton(
-                        onPressed: register,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.black,
-                          padding: EdgeInsets.symmetric(vertical: 16),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(15),
-                          ),
+                /// 🖼️ LOGO
+                Image.asset(
+  "assets/b2.png",
+  height: 170,
+  fit: BoxFit.contain,
+),
+
+                SizedBox(height: 10),
+
+                /// 🔥 TITLE
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        "Create Account",
+                        style: TextStyle(
+                          fontSize: 34,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xff0B1F51),
                         ),
-                        child: Text(
-                          "Register",
-                          style: TextStyle(fontSize: 16),
+                      ),
+
+                      SizedBox(height: 5),
+
+                      Text(
+                        "Sign up to get started!",
+                        style: TextStyle(
+                          fontSize: 18,
+                          color: Colors.grey.shade600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                SizedBox(height: 25),
+
+                /// 📦 CARD
+                Container(
+                  padding: EdgeInsets.all(20),
+
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(35),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.05),
+                        blurRadius: 20,
+                        offset: Offset(0, 10),
+                      ),
+                    ],
+                  ),
+
+                  child: Column(
+                    children: [
+
+                      /// 👤 NAME
+                      buildTextField(
+                        controller: name,
+                        hint: "Full Name",
+                        icon: Icons.person_outline,
+                      ),
+
+                      SizedBox(height: 18),
+
+                      /// 📱 PHONE
+                      buildTextField(
+                        controller: phone,
+                        hint: "Phone Number",
+                        icon: Icons.phone_outlined,
+                        keyboard: TextInputType.phone,
+                      ),
+
+                      SizedBox(height: 18),
+
+                      /// 📧 EMAIL
+                      buildTextField(
+                        controller: email,
+                        hint: "Email Address",
+                        icon: Icons.email_outlined,
+                        keyboard: TextInputType.emailAddress,
+                      ),
+
+                      SizedBox(height: 18),
+
+                      /// 🔐 PASSWORD
+                      buildTextField(
+                        controller: pass,
+                        hint: "Password",
+                        icon: Icons.lock_outline,
+                        isPassword: true,
+                      ),
+
+                      SizedBox(height: 20),
+
+                      /// 🔥 REGISTER BUTTON
+                      isLoading
+                          ? Center(
+                              child: CircularProgressIndicator(),
+                            )
+                          : SizedBox(
+                              width: double.infinity,
+                              height: 60,
+
+                              child: ElevatedButton(
+                                onPressed: register,
+
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Color(0xff1565FF),
+
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius:
+                                        BorderRadius.circular(18),
+                                  ),
+
+                                  elevation: 8,
+                                ),
+
+                                child: Text(
+                                  "Register",
+                                  style: TextStyle(
+                                    fontSize: 22,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                              ),
+                            ),
+
+                      SizedBox(height: 20),
+
+                      /// 🔁 LOGIN
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            "Already have an account?",
+                            style: TextStyle(fontSize: 16,
+                            color: Color(0xff0B1F51),
+                            ),
+                          ),
+
+                          TextButton(
+                            onPressed: () {
+                              Navigator.pop(context);
+                            },
+                            child: Text(
+                              "Login",
+                              style: TextStyle(
+                                color: Color(0xff2F80ED),
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+
+                SizedBox(height: 30),
+
+                /// ➖ OR
+                Row(
+                  children: [
+
+                    Expanded(
+                      child: Divider(
+                        thickness: 1,
+                        color: Colors.grey.shade300,
+                      ),
+                    ),
+
+                    Padding(
+                      padding:
+                          EdgeInsets.symmetric(horizontal: 12),
+                      child: Text(
+                        "Or sign up with",
+                        style: TextStyle(
+                          fontSize: 16,
+                          color: Colors.grey.shade700,
                         ),
                       ),
                     ),
 
-              SizedBox(height: 15),
-
-              /// 🔁 LOGIN
-              Center(
-                child: TextButton(
-                  onPressed: () {
-                    Navigator.pop(context);
-                  },
-                  child: Text(
-                    "Already have an account? Login",
-                    style: TextStyle(color: Colors.black),
-                  ),
+                    Expanded(
+                      child: Divider(
+                        thickness: 1,
+                        color: Colors.grey.shade300,
+                      ),
+                    ),
+                  ],
                 ),
-              ),
 
-              SizedBox(height: 20),
-            ],
+                SizedBox(height: 25),
+
+                /// 🌍 SOCIAL
+Center(
+  child: socialButton(
+    text: "Google",
+    image:
+        "https://cdn-icons-png.flaticon.com/512/300/300221.png",
+    onTap: signInWithGoogle,
+  ),
+),
+
+                SizedBox(height: 35),
+
+                /// 🔥 FEATURES
+                Row(
+                  mainAxisAlignment:
+                      MainAxisAlignment.spaceAround,
+                  children: [
+
+                    Expanded(
+                      child: featureItem(
+                        Icons.security_outlined,
+                        "Secure Account",
+                        "Your data is safe with us",
+                      ),
+                    ),
+
+                    Expanded(
+                      child: featureItem(
+                        Icons.local_shipping_outlined,
+                        "Fast & Easy",
+                        "Quick setup in seconds",
+                      ),
+                    ),
+
+                    Expanded(
+                      child: featureItem(
+                        Icons.support_agent_outlined,
+                        "24/7 Support",
+                        "We're here to help",
+                      ),
+                    ),
+                  ],
+                ),
+
+                SizedBox(height: 40),
+              ],
+            ),
           ),
         ),
       ),
@@ -912,7 +1671,10 @@ Padding(
         padding: EdgeInsets.all(10),
         gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
           crossAxisCount: 2,
-          childAspectRatio: 0.55,
+          childAspectRatio:
+    MediaQuery.of(context).size.width < 400
+        ? 0.54
+        : 0.60,
           crossAxisSpacing: 10,
           mainAxisSpacing: 10,
         ),
@@ -975,12 +1737,12 @@ Padding(
   ),
 
   child: Column(
-    crossAxisAlignment: CrossAxisAlignment.center,
+    mainAxisAlignment: MainAxisAlignment.spaceBetween,
     children: [
 
       /// 🔥 IMAGE
-      SizedBox(
-  height: 220,
+      AspectRatio(
+  aspectRatio: 0.8,
         child: Stack(
           children: [
 
@@ -1189,7 +1951,7 @@ Padding(
       /// 🔥 NAME + PRICE
         Padding(
           padding: const EdgeInsets.only(
-            top: 5,
+            top: 18,
             left: 8,
             right: 8,
             bottom: 8,
@@ -1201,16 +1963,17 @@ Padding(
             children: [
 
               Text(
-                data['name'],
+  data['name'],
+  textAlign: TextAlign.center,
+  maxLines: 2,
+  overflow: TextOverflow.ellipsis,
 
-                textAlign: TextAlign.center,
-
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
+  style: TextStyle(
+    color: Colors.white,
+    fontSize: 16,
+    fontWeight: FontWeight.bold,
+  ),
+),
 
               SizedBox(height: 0.4),
 
@@ -1229,13 +1992,15 @@ Padding(
           ),
         ),
 
+Spacer(),
+
       /// 🔥 ADD TO CART BUTTON
       Padding(
         padding: const EdgeInsets.only(
           left: 14,
           right: 14,
-          bottom: 1,
-          top: 6,
+          bottom: 5,
+          top: 1,
         ),
 
         child: InkWell(
@@ -1465,20 +2230,70 @@ return Scaffold(
         ? Colors.white
         : Colors.black,
   ),
-  title: Text(
-  currentIndex == 0
-      ? "MedLife"
-      : currentIndex == 1
-          ? "Cart 🛒"
-          : currentIndex == 2
-              ? "Favourites ❤️"
-              : "My Orders 🛍",
-    style: GoogleFonts.poppins(
-      fontSize: 26,
-      fontWeight: FontWeight.bold,
-      letterSpacing: 1.5,
-    ),
-  ),
+  title: currentIndex == 0
+
+    /// 🔥 MEDLIFE LOGO
+    ? RichText(
+        text: TextSpan(
+          children: [
+
+            TextSpan(
+              text: "Med",
+
+              style: GoogleFonts.poppins(
+                color: Color(0xFF35C2F1),
+                fontSize: 23,
+                fontWeight: FontWeight.w900,
+
+                letterSpacing: 0.5,
+
+                shadows: [
+                  Shadow(
+                    color: Colors.black54,
+                    blurRadius: 8,
+                    offset: Offset(0, 3),
+                  ),
+                ],
+              ),
+            ),
+
+            TextSpan(
+              text: "Life",
+
+              style: GoogleFonts.poppins(
+                color: Colors.white,
+                fontSize: 23,
+                fontWeight: FontWeight.w900,
+
+                letterSpacing: 0.5,
+
+                shadows: [
+                  Shadow(
+                    color: Colors.black54,
+                    blurRadius: 8,
+                    offset: Offset(0, 3),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      )
+
+    /// 🔥 باقي الصفحات
+    : Text(
+        currentIndex == 1
+            ? "Cart"
+            : currentIndex == 2
+                ? "Favourites"
+                : "My Orders",
+
+        style: GoogleFonts.poppins(
+          fontSize: 26,
+          fontWeight: FontWeight.bold,
+          letterSpacing: 1.2,
+        ),
+      ),
   actions: [
     Padding(
   padding: const EdgeInsets.symmetric(horizontal: 6),
@@ -1488,17 +2303,17 @@ return Scaffold(
     },
     child: AnimatedContainer(
       duration: Duration(milliseconds: 250),
-      width: 58,
-      height: 32,
+      width: 50,
+      height: 25,
       padding: EdgeInsets.symmetric(horizontal: 3),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(30),
 
         // 🔥 الخلفية الرمادي الثابتة
-        color: Colors.grey.shade300,
+        color: Colors.grey.shade400,
 
         border: Border.all(
-          color: Colors.grey.shade400,
+          color: Colors.grey.shade500,
           width: 1.5,
         ),
       ),
@@ -1508,8 +2323,8 @@ return Scaffold(
             : MainAxisAlignment.start,
         children: [
           Container(
-            width: 24,
-            height: 24,
+            width: 20,
+            height: 20,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
 
@@ -1608,7 +2423,7 @@ Padding(
 
 if (isAdmin)
   IconButton(
-    icon: Icon(Icons.admin_panel_settings),
+    icon: Icon(Icons.insert_chart_outlined_rounded),
     onPressed: () {
       Navigator.push(
         context,
@@ -1669,100 +2484,327 @@ IconButton(
             : MyOrdersScreen(),
 
 floatingActionButton: isAdmin
-    ? FloatingActionButton(
-        onPressed: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (_) => AddEditProductScreen(),
-            ),
-          );
-        },
-        child: Icon(Icons.add),
+    ? Container(
+        width: 50,
+        height: 50,
+
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+
+          gradient: const LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              Color(0xFF59C7FF),
+              Color(0xFF6EA6C1),
+            ],
+          ),
+        ),
+
+        child: FloatingActionButton(
+          heroTag: "addProduct",
+
+          elevation: 0,
+
+          backgroundColor: Colors.transparent,
+
+          onPressed: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => AddEditProductScreen(),
+              ),
+            );
+          },
+
+          child: const Icon(
+            Icons.add,
+            size: 25,
+            color: Colors.white,
+          ),
+        ),
       )
     : null,
 
-bottomNavigationBar: BottomNavigationBar(
-  currentIndex: currentIndex,
+    floatingActionButtonLocation:
+    FloatingActionButtonLocation.endFloat,
 
-  backgroundColor: MyApp.of(context)!.isDark
-      ? Colors.black
-      : Colors.white,
-
-  selectedItemColor: const Color(0xFF6EA6C1),
-
-  unselectedItemColor: Colors.grey,
-
-  type: BottomNavigationBarType.fixed,
-  selectedLabelStyle: const TextStyle(
-  fontWeight: FontWeight.bold,
-),
-
-showUnselectedLabels: true,
-  elevation: 10,
-
-  onTap: (i) {
-    setState(() {
-      currentIndex = i;
-    });
-  },
-
- items: [
-  const BottomNavigationBarItem(
-    icon: Icon(Icons.store),
-    label: "Products",
+bottomNavigationBar: Container(
+  margin: const EdgeInsets.only(
+    left: 4,
+    right: 4,
   ),
 
-  /// 🛒 CART
- BottomNavigationBarItem(
-  icon: StreamBuilder(
-    stream: FirebaseFirestore.instance
-        .collection('users')
-        .doc(FirebaseAuth.instance.currentUser?.uid)
-        .collection('cart')
-        .snapshots(),
-    builder: (context, snapshot) {
+  decoration: BoxDecoration(
+    borderRadius: BorderRadius.circular(20),
 
-      int count = snapshot.data?.docs.length ?? 0;
-
-      return buildBadge(
-        icon: Icons.shopping_cart,
-        count: count,
-      );
-    },
-  ),
-  label: "Cart",
-),
-
-  /// ❤️ FAVOURITES
-  BottomNavigationBarItem(
-    icon: buildBadge(
-      icon: Icons.favorite,
-      count: favCount,
+    gradient: const LinearGradient(
+      begin: Alignment.topLeft,
+      end: Alignment.bottomRight,
+      colors: [
+        Color(0xFF111827),
+        Color(0xFF0B1220),
+        Color(0xFF091428),
+      ],
     ),
-    label: "Favourites",
+
+    border: Border.all(
+      color: Colors.white10,
+      width: 1,
+    ),
+
+    boxShadow: [
+      BoxShadow(
+        color: Colors.black.withOpacity(.35),
+        blurRadius: 25,
+        spreadRadius: 2,
+        offset: const Offset(0, 10),
+      ),
+    ],
   ),
 
-  /// 📦 ORDERS (🔥 من Firebase)
-  BottomNavigationBarItem(
-    icon: StreamBuilder(
-      stream: FirebaseFirestore.instance
-          .collection('orders')
-          .where('userId',
-              isEqualTo: FirebaseAuth.instance.currentUser?.uid)
-          .snapshots(),
-      builder: (context, snapshot) {
-        int count = snapshot.data?.docs.length ?? 0;
+  child: ClipRRect(
+    borderRadius: BorderRadius.circular(30),
 
-        return buildBadge(
-          icon: Icons.shopping_bag,
-          count: count,
-        );
+    child: BottomNavigationBar(
+      currentIndex: currentIndex,
+
+      backgroundColor: Colors.transparent,
+
+      elevation: 0,
+
+      type: BottomNavigationBarType.fixed,
+
+      selectedItemColor: Colors.white,
+
+      unselectedItemColor: Colors.white70,
+
+      showUnselectedLabels: true,
+
+      selectedLabelStyle: const TextStyle(
+        fontWeight: FontWeight.bold,
+        fontSize: 14,
+      ),
+
+      unselectedLabelStyle: const TextStyle(
+        fontSize: 12,
+      ),
+
+      onTap: (i) {
+        setState(() {
+          currentIndex = i;
+        });
       },
+
+      items: [
+
+        /// 🏬 PRODUCTS
+        BottomNavigationBarItem(
+          label: "Products",
+
+          icon: AnimatedContainer(
+            duration: const Duration(milliseconds: 300),
+
+            padding: EdgeInsets.symmetric(
+              horizontal: currentIndex == 0 ? 14 : 0,
+              vertical: 6,
+            ),
+
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(20),
+
+              gradient: currentIndex == 0
+                  ? const LinearGradient(
+                      colors: [
+                        Color(0xFF59C7FF),
+                        Color(0xFF6EA6C1),
+                      ],
+                    )
+                  : null,
+
+              boxShadow: currentIndex == 0
+                  ? [
+                      BoxShadow(
+                        color: const Color(0xFF59C7FF)
+                            .withOpacity(.35),
+                        blurRadius: 15,
+                        offset: const Offset(0, 5),
+                      ),
+                    ]
+                  : [],
+            ),
+
+            child: Icon(
+              Icons.store,
+              color: currentIndex == 0
+                  ? Colors.white
+                  : Colors.white70,
+            ),
+          ),
+        ),
+
+        /// 🛒 CART
+        BottomNavigationBarItem(
+          label: "Cart",
+
+          icon: AnimatedContainer(
+            duration: const Duration(milliseconds: 300),
+
+            padding: EdgeInsets.symmetric(
+              horizontal: currentIndex == 1 ? 14 : 0,
+              vertical: 6,
+            ),
+
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(20),
+
+              gradient: currentIndex == 1
+                  ? const LinearGradient(
+                      colors: [
+                        Color(0xFF59C7FF),
+                        Color(0xFF6EA6C1),
+                      ],
+                    )
+                  : null,
+
+              boxShadow: currentIndex == 1
+                  ? [
+                      BoxShadow(
+                        color: const Color(0xFF59C7FF)
+                            .withOpacity(.35),
+                        blurRadius: 15,
+                        offset: const Offset(0, 5),
+                      ),
+                    ]
+                  : [],
+            ),
+
+            child: StreamBuilder(
+              stream: FirebaseFirestore.instance
+                  .collection('users')
+                  .doc(FirebaseAuth.instance.currentUser?.uid)
+                  .collection('cart')
+                  .snapshots(),
+
+              builder: (context, snapshot) {
+
+                int count =
+                    snapshot.data?.docs.length ?? 0;
+
+                return buildBadge(
+                  icon: Icons.shopping_cart,
+                  count: count,
+                );
+              },
+            ),
+          ),
+        ),
+
+        /// ❤️ FAVOURITES
+        BottomNavigationBarItem(
+          label: "Favourites",
+
+          icon: AnimatedContainer(
+            duration: const Duration(milliseconds: 300),
+
+            padding: EdgeInsets.symmetric(
+              horizontal: currentIndex == 2 ? 14 : 0,
+              vertical: 6,
+            ),
+
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(20),
+
+              gradient: currentIndex == 2
+                  ? const LinearGradient(
+                      colors: [
+                        Color(0xFF59C7FF),
+                        Color(0xFF6EA6C1),
+                      ],
+                    )
+                  : null,
+
+              boxShadow: currentIndex == 2
+                  ? [
+                      BoxShadow(
+                        color: const Color(0xFF59C7FF)
+                            .withOpacity(.35),
+                        blurRadius: 15,
+                        offset: const Offset(0, 5),
+                      ),
+                    ]
+                  : [],
+            ),
+
+            child: buildBadge(
+              icon: Icons.favorite,
+              count: favCount,
+            ),
+          ),
+        ),
+
+        /// 📦 ORDERS
+        BottomNavigationBarItem(
+          label: "My Orders",
+
+          icon: AnimatedContainer(
+            duration: const Duration(milliseconds: 300),
+
+            padding: EdgeInsets.symmetric(
+              horizontal: currentIndex == 3 ? 14 : 0,
+              vertical: 6,
+            ),
+
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(20),
+
+              gradient: currentIndex == 3
+                  ? const LinearGradient(
+                      colors: [
+                        Color(0xFF59C7FF),
+                        Color(0xFF6EA6C1),
+                      ],
+                    )
+                  : null,
+
+              boxShadow: currentIndex == 3
+                  ? [
+                      BoxShadow(
+                        color: const Color(0xFF59C7FF)
+                            .withOpacity(.35),
+                        blurRadius: 15,
+                        offset: const Offset(0, 5),
+                      ),
+                    ]
+                  : [],
+            ),
+
+            child: StreamBuilder(
+              stream: FirebaseFirestore.instance
+                  .collection('orders')
+                  .where(
+                    'userId',
+                    isEqualTo:
+                        FirebaseAuth.instance.currentUser?.uid,
+                  )
+                  .snapshots(),
+
+              builder: (context, snapshot) {
+
+                int count =
+                    snapshot.data?.docs.length ?? 0;
+
+                return buildBadge(
+                  icon: Icons.shopping_bag,
+                  count: count,
+                );
+              },
+            ),
+          ),
+        ),
+      ],
     ),
-    label: "My Orders",
   ),
-],
 ),
 );
   }
@@ -14778,237 +15820,452 @@ class _BannerSliderState extends State<BannerSlider> {
         bannersLength = banners.length;
 
         return Column(
-          children: [
-            SizedBox(
-              height: 190,
-              child: Stack(
-                children: [
-                  if (!snapshot.hasData)
-                    Center(
-                      child: CircularProgressIndicator(),
-                    )
-                  else if (banners.isEmpty)
-                    Center(
-                      child: Text("No Banners"),
-                    )
-                  else
-                    PageView.builder(
-                      controller: _controller,
-                      itemCount: null,
-                      onPageChanged: (index) {
-                        setState(() {
-                          currentPage = index;
-                        });
-                      },
-                      itemBuilder: (context, index) {
-                        var data =
-                            banners[index % banners.length];
+  children: [
+    SizedBox(
+      height: 190,
 
-                        return AnimatedBuilder(
-                          animation: _controller,
-                          builder: (context, child) {
-                            double value = 1;
-                            double parallax = 0;
+      child: Stack(
+        children: [
 
-                            if (_controller
-                                .position.haveDimensions) {
-                              double page =
-                                  _controller.page ?? 0;
+          /// 🔥 LOADING
+          if (!snapshot.hasData)
+            Center(
+              child: CircularProgressIndicator(),
+            )
 
-                              value = (1 -
-                                      ((page - index)
-                                              .abs() *
-                                          0.2))
-                                  .clamp(0.85, 1.0);
-
-                              parallax =
-                                  (page - index) * 40;
-                            }
-
-                            return Transform.scale(
-                              scale: value,
-                              child: Transform.translate(
-                                offset:
-                                    Offset(parallax, 0),
-                                child: child,
-                              ),
-                            );
-                          },
-                          child: Stack(
-                            children: [
-                              Container(
-                                margin:
-                                    EdgeInsets.symmetric(
-                                        horizontal: 6),
-                                child: ClipRRect(
-                                  borderRadius:
-                                      BorderRadius
-                                          .circular(15),
-                                  child: Image.network(
-                                    data['image'],
-                                    fit: BoxFit.cover,
-                                    width:
-                                        double.infinity,
-                                  ),
-                                ),
-                              ),
-
-                              if (widget.isAdmin)
-                                Positioned(
-                                  top: 10,
-                                  right: 20,
-                                  child: Row(
-                                    children: [
-                                      /// ✏️ Edit
-                                      IconButton(
-                                        icon: Icon(
-                                          Icons.edit,
-                                          color:
-                                              Colors.blue,
-                                        ),
-                                        onPressed:
-                                            () async {
-                                          String?
-                                              newImage =
-                                              await uploadBannerToCloudinary();
-
-                                          if (newImage !=
-                                              null) {
-                                            await FirebaseFirestore
-                                                .instance
-                                                .collection(
-                                                    'banners')
-                                                .doc(data.id)
-                                                .update({
-                                              "image":
-                                                  newImage,
-                                            });
-
-                                            ScaffoldMessenger.of(
-                                                    context)
-                                                .showSnackBar(
-                                              SnackBar(
-                                                content:
-                                                    Text(
-                                                  "Banner Updated ✅",
-                                                ),
-                                              ),
-                                            );
-                                          }
-                                        },
-                                      ),
-
-                                      /// 🗑 Delete
-                                      IconButton(
-                                        icon: Icon(
-                                          Icons.delete,
-                                          color:
-                                              Colors.red,
-                                        ),
-                                        onPressed:
-                                            () async {
-                                          await FirebaseFirestore
-                                              .instance
-                                              .collection(
-                                                  'banners')
-                                              .doc(data.id)
-                                              .delete();
-                                        },
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                            ],
-                          ),
-                        );
-                      },
-                    ),
-
-                  /// ➕ Add Banner
-                  if (widget.isAdmin)
-                    Positioned(
-                      bottom: 10,
-                      right: 20,
-                      child: FloatingActionButton(
-                        mini: true,
-                        child: isUploading
-                            ? SizedBox(
-                                width: 20,
-                                height: 20,
-                                child:
-                                    CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  color: Colors.white,
-                                ),
-                              )
-                            : Icon(Icons.add),
-                        onPressed: () async {
-                          String? imageUrl =
-                              await uploadBannerToCloudinary();
-
-                          if (imageUrl != null) {
-                            await FirebaseFirestore
-                                .instance
-                                .collection('banners')
-                                .add({
-                              "image": imageUrl,
-                            });
-
-                            ScaffoldMessenger.of(
-                                    context)
-                                .showSnackBar(
-                              SnackBar(
-                                content: Text(
-                                  "Banner Added ✅",
-                                ),
-                              ),
-                            );
-                          }
-                        },
-                      ),
-                    ),
-                ],
-              ),
-            ),
-
-            if (banners.isNotEmpty)
-              Padding(
-                padding: EdgeInsets.only(top: 8),
-                child: Row(
-                  mainAxisAlignment:
-                      MainAxisAlignment.center,
-                  children: List.generate(
-                    banners.length,
-                    (index) {
-                      return AnimatedContainer(
-                        duration: Duration(
-                            milliseconds: 300),
-                        margin:
-                            EdgeInsets.symmetric(
-                                horizontal: 3),
-                        width: currentPage %
-                                    banners.length ==
-                                index
-                            ? 12
-                            : 6,
-                        height: 6,
-                        decoration: BoxDecoration(
-                          color: currentPage %
-                                      banners.length ==
-                                  index
-                              ? Colors.black
-                              : Colors.grey,
-                          borderRadius:
-                              BorderRadius.circular(
-                                  10),
-                        ),
-                      );
-                    },
-                  ),
+          /// 🔥 EMPTY
+          else if (banners.isEmpty)
+            Center(
+              child: Text(
+                "No Banners",
+                style: TextStyle(
+                  color: Colors.white,
                 ),
               ),
-          ],
-        );
+            )
+
+          /// 🔥 BANNERS
+          else
+            PageView.builder(
+              controller: _controller,
+              itemCount: null,
+
+              onPageChanged: (index) {
+                setState(() {
+                  currentPage = index;
+                });
+              },
+
+              itemBuilder: (context, index) {
+
+                var data =
+                    banners[index % banners.length];
+
+                return AnimatedBuilder(
+                  animation: _controller,
+
+                  builder: (context, child) {
+
+                    double value = 1;
+                    double parallax = 0;
+
+                    if (_controller
+                        .position
+                        .haveDimensions) {
+
+                      double page =
+                          _controller.page ?? 0;
+
+                      value = (1 -
+                              ((page - index)
+                                      .abs() *
+                                  0.2))
+                          .clamp(0.85, 1.0);
+
+                      parallax =
+                          (page - index) * 40;
+                    }
+
+                    return Transform.scale(
+                      scale: value,
+
+                      child: Transform.translate(
+                        offset: Offset(
+                          parallax,
+                          0,
+                        ),
+
+                        child: child,
+                      ),
+                    );
+                  },
+
+                  child: Stack(
+                    children: [
+
+                      /// 🔥 BANNER IMAGE
+                      Container(
+                        margin: EdgeInsets.symmetric(
+                          horizontal: 6,
+                        ),
+
+                        decoration: BoxDecoration(
+                          borderRadius:
+                              BorderRadius.circular(24),
+
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black
+                                  .withOpacity(.35),
+
+                              blurRadius: 20,
+                              offset: Offset(0, 10),
+                            ),
+                          ],
+                        ),
+
+                        child: ClipRRect(
+                          borderRadius:
+                              BorderRadius.circular(24),
+
+                          child: Image.network(
+                            data['image'],
+
+                            fit: BoxFit.cover,
+                            width: double.infinity,
+                          ),
+                        ),
+                      ),
+
+                      /// 🔥 DARK OVERLAY
+                      Container(
+                        margin: EdgeInsets.symmetric(
+                          horizontal: 6,
+                        ),
+
+                        decoration: BoxDecoration(
+                          borderRadius:
+                              BorderRadius.circular(24),
+
+                          gradient: LinearGradient(
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+
+                            colors: [
+                              Colors.black.withOpacity(.15),
+                              Colors.black.withOpacity(.05),
+                            ],
+                          ),
+                        ),
+                      ),
+
+                      /// 🔥 MORE BUTTON
+                      if (widget.isAdmin)
+                        Positioned(
+                          top: 12,
+                          right: 18,
+
+                          child: PopupMenuButton<String>(
+                            color: Color(0xFF111827),
+
+                            shape:
+                                RoundedRectangleBorder(
+                              borderRadius:
+                                  BorderRadius.circular(
+                                      18),
+                            ),
+
+                            onSelected:
+                                (value) async {
+
+                              /// ➕ ADD
+                              if (value == "add") {
+
+                                String? imageUrl =
+                                    await uploadBannerToCloudinary();
+
+                                if (imageUrl != null) {
+
+                                  await FirebaseFirestore
+                                      .instance
+                                      .collection(
+                                          'banners')
+                                      .add({
+                                    "image":
+                                        imageUrl,
+                                  });
+
+                                  ScaffoldMessenger.of(
+                                          context)
+                                      .showSnackBar(
+                                    SnackBar(
+                                      content: Text(
+                                        "Banner Added ✅",
+                                      ),
+                                    ),
+                                  );
+                                }
+                              }
+
+                              /// ✏️ EDIT
+                              if (value == "edit") {
+
+                                String? newImage =
+                                    await uploadBannerToCloudinary();
+
+                                if (newImage != null) {
+
+                                  await FirebaseFirestore
+                                      .instance
+                                      .collection(
+                                          'banners')
+                                      .doc(data.id)
+                                      .update({
+                                    "image":
+                                        newImage,
+                                  });
+
+                                  ScaffoldMessenger.of(
+                                          context)
+                                      .showSnackBar(
+                                    SnackBar(
+                                      content: Text(
+                                        "Banner Updated ✅",
+                                      ),
+                                    ),
+                                  );
+                                }
+                              }
+
+                              /// 🗑 DELETE
+                              if (value == "delete") {
+
+                                await FirebaseFirestore
+                                    .instance
+                                    .collection(
+                                        'banners')
+                                    .doc(data.id)
+                                    .delete();
+
+                                ScaffoldMessenger.of(
+                                        context)
+                                    .showSnackBar(
+                                  SnackBar(
+                                    content: Text(
+                                      "Banner Deleted 🗑",
+                                    ),
+                                  ),
+                                );
+                              }
+                            },
+
+                            itemBuilder: (context) => [
+
+                              /// ➕ ADD
+                              PopupMenuItem(
+                                value: "add",
+
+                                child: Row(
+                                  children: [
+
+                                    Icon(
+                                      Icons.add,
+                                      color: Color(
+                                          0xFF6EA6C1),
+                                    ),
+
+                                    SizedBox(width: 10),
+
+                                    Text(
+                                      "Add Banner",
+
+                                      style: TextStyle(
+                                        color:
+                                            Colors.white,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+
+                              /// ✏️ EDIT
+                              PopupMenuItem(
+                                value: "edit",
+
+                                child: Row(
+                                  children: [
+
+                                    Icon(
+                                      Icons.edit,
+                                      color: Color(
+                                          0xFF6EA6C1),
+                                    ),
+
+                                    SizedBox(width: 10),
+
+                                    Text(
+                                      "Edit Banner",
+
+                                      style: TextStyle(
+                                        color:
+                                            Colors.white,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+
+                              /// 🗑 DELETE
+                              PopupMenuItem(
+                                value: "delete",
+
+                                child: Row(
+                                  children: [
+
+                                    Icon(
+                                      Icons.delete,
+                                      color: Colors.red,
+                                    ),
+
+                                    SizedBox(width: 10),
+
+                                    Text(
+                                      "Delete Banner",
+
+                                      style: TextStyle(
+                                        color:
+                                            Colors.white,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+
+                            child: Container(
+                              width: 48,
+                              height: 48,
+
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+
+                                color: Colors.black
+                                    .withOpacity(.45),
+
+                                border: Border.all(
+                                  color: Colors.white10,
+                                ),
+
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black
+                                        .withOpacity(.3),
+
+                                    blurRadius: 10,
+                                    offset: Offset(
+                                      0,
+                                      4,
+                                    ),
+                                  ),
+                                ],
+                              ),
+
+                              child: isUploading
+                                  ? Padding(
+                                      padding:
+                                          EdgeInsets.all(
+                                              12),
+
+                                      child:
+                                          CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        color:
+                                            Colors.white,
+                                      ),
+                                    )
+                                  : Icon(
+                                      Icons.more_vert,
+                                      color:
+                                          Colors.white,
+                                    ),
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                );
+              },
+            ),
+        ],
+      ),
+    ),
+
+    /// 🔥 INDICATOR
+    if (banners.isNotEmpty)
+      Padding(
+        padding: EdgeInsets.only(top: 10),
+
+        child: Row(
+          mainAxisAlignment:
+              MainAxisAlignment.center,
+
+          children: List.generate(
+            banners.length,
+
+            (index) {
+
+              bool active =
+                  currentPage % banners.length ==
+                      index;
+
+              return AnimatedContainer(
+                duration: Duration(
+                  milliseconds: 300,
+                ),
+
+                margin: EdgeInsets.symmetric(
+                  horizontal: 4,
+                ),
+
+                width: active ? 18 : 7,
+                height: 7,
+
+                decoration: BoxDecoration(
+
+                  borderRadius:
+                      BorderRadius.circular(20),
+
+                  gradient: active
+                      ? LinearGradient(
+                          colors: [
+                            Color(0xFF6EA6C1),
+                            Color(0xFF3B82F6),
+                          ],
+                        )
+                      : null,
+
+                  color: active
+                      ? null
+                      : Colors.grey.shade700,
+
+                  boxShadow: active
+                      ? [
+                          BoxShadow(
+                            color: Color(0xFF6EA6C1)
+                                .withOpacity(.5),
+
+                            blurRadius: 8,
+                          ),
+                        ]
+                      : [],
+                ),
+              );
+            },
+          ),
+        ),
+      ),
+  ],
+);
       },
     );
   }
