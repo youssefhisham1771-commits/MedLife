@@ -530,30 +530,51 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
 
                         child: TextField(
-                          controller: emailController,
-                          keyboardType: TextInputType.emailAddress,
+  controller: emailController,
+  keyboardType: TextInputType.emailAddress,
 
-                          decoration: InputDecoration(
-                            border: InputBorder.none,
+  style: TextStyle(
+    color: Color(0xff16355C), // 👈 نفس لون Welcome Back
+    fontSize: 17,
+    fontWeight: FontWeight.w600,
+    height: 1.2,
+  ),
 
-                            hintText: "Email",
+  textAlignVertical: TextAlignVertical.center,
 
-                            prefixIcon: Padding(
-                              padding: EdgeInsets.all(12),
-                              child: Container(
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  color: Color(0xffEAF3FF),
-                                ),
+  decoration: InputDecoration(
+    border: InputBorder.none,
 
-                                child: Icon(
-                                  Icons.email,
-                                  color: Color(0xff2D7DFF),
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
+    hintText: "Email",
+
+    hintStyle: TextStyle(
+      color: Color(0xff16355C),
+      fontSize: 17,
+    ),
+
+    isCollapsed: true,
+
+    contentPadding: EdgeInsets.symmetric(
+      vertical: 22,
+      horizontal: 0,
+    ),
+
+    prefixIcon: Padding(
+      padding: EdgeInsets.all(12),
+      child: Container(
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: Color(0xffEAF3FF),
+        ),
+
+        child: Icon(
+          Icons.email,
+          color: Color(0xff2D7DFF),
+        ),
+      ),
+    ),
+  ),
+),
                       ),
 
                       SizedBox(height: 18),
@@ -569,44 +590,65 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
 
                         child: TextField(
-                          controller: passController,
-                          obscureText: isPasswordHidden,
+  controller: passController,
+  obscureText: isPasswordHidden,
 
-                          decoration: InputDecoration(
-                            border: InputBorder.none,
-                            hintText: "Password",
+  style: TextStyle(
+    color: Color(0xff16355C),
+    fontSize: 17,
+    fontWeight: FontWeight.w600,
+    height: 1.2,
+  ),
 
-                            prefixIcon: Padding(
-                              padding: EdgeInsets.all(12),
-                              child: Container(
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  color: Color(0xffEAF3FF),
-                                ),
+  textAlignVertical: TextAlignVertical.center,
 
-                                child: Icon(
-                                  Icons.lock,
-                                  color: Color(0xff2D7DFF),
-                                ),
-                              ),
-                            ),
+  decoration: InputDecoration(
+    border: InputBorder.none,
 
-                            suffixIcon: IconButton(
-                              icon: Icon(
-                                isPasswordHidden
-                                    ? Icons.visibility
-                                    : Icons.visibility_off,
-                                color: Colors.grey,
-                              ),
-                              onPressed: () {
-                                setState(() {
-                                  isPasswordHidden =
-                                      !isPasswordHidden;
-                                });
-                              },
-                            ),
-                          ),
-                        ),
+    hintText: "Password",
+
+    hintStyle: TextStyle(
+      color: Color(0xff16355C),
+      fontSize: 17,
+    ),
+
+    isCollapsed: true,
+
+    contentPadding: EdgeInsets.symmetric(
+      vertical: 22,
+      horizontal: 0,
+    ),
+
+    prefixIcon: Padding(
+      padding: EdgeInsets.all(12),
+      child: Container(
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: Color(0xffEAF3FF),
+        ),
+
+        child: Icon(
+          Icons.lock,
+          color: Color(0xff2D7DFF),
+        ),
+      ),
+    ),
+
+    suffixIcon: IconButton(
+      icon: Icon(
+        isPasswordHidden
+            ? Icons.visibility
+            : Icons.visibility_off,
+        color: Colors.grey,
+      ),
+      onPressed: () {
+        setState(() {
+          isPasswordHidden = !isPasswordHidden;
+        });
+      },
+    ),
+  ),
+),
                       ),
 
                       SizedBox(height: 12),
@@ -2340,7 +2382,7 @@ return Scaffold(
 
               style: GoogleFonts.poppins(
                 color: Color(0xFF35C2F1),
-                fontSize: 23,
+                fontSize: 21,
                 fontWeight: FontWeight.w900,
 
                 letterSpacing: 0.5,
@@ -2360,7 +2402,7 @@ return Scaffold(
 
               style: GoogleFonts.poppins(
                 color: Colors.white,
-                fontSize: 23,
+                fontSize: 21,
                 fontWeight: FontWeight.w900,
 
                 letterSpacing: 0.5,
@@ -4389,199 +4431,858 @@ class CustomDrawer extends StatelessWidget {
       color: Colors.transparent,
       child: Container(
         width: 260,
-        margin: EdgeInsets.only(top: 60, right: 10, bottom: 60),
+        margin: EdgeInsets.only(
+          top: 60,
+          right: 10,
+          bottom: 60,
+        ),
         padding: EdgeInsets.all(15),
+
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(25),
 
-          /// 🎨 Gradient
           gradient: LinearGradient(
-  colors: [
-    Color(0xFF2D5A74),
-    Color(0xFF123249),
-  ],
-  begin: Alignment.topLeft,
-  end: Alignment.bottomRight,
-),
+            colors: [
+              Color(0xFF2D5A74),
+              Color(0xFF123249),
+            ],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+
           boxShadow: [
             BoxShadow(
               blurRadius: 20,
               color: Colors.black26,
-            )
+            ),
           ],
         ),
 
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
+        child: StreamBuilder<DocumentSnapshot>(
+          stream: FirebaseFirestore.instance
+              .collection('users')
+              .doc(user?.uid)
+              .snapshots(),
 
-            /// 👤 USER
-            Row(
-              children: [
-                Container(
-  width: 50,
-  height: 50,
-  decoration: BoxDecoration(
-    shape: BoxShape.circle,
-    color: Colors.white.withOpacity(0.2),
+          builder: (context, snapshot) {
 
-    border: Border.all(
+            Map<String, dynamic> data = {};
+
+            if (snapshot.hasData &&
+                snapshot.data!.exists) {
+              data =
+                  snapshot.data!.data()
+                      as Map<String, dynamic>;
+            }
+
+            String userName =
+                data['name'] ?? "User";
+
+            String email =
+                data['email'] ?? "";
+
+            String memberSince = "Unknown";
+
+if (user?.metadata.creationTime != null) {
+
+  DateTime createdAt =
+      user!.metadata.creationTime!;
+
+  List months = [
+    "Jan",
+    "Feb",
+    "Mar",
+    "Apr",
+    "May",
+    "Jun",
+    "Jul",
+    "Aug",
+    "Sep",
+    "Oct",
+    "Nov",
+    "Dec",
+  ];
+
+  memberSince =
+      "${months[createdAt.month - 1]} ${createdAt.year}";
+}
+
+            return SingleChildScrollView(
+              physics: BouncingScrollPhysics(),
+
+              child: Column(
+                crossAxisAlignment:
+                    CrossAxisAlignment.start,
+
+                children: [
+
+                  /// 🔥 HEADER
+                  Container(
+                    padding: EdgeInsets.all(14),
+
+                    decoration: BoxDecoration(
+                      borderRadius:
+                          BorderRadius.circular(24),
+
+                      gradient: LinearGradient(
+                        colors: [
+                          Color(0xff133B63),
+                          Color(0xff0B2340),
+                        ],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                    ),
+
+                    child: Column(
+                      children: [
+
+                        /// USER INFO
+                        Row(
+                          children: [
+
+                            Container(
+                              width: 58,
+                              height: 58,
+
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+
+                                border: Border.all(
+                                  color:
+                                      Color(0xff58D0FF),
+                                  width: 2,
+                                ),
+
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Color(
+                                      0xff58D0FF,
+                                    ).withOpacity(.4),
+
+                                    blurRadius: 15,
+                                  ),
+                                ],
+                              ),
+
+                              child: Icon(
+                                Icons.person,
+                                color: Colors.white,
+                                size: 30,
+                              ),
+                            ),
+
+                            SizedBox(width: 10),
+
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment:
+                                    CrossAxisAlignment
+                                        .start,
+
+                                children: [
+
+                                  Text(
+                                    userName,
+
+                                    maxLines: 1,
+
+                                    overflow:
+                                        TextOverflow
+                                            .ellipsis,
+
+                                    style: TextStyle(
+                                      color:
+                                          Colors.white,
+
+                                      fontWeight:
+                                          FontWeight
+                                              .bold,
+
+                                      fontSize: 16,
+                                    ),
+                                  ),
+
+                                  SizedBox(height: 3),
+
+                                  Text(
+                                    "Valued Customer",
+
+                                    style: TextStyle(
+                                      color: Color(
+                                        0xff6DD5FF,
+                                      ),
+
+                                      fontSize: 13,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+
+                        SizedBox(height: 16),
+
+                        /// 🔥 STATS
+                        Container(
+                          padding:
+                              EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 12,
+                          ),
+
+                          decoration: BoxDecoration(
+                            borderRadius:
+                                BorderRadius.circular(
+                              20,
+                            ),
+
+                            color: Colors.white
+                                .withOpacity(.05),
+
+                            border: Border.all(
+                              color: Colors.white10,
+                            ),
+                          ),
+
+                          child: Row(
+                            children: [
+
+                              Expanded(
+                                child: Row(
+                                  children: [
+
+                                    Icon(
+                                      Icons
+                                          .verified_user,
+
+                                      color: Color(
+                                        0xff58D0FF,
+                                      ),
+
+                                      size: 22,
+                                    ),
+
+                                    SizedBox(width: 6),
+
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment
+                                                .start,
+
+                                        children: [
+
+                                          Text(
+                                            "Member since",
+
+                                            overflow:
+                                                TextOverflow
+                                                    .ellipsis,
+
+                                            style:
+                                                TextStyle(
+                                              color:
+                                                  Colors
+                                                      .white70,
+
+                                              fontSize:
+                                                  10,
+                                            ),
+                                          ),
+
+                                          SizedBox(
+                                            height: 2,
+                                          ),
+
+                                          Text(
+                                            memberSince,
+
+                                            overflow:
+                                                TextOverflow
+                                                    .ellipsis,
+
+                                            style:
+                                                TextStyle(
+                                              color:
+                                                  Colors
+                                                      .white,
+
+                                              fontWeight:
+                                                  FontWeight
+                                                      .bold,
+
+                                              fontSize:
+                                                  13,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+
+                              Container(
+                                width: 1,
+                                height: 35,
+                                color: Colors.white12,
+                              ),
+
+                              SizedBox(width: 8),
+
+                              Expanded(
+                                child:
+                                    FutureBuilder<
+                                        QuerySnapshot>(
+                                  future:
+                                      FirebaseFirestore
+                                          .instance
+                                          .collection(
+                                            'orders',
+                                          )
+                                          .where(
+                                            'userId',
+                                            isEqualTo:
+                                                user
+                                                    ?.uid,
+                                          )
+                                          .get(),
+
+                                  builder:
+                                      (context,
+                                          orderSnap) {
+
+                                    int totalOrders =
+                                        orderSnap
+                                            .data
+                                            ?.docs
+                                            .length ??
+                                        0;
+
+                                    return Row(
+                                      children: [
+
+                                        Icon(
+                                          Icons
+                                              .shopping_bag,
+
+                                          color: Color(
+                                            0xff58D0FF,
+                                          ),
+
+                                          size: 22,
+                                        ),
+
+                                        SizedBox(
+                                          width: 6,
+                                        ),
+
+                                        Expanded(
+                                          child:
+                                              Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment
+                                                    .start,
+
+                                            children: [
+
+                                              Text(
+                                                "Total Orders",
+
+                                                overflow:
+                                                    TextOverflow
+                                                        .ellipsis,
+
+                                                style:
+                                                    TextStyle(
+                                                  color:
+                                                      Colors
+                                                          .white70,
+
+                                                  fontSize:
+                                                      10,
+                                                ),
+                                              ),
+
+                                              SizedBox(
+                                                height:
+                                                    2,
+                                              ),
+
+                                              Text(
+                                                "$totalOrders Orders",
+
+                                                overflow:
+                                                    TextOverflow
+                                                        .ellipsis,
+
+                                                style:
+                                                    TextStyle(
+                                                  color:
+                                                      Colors
+                                                          .white,
+
+                                                  fontWeight:
+                                                      FontWeight
+                                                          .bold,
+
+                                                  fontSize:
+                                                      13,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ],
+                                    );
+                                  },
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  SizedBox(height: 16),
+
+                  /// 🔥 ITEMS
+                  drawerItem(
+                    context,
+
+                    icon: Icons.person,
+
+                    title: "My Profile",
+
+                    subtitle:
+                        "View and edit your information",
+
+                    iconColor: Color(0xff4C7DFF),
+
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder:
+                              (_) => ProfileScreen(),
+                        ),
+                      );
+                    },
+                  ),
+
+                  drawerItem(
+                    context,
+
+                    icon: Icons.star,
+
+                    title:
+                        "Our Customers Reviews",
+
+                    subtitle:
+                        "See what our customers say",
+
+                    iconColor: Colors.amber,
+
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder:
+                              (_) => ReviewsScreen(),
+                        ),
+                      );
+                    },
+                  ),
+
+                  drawerItem(
+                    context,
+
+                    icon: Icons.support_agent,
+
+                    title: "Contact Us",
+
+                    subtitle:
+                        "We're here to help you",
+
+                    iconColor: Colors.white,
+
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder:
+                              (_) =>
+                                  ContactUsScreen(),
+                        ),
+                      );
+                    },
+                  ),
+
+                  Divider(
+                    color: Colors.white10,
+                    height: 24,
+                  ),
+
+                  drawerItem(
+                    context,
+
+                    icon: Icons.settings,
+
+                    title: "Settings",
+
+                    subtitle: "App preferences",
+
+                    iconColor: Colors.white,
+
+                    onTap: () {},
+                  ),
+
+                  drawerItem(
+                    context,
+
+                    icon: Icons.privacy_tip,
+
+                    title: "Privacy Policy",
+
+                    subtitle:
+                        "Your data is safe with us",
+
+                    iconColor: Colors.white,
+
+                    onTap: () {},
+                  ),
+
+                  drawerItem(
+                    context,
+
+                    icon: Icons.description,
+
+                    title:
+                        "Terms & Conditions",
+
+                    subtitle:
+                        "Read our terms of service",
+
+                    iconColor: Colors.white,
+
+                    onTap: () {},
+                  ),
+
+                  SizedBox(height: 12),
+
+                  /// 🔥 LOGOUT
+                  Container(
+                    decoration: BoxDecoration(
+                      borderRadius:
+                          BorderRadius.circular(20),
+
+                      gradient: LinearGradient(
+                        colors: [
+                          Colors.red.withOpacity(.18),
+
+                          Colors.pink.withOpacity(
+                            .08,
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    child: ListTile(
+                      contentPadding:
+                          EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 4,
+                      ),
+
+                      leading: Icon(
+                        Icons.logout,
+                        color: Colors.redAccent,
+                      ),
+
+                      trailing: Icon(
+                        Icons.arrow_forward_ios,
+                        color: Colors.redAccent,
+                        size: 16,
+                      ),
+
+                      title: Text(
+                        "Logout",
+
+                        style: TextStyle(
+                          color: Colors.redAccent,
+
+                          fontWeight:
+                              FontWeight.bold,
+
+                          fontSize: 15,
+                        ),
+                      ),
+
+                      subtitle: Text(
+                        "Sign out from your account",
+
+                        style: TextStyle(
+                          color: Colors.white70,
+
+                          fontSize: 11,
+                        ),
+                      ),
+
+                      onTap: () async {
+
+                        await FirebaseAuth.instance
+                            .signOut();
+
+                        Navigator.pushAndRemoveUntil(
+                          context,
+
+                          MaterialPageRoute(
+                            builder:
+                                (_) => LoginScreen(),
+                          ),
+
+                          (route) => false,
+                        );
+                      },
+                    ),
+                  ),
+
+                  SizedBox(height: 14),
+
+                  /// 🔥 SUPPORT BOX
+                  Container(
+                    padding: EdgeInsets.all(10),
+
+                    decoration: BoxDecoration(
+                      borderRadius:
+                          BorderRadius.circular(20),
+
+                      color: Colors.white
+                          .withOpacity(.05),
+
+                      border: Border.all(
+                        color: Colors.white10,
+                      ),
+                    ),
+
+                    child: Row(
+                      children: [
+
+                        CircleAvatar(
+                          radius: 20,
+
+                          backgroundColor:
+                              Colors.white
+                                  .withOpacity(.08),
+
+                          child: Icon(
+                            Icons.headset_mic,
+                            color: Colors.white,
+                            size: 20,
+                          ),
+                        ),
+
+                        SizedBox(width: 10),
+
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment:
+                                CrossAxisAlignment
+                                    .start,
+
+                            children: [
+
+                              Text(
+                                "Need help?",
+
+                                style: TextStyle(
+                                  color:
+                                      Colors.white,
+
+                                  fontWeight:
+                                      FontWeight
+                                          .bold,
+
+                                  fontSize: 14,
+                                ),
+                              ),
+
+                              SizedBox(height: 3),
+
+                              Text(
+  "Medlife.supportteam@gmail.com",
+
+  maxLines: 1,
+
+  overflow: TextOverflow.ellipsis,
+
+  style: TextStyle(
+    color: Color(0xff58D0FF),
+    fontSize: 11,
+  ),
+),
+                            ],
+                          ),
+                        ),
+
+                        InkWell(
+  onTap: () async {
+
+    final Uri emailLaunchUri = Uri(
+      scheme: 'mailto',
+      path:
+          'Medlife.supportteam@gmail.com',
+    );
+
+    await launchUrl(emailLaunchUri);
+  },
+
+  child: CircleAvatar(
+    radius: 20,
+    backgroundColor: Color(0xff256DFF),
+
+    child: Icon(
+      Icons.email,
       color: Colors.white,
-      width: 2,
+      size: 18,
     ),
   ),
-
-  child: Icon(
-    Icons.person,
-    color: Colors.white,
-    size: 28,
-  ),
 ),
-                SizedBox(width: 10),
-                Expanded(
-                  child:StreamBuilder(
-  stream: FirebaseFirestore.instance
-      .collection('users')
-      .doc(user?.uid)
-      .snapshots(),
-  builder: (context, snapshot) {
-    if (!snapshot.hasData) {
-      return Text(
-        "Loading...",
-        style: TextStyle(color: Colors.white),
-      );
-    }
-
-    var data = snapshot.data!.data() as Map<String, dynamic>;
-
-    return Text(
-      data['name'] ?? "User",
-      style: TextStyle(
-        fontWeight: FontWeight.bold,
-        color: Colors.white,
-      ),
-    );
-  },
-),
-                ),
-              ],
-            ),
-
-            SizedBox(height: 10),
-
-            /// ✏️ Edit Profile
-            TextButton(
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => ProfileScreen()),
-                );
-              },
-              child: Text(
-                "My Profile",
-                style: TextStyle(color: Colors.white),
+                      ],
+                    ),
+                  ),
+                ],
               ),
-            ),
-
-            Divider(color: Colors.white38),
-
-            ListTile(
-  leading: Icon(
-    Icons.star_rate_rounded,
-    color: Colors.amber,
-  ),
-
-  title: Text(
-    "Our Customers Reviews",
-    style: TextStyle(
-      color: Colors.white,
-      fontWeight: FontWeight.bold,
-    ),
-  ),
-
-  onTap: () {
-
-    Navigator.push(
-
-      context,
-
-      MaterialPageRoute(
-
-        builder: (_) => ReviewsScreen(),
-      ),
-    );
-  },
-),
-
-ListTile(
-  leading: Icon(
-    Icons.support_agent,
-    color: Colors.white,
-  ),
-
-  title: Text(
-    "Contact Us",
-    style: TextStyle(
-      color: Colors.white,
-      fontWeight: FontWeight.bold,
-    ),
-  ),
-
-  onTap: () {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => ContactUsScreen(),
-      ),
-    );
-  },
-),
-
-            Spacer(),
-
-            /// 🚪 Logout
-            ListTile(
-              leading: Icon(Icons.logout, color: Colors.red),
-              title: Text(
-                "Logout",
-                style: TextStyle(color: Colors.red,
-                fontWeight: FontWeight.bold,),
-              ),
-              onTap: () async {
-                await FirebaseAuth.instance.signOut();
-
-                Navigator.pushAndRemoveUntil(
-                  context,
-                  MaterialPageRoute(builder: (_) => LoginScreen()),
-                  (route) => false,
-                );
-              },
-            ),
-          ],
+            );
+          },
         ),
       ),
     );
   }
 
-  /// 🔹 عنصر في القائمة
-  Widget buildItem(
-      BuildContext context, IconData icon, String title, int index) {
-    return ListTile(
-      leading: Icon(icon, color: Colors.white),
-      title: Text(
-        title,
-        style: TextStyle(color: Colors.white),
+  Widget drawerItem(
+    BuildContext context, {
+
+    required IconData icon,
+
+    required String title,
+
+    required String subtitle,
+
+    required Color iconColor,
+
+    required VoidCallback onTap,
+  }) {
+
+    return Padding(
+      padding: EdgeInsets.only(bottom: 10),
+
+      child: Material(
+        color: Colors.transparent,
+
+        child: InkWell(
+          borderRadius:
+              BorderRadius.circular(20),
+
+          onTap: onTap,
+
+          child: Container(
+            padding: EdgeInsets.symmetric(
+              horizontal: 12,
+              vertical: 10,
+            ),
+
+            decoration: BoxDecoration(
+              borderRadius:
+                  BorderRadius.circular(20),
+
+              color:
+                  Colors.white.withOpacity(.03),
+            ),
+
+            child: Row(
+              children: [
+
+                Container(
+                  width: 48,
+                  height: 48,
+
+                  decoration: BoxDecoration(
+                    borderRadius:
+                        BorderRadius.circular(
+                      16,
+                    ),
+
+                    color: Colors.white
+                        .withOpacity(.05),
+                  ),
+
+                  child: Icon(
+                    icon,
+                    color: iconColor,
+                    size: 24,
+                  ),
+                ),
+
+                SizedBox(width: 12),
+
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment:
+                        CrossAxisAlignment.start,
+
+                    children: [
+
+                      Text(
+                        title,
+
+                        style: TextStyle(
+                          color: Colors.white,
+
+                          fontWeight:
+                              FontWeight.bold,
+
+                          fontSize: 15,
+                        ),
+                      ),
+
+                      SizedBox(height: 3),
+
+                      Text(
+                        subtitle,
+
+                        maxLines: 2,
+
+                        overflow:
+                            TextOverflow.ellipsis,
+
+                        style: TextStyle(
+                          color: Colors.white70,
+
+                          fontSize: 11,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                SizedBox(width: 4),
+
+                Icon(
+                  Icons.arrow_forward_ios,
+
+                  color: Colors.white70,
+
+                  size: 15,
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
-      onTap: () {
-        Navigator.pop(context);
-
-        var state =
-            context.findAncestorStateOfType<_ProductsScreenState>();
-
-        state?.setState(() {
-          state.currentIndex = index;
-        });
-      },
     );
   }
 }
@@ -5272,36 +5973,36 @@ class ContactUsScreen extends StatelessWidget {
 
   /// 🔗 OPEN LINKS
   Future<void> openLink(String url) async {
+    final Uri uri = Uri.parse(url);
 
-  final Uri uri = Uri.parse(url);
-
-  try {
-
-    await launchUrl(
-      uri,
-      mode: LaunchMode.externalApplication,
-    );
-
-  } catch (e) {
-
-    debugPrint("Error: $e");
+    try {
+      await launchUrl(
+        uri,
+        mode: LaunchMode.externalApplication,
+      );
+    } catch (e) {
+      debugPrint("Error: $e");
+    }
   }
-}
 
   /// 🔹 CONTACT CARD
   Widget buildContactCard({
     required BuildContext context,
-    required IconData icon,
-    required Color iconColor,
+    String? imagePath,
+    IconData? icon,
+    Color? iconColor,
     required Color bgColor,
     required String title,
     required String subtitle,
     required VoidCallback onTap,
   }) {
-    bool isDark = Theme.of(context).brightness == Brightness.dark;
+    bool isDark =
+        Theme.of(context).brightness ==
+            Brightness.dark;
 
     return Container(
       margin: EdgeInsets.only(bottom: 18),
+
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(24),
 
@@ -5319,17 +6020,20 @@ class ContactUsScreen extends StatelessWidget {
           BoxShadow(
             blurRadius: 15,
             offset: Offset(0, 6),
+
             color: isDark
                 ? Colors.black26
                 : Colors.black12,
-          )
+          ),
         ],
       ),
 
       child: Material(
         color: Colors.transparent,
+
         child: InkWell(
           borderRadius: BorderRadius.circular(24),
+
           onTap: onTap,
 
           child: Padding(
@@ -5341,7 +6045,7 @@ class ContactUsScreen extends StatelessWidget {
             child: Row(
               children: [
 
-                /// 🔥 ICON
+                /// 🔥 ICON / IMAGE
                 Container(
                   width: 70,
                   height: 70,
@@ -5351,11 +6055,23 @@ class ContactUsScreen extends StatelessWidget {
                     color: bgColor,
                   ),
 
-                  child: Icon(
-                    icon,
-                    size: 38,
-                    color: iconColor,
-                  ),
+                  child: imagePath != null
+                      ? Padding(
+                          padding:
+                              const EdgeInsets.all(
+                            14,
+                          ),
+
+                          child: Image.asset(
+                            imagePath,
+                            fit: BoxFit.contain,
+                          ),
+                        )
+                      : Icon(
+                          icon,
+                          size: 38,
+                          color: iconColor,
+                        ),
                 ),
 
                 SizedBox(width: 18),
@@ -5365,13 +6081,16 @@ class ContactUsScreen extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment:
                         CrossAxisAlignment.start,
+
                     children: [
 
                       Text(
                         title,
+
                         style: TextStyle(
                           fontSize: 22,
-                          fontWeight: FontWeight.bold,
+                          fontWeight:
+                              FontWeight.bold,
 
                           color: isDark
                               ? Colors.white
@@ -5383,6 +6102,7 @@ class ContactUsScreen extends StatelessWidget {
 
                       Text(
                         subtitle,
+
                         style: TextStyle(
                           fontSize: 16,
                           color: Colors.grey,
@@ -5393,8 +6113,10 @@ class ContactUsScreen extends StatelessWidget {
 
                       Text(
                         "Tap to open",
+
                         style: TextStyle(
                           fontSize: 13,
+
                           color: isDark
                               ? Colors.white60
                               : Colors.black54,
@@ -5419,17 +6141,19 @@ class ContactUsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    bool isDark = Theme.of(context).brightness == Brightness.dark;
+    bool isDark =
+        Theme.of(context).brightness ==
+            Brightness.dark;
 
     return Scaffold(
-      backgroundColor:
-          isDark
-              ? const Color(0xFF141118)
-              : Colors.white,
+      backgroundColor: isDark
+          ? const Color(0xFF141118)
+          : Colors.white,
 
       appBar: AppBar(
         title: Text(
           "Contact Us",
+
           style: TextStyle(
             fontWeight: FontWeight.bold,
           ),
@@ -5439,13 +6163,14 @@ class ContactUsScreen extends StatelessWidget {
 
         elevation: 0,
 
-        backgroundColor:
-            isDark
-                ? const Color(0xFF141118)
-                : Colors.white,
+        backgroundColor: isDark
+            ? const Color(0xFF141118)
+            : Colors.white,
 
         foregroundColor:
-            isDark ? Colors.white : Colors.black,
+            isDark
+                ? Colors.white
+                : Colors.black,
       ),
 
       body: SingleChildScrollView(
@@ -5465,7 +6190,9 @@ class ContactUsScreen extends StatelessWidget {
 
                 color: isDark
                     ? const Color(0xFF1D1B20)
-                    : Colors.black.withOpacity(0.04),
+                    : Colors.black.withOpacity(
+                        0.04,
+                      ),
 
                 border: Border.all(
                   color: isDark
@@ -5476,9 +6203,12 @@ class ContactUsScreen extends StatelessWidget {
 
               child: Icon(
                 Icons.support_agent_rounded,
+
                 size: 70,
 
-                color: const Color(0xFF6EA6C1),
+                color: const Color(
+                  0xFF6EA6C1,
+                ),
               ),
             ),
 
@@ -5488,6 +6218,8 @@ class ContactUsScreen extends StatelessWidget {
             Text(
               "We're Here For You",
 
+              textAlign: TextAlign.center,
+
               style: TextStyle(
                 fontSize: 34,
                 fontWeight: FontWeight.bold,
@@ -5496,8 +6228,6 @@ class ContactUsScreen extends StatelessWidget {
                     ? Colors.white
                     : Colors.black,
               ),
-
-              textAlign: TextAlign.center,
             ),
 
             SizedBox(height: 12),
@@ -5506,6 +6236,8 @@ class ContactUsScreen extends StatelessWidget {
             Text(
               "Feel free to contact us anytime you need help.",
 
+              textAlign: TextAlign.center,
+
               style: TextStyle(
                 fontSize: 17,
 
@@ -5513,130 +6245,137 @@ class ContactUsScreen extends StatelessWidget {
                     ? Colors.white70
                     : Colors.black54,
               ),
-
-              textAlign: TextAlign.center,
             ),
 
             SizedBox(height: 35),
 
             /// 📸 INSTAGRAM
-buildContactCard(
-  context: context,
+            buildContactCard(
+              context: context,
 
-  icon: Icons.camera_alt_rounded,
+              imagePath:
+                  "assets/Instagram.png",
 
-  iconColor: const Color(0xFF6EA6C1),
+              bgColor:
+                  const Color(0x336EA6C1),
 
-  bgColor: const Color(0x336EA6C1),
+              title: "Instagram",
 
-  title: "Instagram",
+              subtitle: "@medlife_eg",
 
-  subtitle: "@medlife_eg",
+              onTap: () {
+                openLink(
+                  "https://www.instagram.com/medlife_eg?igsh=aWlxb20ybGZvamk2",
+                );
+              },
+            ),
 
-  onTap: () {
-    openLink(
-      "https://www.instagram.com/medlife_eg?igsh=aWlxb20ybGZvamk2",
-    );
-  },
-),
+            /// 📘 FACEBOOK
+            buildContactCard(
+              context: context,
 
-/// 📘 FACEBOOK
-buildContactCard(
-  context: context,
+              imagePath:
+                  "assets/Facebook.png",
 
-  icon: Icons.facebook_rounded,
+              bgColor:
+                  const Color(0x336EA6C1),
 
-  iconColor: const Color(0xFF6EA6C1),
+              title: "Facebook",
 
-  bgColor: const Color(0x336EA6C1),
+              subtitle: "MedLife",
 
-  title: "Facebook",
+              onTap: () {
+                openLink(
+                  "https://www.facebook.com/profile.php?id=61574319662590",
+                );
+              },
+            ),
 
-  subtitle: "MedLife",
+            /// 🎵 TIKTOK
+            buildContactCard(
+              context: context,
 
-  onTap: () {
-    openLink(
-      "https://www.facebook.com/profile.php?id=61574319662590",
-    );
-  },
-),
+              imagePath:
+                  "assets/Tiktok.png",
 
-/// 🎵 TIKTOK
-buildContactCard(
-  context: context,
+              bgColor:
+                  const Color(0x336EA6C1),
 
-  icon: Icons.music_note_rounded,
+              title: "TikTok",
 
-  iconColor: const Color(0xFF6EA6C1),
+              subtitle: "@medlife_eg",
 
-  bgColor: const Color(0x336EA6C1),
+              onTap: () {
+                openLink(
+                  "https://www.tiktok.com/@medlife_eg",
+                );
+              },
+            ),
 
-  title: "TikTok",
+            /// 💬 WHATSAPP
+            buildContactCard(
+              context: context,
 
-  subtitle: "@medlife_eg",
+              imagePath:
+                  "assets/Whatsapp.png",
 
-  onTap: () {
-    openLink(
-      "https://www.tiktok.com/@medlife_eg",
-    );
-  },
-),
+              bgColor:
+                  const Color(0x336EA6C1),
 
-/// 💬 WHATSAPP
-buildContactCard(
-  context: context,
+              title: "WhatsApp",
 
-  icon: Icons.chat,
+              subtitle:
+                  "+20 1010 520 993",
 
-  iconColor: const Color(0xFF6EA6C1),
+              onTap: () {
+                openLink(
+                  "https://wa.me/201010520993",
+                );
+              },
+            ),
 
-  bgColor: const Color(0x336EA6C1),
+            /// 📧 EMAIL
+            buildContactCard(
+              context: context,
 
-  title: "WhatsApp",
+              imagePath:
+                  "assets/Gmail.png",
 
-  subtitle: "+20 1010 520 993",
+              bgColor:
+                  const Color(0x336EA6C1),
 
-  onTap: () {
-    openLink(
-      "https://wa.me/201010520993",
-    );
-  },
-),
+              title: "Support Email",
 
-/// 📧 EMAIL
-buildContactCard(
-  context: context,
+              subtitle:
+                  "medlife.supportteam@gmail.com",
 
-  icon: Icons.email_rounded,
-
-  iconColor: const Color(0xFF6EA6C1),
-
-  bgColor: const Color(0x336EA6C1),
-
-  title: "Support Email",
-
-  subtitle: "medlife.supportteam@gmail.com",
-
-  onTap: () {
-    openLink(
-      "mailto:medlife.supportteam@gmail.com",
-    );
-  },
-),
+              onTap: () {
+                openLink(
+                  "mailto:medlife.supportteam@gmail.com",
+                );
+              },
+            ),
 
             SizedBox(height: 10),
 
             //// 🔒 PRIVACY
             Container(
               width: double.infinity,
+
               padding: EdgeInsets.all(20),
 
               decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(20),
+                borderRadius:
+                    BorderRadius.circular(
+                  20,
+                ),
 
                 color: isDark
-                    ? const Color(0xFF1D1B20)
-                    : Colors.black.withOpacity(0.03),
+                    ? const Color(
+                        0xFF1D1B20,
+                      )
+                    : Colors.black
+                        .withOpacity(0.03),
 
                 border: Border.all(
                   color: isDark
@@ -5647,9 +6386,13 @@ buildContactCard(
                 boxShadow: [
                   BoxShadow(
                     color: isDark
-                        ? Colors.black.withOpacity(0.25)
-                        : Colors.black.withOpacity(0.08),
+                        ? Colors.black
+                            .withOpacity(0.25)
+                        : Colors.black
+                            .withOpacity(0.08),
+
                     blurRadius: 12,
+
                     offset: Offset(0, 5),
                   ),
                 ],
@@ -5659,17 +6402,24 @@ buildContactCard(
                 children: [
 
                   Container(
-                    padding: EdgeInsets.all(12),
+                    padding: EdgeInsets.all(
+                      12,
+                    ),
 
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
 
-                      color: const Color(0x336EA6C1),
+                      color: const Color(
+                        0x336EA6C1,
+                      ),
                     ),
 
                     child: Icon(
                       Icons.shield_outlined,
-                      color: const Color(0xFF6EA6C1),
+
+                      color: const Color(
+                        0xFF6EA6C1,
+                      ),
                     ),
                   ),
 
@@ -5678,13 +6428,18 @@ buildContactCard(
                   Expanded(
                     child: Column(
                       crossAxisAlignment:
-                          CrossAxisAlignment.start,
+                          CrossAxisAlignment
+                              .start,
+
                       children: [
 
                         Text(
                           "We value your privacy",
+
                           style: TextStyle(
-                            fontWeight: FontWeight.bold,
+                            fontWeight:
+                                FontWeight.bold,
+
                             fontSize: 16,
 
                             color: isDark
@@ -5697,6 +6452,7 @@ buildContactCard(
 
                         Text(
                           "Your information is safe with us and will never be shared.",
+
                           style: TextStyle(
                             color: isDark
                                 ? Colors.white70
@@ -5708,7 +6464,7 @@ buildContactCard(
                   ),
                 ],
               ),
-            )
+            ),
           ],
         ),
       ),
@@ -15249,7 +16005,7 @@ class AboutMedLifeScreen extends StatelessWidget {
                       const SizedBox(width: 10),
 
                       Text(
-                        "01066813466",
+                        "01010520993",
                         style: TextStyle(
                           color: subText,
                           fontSize: 16,
