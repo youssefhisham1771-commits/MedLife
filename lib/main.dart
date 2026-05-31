@@ -894,7 +894,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
                     featureItem(
                       Icons.local_shipping_outlined,
-                      "Fast Delivery",
+                      "Fast Shipping",
                     ),
 
                     featureItem(
@@ -2146,33 +2146,22 @@ Spacer(),
         child: InkWell(
           borderRadius: BorderRadius.circular(20),
 
-          onTap: () async {
+          onTap: () {
 
-            var user =
-                FirebaseAuth.instance.currentUser;
+  Navigator.push(
+    context,
+    MaterialPageRoute(
+      builder: (_) => ProductDetailsScreen(
+        product: product,
+        cart: cart,
+        onAddToCart: () {
+          setState(() {});
+        },
+      ),
+    ),
+  );
 
-            if (user == null) return;
-
-            await FirebaseFirestore.instance
-                .collection('users')
-                .doc(user.uid)
-                .collection('cart')
-                .add({
-              "name": data['name'],
-              "price": data['price'],
-              "image": images.isNotEmpty
-                  ? images[0]
-                  : "",
-            });
-
-            ScaffoldMessenger.of(context)
-                .showSnackBar(
-              SnackBar(
-                content:
-                    Text("Added To Cart 🛒"),
-              ),
-            );
-          },
+},
 
           child: Container(
             width: double.infinity,
@@ -7756,19 +7745,7 @@ class _CartScreenState extends State<CartScreen> {
             const Color(0xFF0B0713),
 
         elevation: 0,
-
-        title: Text(
-          "Cart (${widget.cart.length})",
-
-          style: TextStyle(
-            fontWeight:
-                FontWeight.bold,
-
-            fontSize: 32,
-
-            color: Colors.white,
-          ),
-        ),
+        toolbarHeight: 0,
       ),
 
       body: widget.cart.isEmpty
@@ -7786,6 +7763,111 @@ class _CartScreenState extends State<CartScreen> {
                   EdgeInsets.all(16),
 
               children: [
+
+Container(
+  margin: EdgeInsets.only(bottom: 22),
+  padding: EdgeInsets.symmetric(
+    horizontal: 16,
+    vertical: 10,
+  ),
+
+  decoration: BoxDecoration(
+    color: const Color(0xFF141118),
+    borderRadius: BorderRadius.circular(20),
+    border: Border.all(
+      color: Colors.white10,
+    ),
+  ),
+
+  child: Row(
+    children: [
+      Stack(
+        clipBehavior: Clip.none,
+        children: [
+          Container(
+            width: 50,
+            height: 50,
+
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: Color(0xFF6EA6C1).withOpacity(.18),
+            ),
+
+            child: Icon(
+              Icons.shopping_cart_outlined,
+              color: Color(0xFF6EA6C1),
+              size: 30,
+            ),
+          ),
+
+          Positioned(
+            right: -2,
+            top: -2,
+
+            child: Container(
+              width: 20,
+              height: 20,
+
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: Color(0xFF6EA6C1),
+              ),
+
+              child: Center(
+                child: Text(
+                  "${widget.cart.length}",
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+
+      SizedBox(width: 22),
+
+      Container(
+        width: 1,
+        height: 50,
+        color: Colors.white10,
+      ),
+
+      SizedBox(width: 12),
+
+      Expanded(
+        child: Column(
+          crossAxisAlignment:
+              CrossAxisAlignment.start,
+
+          children: [
+            Text(
+              "${widget.cart.length} Item",
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+
+            SizedBox(height: 6),
+
+            Text(
+              "in your cart",
+              style: TextStyle(
+                color: Colors.white54,
+                fontSize: 16,
+              ),
+            ),
+          ],
+        ),
+      ),
+    ],
+  ),
+),
+
                 ...List.generate(
                   widget.cart.length,
                   (i) {
@@ -8145,6 +8227,9 @@ class _CartScreenState extends State<CartScreen> {
                   child: TextField(
                     controller:
                         promoController,
+
+
+  textAlignVertical: TextAlignVertical.center,
 
                     style: TextStyle(
                       color: Colors.white,
@@ -15918,7 +16003,7 @@ class AboutMedLifeScreen extends StatelessWidget {
 
                 _iconItem(
                   Icons.local_shipping,
-                  "Delivery",
+                  "Shipping",
                   boxColor,
                   subText,
                 ),
