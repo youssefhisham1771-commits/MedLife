@@ -351,8 +351,15 @@ class _LoginScreenState extends State<LoginScreen> {
     try {
       setState(() => isGoogleLoading = true);
 
-      final GoogleSignInAccount? googleUser =
-          await GoogleSignIn().signIn();
+      final GoogleSignIn googleSignIn = GoogleSignIn.instance;
+
+await googleSignIn.initialize();
+
+await googleSignIn.signOut();
+    await FirebaseAuth.instance.signOut();
+
+final GoogleSignInAccount? googleUser =
+    await googleSignIn.authenticate();
 
       if (googleUser == null) {
         setState(() => isGoogleLoading = false);
@@ -363,9 +370,8 @@ class _LoginScreenState extends State<LoginScreen> {
           await googleUser.authentication;
 
       final credential = GoogleAuthProvider.credential(
-        accessToken: googleAuth.accessToken,
-        idToken: googleAuth.idToken,
-      );
+  idToken: googleAuth.idToken,
+);
 
       await FirebaseAuth.instance.signInWithCredential(credential);
 
@@ -984,8 +990,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
   try {
     setState(() => isLoading = true);
 
-    final GoogleSignInAccount? googleUser =
-        await GoogleSignIn().signIn();
+    final GoogleSignIn googleSignIn = GoogleSignIn.instance;
+
+await googleSignIn.initialize();
+
+await googleSignIn.signOut();
+    await FirebaseAuth.instance.signOut();
+
+final GoogleSignInAccount? googleUser =
+    await googleSignIn.authenticate();
 
     if (googleUser == null) {
       setState(() => isLoading = false);
@@ -996,9 +1009,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
         await googleUser.authentication;
 
     final credential = GoogleAuthProvider.credential(
-      accessToken: googleAuth.accessToken,
-      idToken: googleAuth.idToken,
-    );
+  idToken: googleAuth.idToken,
+);
 
     final userCredential = await FirebaseAuth.instance
         .signInWithCredential(credential);
@@ -2221,93 +2233,381 @@ Spacer(),
 }
 
 Widget buildFavourites() {
-
   if (favourites.isEmpty) {
     return Center(
       child: Text(
         "No Favourites Yet ❤️",
-        style: TextStyle(fontSize: 18),
+        style: TextStyle(
+          color: Colors.white,
+          fontSize: 18,
+        ),
       ),
     );
   }
 
-  return GridView.builder(
-    padding: EdgeInsets.all(10),
-    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-      crossAxisCount: 2,
-      childAspectRatio: 0.75,
-      crossAxisSpacing: 10,
-      mainAxisSpacing: 10,
-    ),
-    itemCount: favourites.length,
-    itemBuilder: (context, index) {
-      var item = favourites[index];
+  return SingleChildScrollView(
+    padding: EdgeInsets.all(16),
+    child: Column(
+      children: [
 
-      return Stack(
-        children: [
-          Card(
-            elevation: 6,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(15),
-            ),
-            child: Column(
-              children: [
-                Expanded(
-                  child: ClipRRect(
-                    borderRadius:
-                        BorderRadius.vertical(top: Radius.circular(15)),
-                    child: Image.network(
-                      item["image"],
-                      fit: BoxFit.cover,
-                      width: double.infinity,
-                    ),
-                  ),
-                ),
-                Padding(
-                  padding: EdgeInsets.all(8),
-                  child: Column(
-                    children: [
-                      Text(
-                        item["name"],
-                        style: TextStyle(
-                            fontWeight: FontWeight.bold),
-                      ),
-                      Text("${item["price"]} EGP"),
-                    ],
-                  ),
-                ),
+        /// HEADER
+        Container(
+          padding: EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(25),
+            border: Border.all(color: Colors.white10),
+            gradient: LinearGradient(
+              colors: [
+                Color(0xFF0E1220),
+                Color(0xFF151A29),
               ],
             ),
           ),
+          child: Row(
+            children: [
 
-          // ❤️ remove from favourites
-          Positioned(
-            top: 10,
-            left: 10,
-            child: GestureDetector(
-              onTap: () {
-                setState(() {
-                  favourites.removeAt(index);
-                });
-
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                      content:
-                          Text("Removed from Favourites ❌")),
-                );
-              },
-              child: CircleAvatar(
-                backgroundColor: Colors.white,
+              Container(
+                width: 90,
+                height: 90,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Color(0xFF1B2233),
+                  border: Border.all(
+                    color: Color(0xFF6EA6C1),
+                  ),
+                ),
                 child: Icon(
                   Icons.favorite,
-                  color: Colors.red,
+                  color: Color(0xFF6EA6C1),
+                  size: 40,
                 ),
+              ),
+
+              SizedBox(width: 20),
+
+              Expanded(
+                child: Column(
+                  crossAxisAlignment:
+                      CrossAxisAlignment.start,
+                  children: [
+
+                    Text(
+                      "My Favourites",
+                      style: TextStyle(
+                        fontSize: 28,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
+
+                    SizedBox(height: 6),
+
+                    Text(
+                      "${favourites.length} items saved",
+                      style: TextStyle(
+                        fontSize: 18,
+                        color: Colors.white70,
+                      ),
+                    ),
+
+                    SizedBox(height: 4),
+
+                    Text(
+                      "Items you love, all in one place.",
+                      style: TextStyle(
+                        color: Colors.white54,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+
+        SizedBox(height: 25),
+
+        /// GRID
+        GridView.builder(
+          shrinkWrap: true,
+          physics: NeverScrollableScrollPhysics(),
+          itemCount: favourites.length,
+          gridDelegate:
+              SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 2,
+            childAspectRatio:
+    MediaQuery.of(context).size.width < 400
+        ? 0.54
+        : 0.60,
+crossAxisSpacing: 10,
+mainAxisSpacing: 10,
+          ),
+          itemBuilder: (context, index) {
+
+            var item = favourites[index];
+
+            return buildFavouriteCard(
+              item,
+              index,
+            );
+          },
+        ),
+
+        SizedBox(height: 25),
+
+        /// FEATURES
+        Container(
+          padding: EdgeInsets.symmetric(
+            vertical: 20,
+          ),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(25),
+            border: Border.all(color: Colors.white10),
+          ),
+          child: Row(
+            mainAxisAlignment:
+                MainAxisAlignment.spaceEvenly,
+            children: [
+
+              buildFeature(
+                Icons.workspace_premium_outlined,
+                "Premium Quality",
+                "Comfort & quality",
+              ),
+
+              buildFeature(
+                Icons.assignment_return_outlined,
+                "Easy Returns",
+                "14-day return",
+              ),
+
+              buildFeature(
+                Icons.headset_mic_outlined,
+                "Support",
+                "24/7 Help",
+              ),
+            ],
+          ),
+        ),
+      ],
+    ),
+  );
+}
+
+Widget buildFavouriteCard(
+  Map item,
+  int index,
+) {
+  return Container(
+    decoration: BoxDecoration(
+      borderRadius: BorderRadius.circular(28),
+      gradient: LinearGradient(
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+        colors: [
+          Color(0xFF111827),
+          Color(0xFF0B1220),
+          Color(0xFF091428),
+        ],
+      ),
+      border: Border.all(
+        color: Color(0xFF1F2A44),
+        width: 1,
+      ),
+      boxShadow: [
+        BoxShadow(
+          color: Colors.black.withOpacity(.35),
+          blurRadius: 20,
+          offset: Offset(0, 10),
+        ),
+      ],
+    ),
+    child: Column(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+
+        /// IMAGE
+        AspectRatio(
+          aspectRatio: 0.8,
+          child: Stack(
+            children: [
+
+              ClipRRect(
+                borderRadius: BorderRadius.vertical(
+                  top: Radius.circular(28),
+                ),
+                child: Image.network(
+                  item["image"],
+                  fit: BoxFit.cover,
+                  width: double.infinity,
+                ),
+              ),
+
+              /// ❤️ REMOVE FROM FAVOURITES
+              Positioned(
+                top: 12,
+                left: 12,
+                child: GestureDetector(
+                  onTap: () {
+                    removeFromFavourites(index);
+                  },
+                  child: Container(
+                    width: 46,
+                    height: 46,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: Colors.black.withOpacity(.45),
+                      border: Border.all(
+                        color: Colors.white10,
+                      ),
+                    ),
+                    child: Icon(
+                      Icons.favorite,
+                      color: Colors.red,
+                      size: 24,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+
+        /// NAME + PRICE
+        Padding(
+          padding: const EdgeInsets.only(
+            top: 15,
+            left: 8,
+            right: 8,
+            bottom: 8,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+
+              Text(
+                item["name"],
+                textAlign: TextAlign.center,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+
+              SizedBox(height: 4),
+
+              Text(
+                "${item["price"]} EGP",
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: Color(0xFF6EA6C1),
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+        ),
+
+        Spacer(),
+
+        /// ADD TO CART BUTTON
+        Padding(
+          padding: const EdgeInsets.only(
+            left: 14,
+            right: 14,
+            bottom: 2,
+            top: 0,
+          ),
+          child: InkWell(
+            borderRadius: BorderRadius.circular(20),
+            onTap: () {
+              /// add to cart
+            },
+            child: Container(
+              width: double.infinity,
+              height: 40,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(20),
+                color: Colors.white.withOpacity(.06),
+                border: Border.all(
+                  color: Colors.white10,
+                ),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+
+                  Icon(
+                    Icons.shopping_cart_outlined,
+                    color: Color(0xFF6EA6C1),
+                  ),
+
+                  SizedBox(width: 5),
+
+                  Text(
+                    "Add to Cart",
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
               ),
             ),
           ),
-        ],
-      );
-    },
+        ),
+      ],
+    ),
+  );
+}
+
+Widget buildFeature(
+  IconData icon,
+  String title,
+  String subtitle,
+) {
+  return Expanded(
+    child: Column(
+      children: [
+
+        CircleAvatar(
+          radius: 28,
+          backgroundColor:
+              Color(0xFF1A2233),
+          child: Icon(
+            icon,
+            color: Color(0xFF6EA6C1),
+          ),
+        ),
+
+        SizedBox(height: 10),
+
+        Text(
+          title,
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+
+        SizedBox(height: 4),
+
+        Text(
+          subtitle,
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            color: Colors.white60,
+            fontSize: 12,
+          ),
+        ),
+      ],
+    ),
   );
 }
 
@@ -5283,13 +5583,37 @@ class ReviewsScreen extends StatefulWidget {
 }
 
 class _ReviewsScreenState
-    extends State<ReviewsScreen> {
+    extends State<ReviewsScreen>
+    with SingleTickerProviderStateMixin {
 
   final reviewController = TextEditingController();
 
   int selectedRating = 0;
 
   bool isLoading = false;
+
+late AnimationController _barsController;
+
+@override
+void initState() {
+  super.initState();
+
+  _barsController = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 2200),
+  );
+
+  WidgetsBinding.instance.addPostFrameCallback((_) {
+    _barsController.forward();
+  });
+}
+
+@override
+void dispose() {
+  _barsController.dispose();
+  reviewController.dispose();
+  super.dispose();
+}
 
   Future<void> submitReview() async {
 
@@ -5517,54 +5841,92 @@ class _ReviewsScreenState
 
                 /// ⭐ AVERAGE
                 Center(
-                  child: Column(
-                    children: [
+ child: TweenAnimationBuilder<double>(
+  duration: const Duration(
+    milliseconds: 1800,
+  ),
+  curve: Curves.easeOutCubic,
+  tween: Tween(
+    begin: 0,
+    end: average,
+  ),
 
-                      Text(
-                        average
-                            .toStringAsFixed(1),
+    builder: (context, animatedAverage, child) {
 
-                        style: TextStyle(
-                          fontSize: 55,
-                          fontWeight:
-                              FontWeight.bold,
+      return Column(
+        children: [
 
-                          color: Colors.white,
+          Text(
+            animatedAverage.toStringAsFixed(1),
+
+            style: TextStyle(
+              fontSize: 55,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+            ),
+          ),
+
+          SizedBox(height: 8),
+
+          Row(
+            mainAxisAlignment:
+                MainAxisAlignment.center,
+
+            children: List.generate(
+              5,
+              (index) {
+
+                double fill =
+                    animatedAverage - index;
+
+                if (fill < 0) fill = 0;
+                if (fill > 1) fill = 1;
+
+                return Stack(
+                  children: [
+
+                    Icon(
+                      Icons.star_border,
+                      color: Color(0xFF6EA6C1),
+                      size: 30,
+                    ),
+
+                    ClipRect(
+                      child: Align(
+                        alignment:
+                            Alignment.centerLeft,
+
+                        widthFactor: fill,
+
+                        child: Icon(
+                          Icons.star,
+                          color:
+                              Color(0xFF6EA6C1),
+                          size: 30,
                         ),
                       ),
+                    ),
+                  ],
+                );
+              },
+            ),
+          ),
 
-                      SizedBox(height: 8),
+          SizedBox(height: 8),
 
-                      Row(
-                        mainAxisAlignment:
-                            MainAxisAlignment.center,
+          Text(
+            "Based on ${reviews.length} Reviews",
 
-                        children: List.generate(
-                          5,
-                          (index) => Icon(
-                            index < average.round()
-                                ? Icons.star
-                                : Icons.star_border,
-
-                            color: blueColor,
-                            size: 30,
-                          ),
-                        ),
-                      ),
-
-                      SizedBox(height: 8),
-
-                      Text(
-                        "Based on ${reviews.length} Reviews",
-
-                        style: TextStyle(
-                          color: Colors.white70,
-                          fontSize: 16,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
+            style: TextStyle(
+              color: Colors.white70,
+              fontSize: 16,
+            ),
+          ),
+        ],
+      );
+    },
+  ),
+),
 
                 SizedBox(height: 30),
 
@@ -5802,72 +6164,91 @@ class _ReviewsScreenState
 
   /// ⭐ BAR
   Widget buildRatingBar(
-      int star,
-      double value,
-      bool isDark,
-      ) {
+  int star,
+  double value,
+  bool isDark,
+) {
+  final double startDelay =
+      (5 - star) * 0.12;
 
-    return Padding(
+  return AnimatedBuilder(
+    animation: _barsController,
 
-      padding: EdgeInsets.only(bottom: 14),
+    builder: (context, child) {
 
-      child: Row(
-        children: [
+      double progress =
+          ((_barsController.value - startDelay) /
+                  (1 - startDelay))
+              .clamp(0.0, 1.0);
 
-          Text(
-            "$star",
+      progress = Curves.easeOutCubic
+          .transform(progress);
 
-            style: TextStyle(
-              color: Colors.white,
+      final animatedValue =
+          value * progress;
+
+      return Padding(
+        padding:
+            const EdgeInsets.only(bottom: 14),
+
+        child: Row(
+          children: [
+
+            Text(
+              "$star",
+              style: const TextStyle(
+                color: Colors.white,
+              ),
             ),
-          ),
 
-          SizedBox(width: 5),
+            const SizedBox(width: 5),
 
-          Icon(
-            Icons.star,
-            color: Color(0xFF6EA6C1),
-            size: 18,
-          ),
+            const Icon(
+              Icons.star,
+              color: Color(0xFF6EA6C1),
+              size: 18,
+            ),
 
-          SizedBox(width: 12),
+            const SizedBox(width: 12),
 
-          Expanded(
-            child: ClipRRect(
+            Expanded(
+              child: ClipRRect(
+                borderRadius:
+                    BorderRadius.circular(20),
 
-              borderRadius:
-                  BorderRadius.circular(20),
+                child: LinearProgressIndicator(
+                  value: animatedValue,
+                  minHeight: 10,
+                  backgroundColor:
+                      Colors.white12,
 
-              child: LinearProgressIndicator(
-
-                value: value,
-
-                minHeight: 10,
-
-                backgroundColor:
-                    Colors.white12,
-
-                valueColor:
-                    AlwaysStoppedAnimation(
-                  Color(0xFF6EA6C1),
+                  valueColor:
+                      const AlwaysStoppedAnimation(
+                    Color(0xFF6EA6C1),
+                  ),
                 ),
               ),
             ),
-          ),
 
-          SizedBox(width: 10),
+            const SizedBox(width: 10),
 
-          Text(
-            "${(value * 100).toInt()}%",
+            SizedBox(
+              width: 42,
+              child: Text(
+                "${(animatedValue * 100).toInt()}%",
+                textAlign: TextAlign.end,
 
-            style: TextStyle(
-              color: Colors.white70,
+                style: const TextStyle(
+                  color: Colors.white70,
+                ),
+              ),
             ),
-          ),
-        ],
-      ),
-    );
-  }
+          ],
+        ),
+      );
+    },
+  );
+}
 
   /// 💬 REVIEW CARD
   Widget buildReviewCard(
@@ -13205,7 +13586,7 @@ class _EditProfileScreenState
       if (emailController.text.trim()
           != user!.email) {
 
-        await user!.updateEmail(
+        await user!.verifyBeforeUpdateEmail(
           emailController.text.trim(),
         );
       }
@@ -13838,142 +14219,25 @@ class ForgotPasswordScreen extends StatefulWidget {
 
 class _ForgotPasswordScreenState
     extends State<ForgotPasswordScreen> {
-
-  final phoneController = TextEditingController();
-
   final emailController = TextEditingController();
 
-  final codeController = TextEditingController();
-
-  final newPasswordController =
-      TextEditingController();
-
-  String verificationId = "";
-
-  bool codeSent = false;
-
-  bool obscurePassword = true;
-
-  bool useEmail = true;
-
-  Future<void> sendCode() async {
-
-    if (useEmail) {
-
-      try {
-
-        await FirebaseAuth.instance
-            .sendPasswordResetEmail(
-          email: emailController.text.trim(),
-        );
-
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              "Password reset email sent ✅",
-            ),
-          ),
-        );
-
-      } on FirebaseAuthException catch (e) {
-
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(e.message ?? "Error"),
-          ),
-        );
-      }
-
-    } else {
-
-      try {
-
-        String phone = phoneController.text.trim();
-
-        if (phone.startsWith('0')) {
-          phone = '+2$phone';
-        }
-
-        await FirebaseAuth.instance.verifyPhoneNumber(
-
-          phoneNumber: phone,
-
-          verificationCompleted:
-              (PhoneAuthCredential credential) {},
-
-          verificationFailed:
-              (FirebaseAuthException e) {
-
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(e.message ?? "Error"),
-              ),
-            );
-          },
-
-          codeSent:
-              (String verId, int? resendToken) {
-
-            verificationId = verId;
-
-            setState(() {
-              codeSent = true;
-            });
-
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text("Code Sent ✅"),
-              ),
-            );
-          },
-
-          codeAutoRetrievalTimeout:
-              (String verId) {},
-        );
-
-      } catch (e) {
-
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text("Something went wrong"),
-          ),
-        );
-      }
-    }
-  }
-
-  Future<void> verifyCodeAndChangePassword() async {
-
+  Future<void> sendResetEmail() async {
     try {
-
-      PhoneAuthCredential credential =
-          PhoneAuthProvider.credential(
-        verificationId: verificationId,
-        smsCode: codeController.text.trim(),
-      );
-
-      await FirebaseAuth.instance
-          .signInWithCredential(credential);
-
-      await FirebaseAuth.instance.currentUser!
-          .updatePassword(
-        newPasswordController.text.trim(),
+      await FirebaseAuth.instance.sendPasswordResetEmail(
+        email: emailController.text.trim(),
       );
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content:
-              Text("Password Changed Successfully ✅"),
+          content: Text(
+            "Password reset email sent ✅",
+          ),
         ),
       );
-
-      Navigator.pop(context);
-
-    } catch (e) {
-
+    } on FirebaseAuthException catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text("Invalid Code ❌"),
+          content: Text(e.message ?? "Error"),
         ),
       );
     }
@@ -13981,22 +14245,16 @@ class _ForgotPasswordScreenState
 
   @override
   Widget build(BuildContext context) {
-
     return Scaffold(
-
       backgroundColor: const Color(0xFF141118),
 
       appBar: AppBar(
-
         backgroundColor: const Color(0xFF141118),
-
         elevation: 0,
-
         foregroundColor: Colors.white,
 
         title: Text(
           "Forgot Password",
-
           style: TextStyle(
             fontWeight: FontWeight.bold,
             color: Colors.white,
@@ -14005,15 +14263,13 @@ class _ForgotPasswordScreenState
       ),
 
       body: SingleChildScrollView(
-
         padding: EdgeInsets.all(24),
 
         child: Column(
           children: [
-
             SizedBox(height: 10),
 
-            /// 🔥 TOP ICON
+            /// TOP ICON
             Container(
               padding: EdgeInsets.all(35),
 
@@ -14032,12 +14288,8 @@ class _ForgotPasswordScreenState
                 alignment: Alignment.center,
 
                 children: [
-
                   Icon(
-                    useEmail
-                        ? Icons.lock_reset_rounded
-                        : Icons.phone_android_rounded,
-
+                    Icons.lock_reset_rounded,
                     size: 110,
                     color: Color(0xFF6EA6C1),
                   ),
@@ -14055,10 +14307,7 @@ class _ForgotPasswordScreenState
                       ),
 
                       child: Icon(
-                        useEmail
-                            ? Icons.email_outlined
-                            : Icons.phone,
-
+                        Icons.email_outlined,
                         color: Colors.white,
                         size: 28,
                       ),
@@ -14070,16 +14319,14 @@ class _ForgotPasswordScreenState
 
             SizedBox(height: 25),
 
-            /// 🔥 TITLE
+            /// TITLE
             RichText(
               textAlign: TextAlign.center,
 
               text: TextSpan(
                 children: [
-
                   TextSpan(
                     text: "Reset ",
-
                     style: TextStyle(
                       color: Color(0xFF6EA6C1),
                       fontSize: 42,
@@ -14089,7 +14336,6 @@ class _ForgotPasswordScreenState
 
                   TextSpan(
                     text: "Your Password",
-
                     style: TextStyle(
                       color: Colors.white,
                       fontSize: 42,
@@ -14102,12 +14348,9 @@ class _ForgotPasswordScreenState
 
             SizedBox(height: 18),
 
-            /// 🔥 SUBTITLE
+            /// SUBTITLE
             Text(
-
-              useEmail
-                  ? "Enter your email address and we’ll send you a link to reset your password. (CHECK SPAM!!)"
-                  : "Enter your phone number and we’ll send you a code to reset your password. (CHECK SPAM!!)",
+              "Enter your email address and we’ll send you a link to reset your password. (CHECK SPAM!!)",
 
               textAlign: TextAlign.center,
 
@@ -14120,178 +14363,12 @@ class _ForgotPasswordScreenState
 
             SizedBox(height: 40),
 
-            /// 🔥 TOGGLE BUTTONS
-            Container(
-              padding: EdgeInsets.all(5),
-
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(40),
-
-                border: Border.all(
-                  color: Colors.white12,
-                ),
-
-                color: const Color(0xFF1D1B20),
-              ),
-
-              child: Row(
-                children: [
-
-                  /// EMAIL
-                  Expanded(
-                    child: GestureDetector(
-
-                      onTap: () {
-                        setState(() {
-                          useEmail = true;
-                          codeSent = false;
-                        });
-                      },
-
-                      child: AnimatedContainer(
-                        duration:
-                            Duration(milliseconds: 250),
-
-                        padding: EdgeInsets.symmetric(
-                          vertical: 16,
-                        ),
-
-                        decoration: BoxDecoration(
-                          borderRadius:
-                              BorderRadius.circular(40),
-
-                          gradient: useEmail
-                              ? LinearGradient(
-                                  colors: [
-                                    Color(0xFF6EA6C1),
-                                    Color(0xFF8CC6E3),
-                                  ],
-                                )
-                              : null,
-                        ),
-
-                        child: Row(
-                          mainAxisAlignment:
-                              MainAxisAlignment.center,
-                          children: [
-
-                            Icon(
-                              Icons.email_outlined,
-                              color: Colors.white,
-                            ),
-
-                            SizedBox(width: 10),
-
-                            Text(
-                              "Email",
-
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontWeight:
-                                    FontWeight.bold,
-                                fontSize: 18,
-                              ),
-                            ),
-
-                            if (useEmail) ...[
-                              SizedBox(width: 10),
-
-                              Icon(
-                                Icons.check,
-                                color: Colors.white,
-                                size: 20,
-                              ),
-                            ]
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-
-                  /// PHONE
-                  Expanded(
-                    child: GestureDetector(
-
-                      onTap: () {
-                        setState(() {
-                          useEmail = false;
-                          codeSent = false;
-                        });
-                      },
-
-                      child: AnimatedContainer(
-                        duration:
-                            Duration(milliseconds: 250),
-
-                        padding: EdgeInsets.symmetric(
-                          vertical: 16,
-                        ),
-
-                        decoration: BoxDecoration(
-                          borderRadius:
-                              BorderRadius.circular(40),
-
-                          gradient: !useEmail
-                              ? LinearGradient(
-                                  colors: [
-                                    Color(0xFF6EA6C1),
-                                    Color(0xFF8CC6E3),
-                                  ],
-                                )
-                              : null,
-                        ),
-
-                        child: Row(
-                          mainAxisAlignment:
-                              MainAxisAlignment.center,
-                          children: [
-
-                            Icon(
-                              Icons.phone_outlined,
-                              color: Colors.white,
-                            ),
-
-                            SizedBox(width: 10),
-
-                            Text(
-                              "Phone",
-
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontWeight:
-                                    FontWeight.bold,
-                                fontSize: 18,
-                              ),
-                            ),
-
-                            if (!useEmail) ...[
-                              SizedBox(width: 10),
-
-                              Icon(
-                                Icons.check,
-                                color: Colors.white,
-                                size: 20,
-                              ),
-                            ]
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-            SizedBox(height: 35),
-
-            /// 🔥 INPUT TITLE
+            /// INPUT TITLE
             Align(
               alignment: Alignment.centerLeft,
 
               child: Text(
-                useEmail
-                    ? "Email Address"
-                    : "Phone Number",
+                "Email Address",
 
                 style: TextStyle(
                   color: Colors.white,
@@ -14303,7 +14380,7 @@ class _ForgotPasswordScreenState
 
             SizedBox(height: 15),
 
-            /// 🔥 TEXT FIELD
+            /// EMAIL FIELD
             Container(
               decoration: BoxDecoration(
                 borderRadius:
@@ -14317,16 +14394,10 @@ class _ForgotPasswordScreenState
               ),
 
               child: TextField(
-
-                controller:
-                    useEmail
-                        ? emailController
-                        : phoneController,
+                controller: emailController,
 
                 keyboardType:
-                    useEmail
-                        ? TextInputType.emailAddress
-                        : TextInputType.phone,
+                    TextInputType.emailAddress,
 
                 style: TextStyle(
                   color: Colors.white,
@@ -14334,7 +14405,6 @@ class _ForgotPasswordScreenState
                 ),
 
                 decoration: InputDecoration(
-
                   border: InputBorder.none,
 
                   contentPadding:
@@ -14343,9 +14413,7 @@ class _ForgotPasswordScreenState
                   ),
 
                   hintText:
-                      useEmail
-                          ? "Enter your email address"
-                          : "Enter your phone number",
+                      "Enter your email address",
 
                   hintStyle: TextStyle(
                     color: Colors.white38,
@@ -14353,10 +14421,7 @@ class _ForgotPasswordScreenState
                   ),
 
                   prefixIcon: Icon(
-                    useEmail
-                        ? Icons.email_outlined
-                        : Icons.phone_outlined,
-
+                    Icons.email_outlined,
                     color: Color(0xFF6EA6C1),
                     size: 28,
                   ),
@@ -14366,228 +14431,64 @@ class _ForgotPasswordScreenState
 
             SizedBox(height: 35),
 
-            /// 🔥 BUTTON
-            if (!codeSent || useEmail)
-              SizedBox(
-                width: double.infinity,
-                height: 68,
+            /// SEND BUTTON
+            SizedBox(
+              width: double.infinity,
+              height: 68,
 
-                child: ElevatedButton(
+              child: ElevatedButton(
+                style:
+                    ElevatedButton.styleFrom(
+                  backgroundColor:
+                      const Color(0xFF6EA6C1),
 
-                  style: ElevatedButton.styleFrom(
+                  elevation: 12,
 
-                    backgroundColor:
-                        const Color(0xFF6EA6C1),
+                  shadowColor:
+                      const Color(0x886EA6C1),
 
-                    elevation: 12,
-
-                    shadowColor:
-                        const Color(0x886EA6C1),
-
-                    shape: RoundedRectangleBorder(
-                      borderRadius:
-                          BorderRadius.circular(40),
-                    ),
-                  ),
-
-                  onPressed: sendCode,
-
-                  child: Row(
-                    mainAxisAlignment:
-                        MainAxisAlignment.center,
-
-                    children: [
-
-                      Icon(
-                        Icons.send_rounded,
-                        color: Colors.white,
-                        size: 28,
-                      ),
-
-                      SizedBox(width: 12),
-
-                      Text(
-                        useEmail
-                            ? "Send Reset Email"
-                            : "Send Code",
-
-                        style: TextStyle(
-                          fontSize: 24,
-                          fontWeight:
-                              FontWeight.bold,
-                          color: Colors.white,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-
-            /// 🔥 PHONE VERIFY SECTION
-            if (codeSent && !useEmail) ...[
-
-              SizedBox(height: 35),
-
-              /// CODE FIELD
-              Container(
-                decoration: BoxDecoration(
-                  borderRadius:
-                      BorderRadius.circular(24),
-
-                  color: const Color(0xFF1D1B20),
-
-                  border: Border.all(
-                    color: Colors.white12,
-                  ),
-                ),
-
-                child: TextField(
-
-                  controller: codeController,
-
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 18,
-                  ),
-
-                  decoration: InputDecoration(
-
-                    border: InputBorder.none,
-
-                    contentPadding:
-                        EdgeInsets.symmetric(
-                      vertical: 24,
-                    ),
-
-                    hintText: "Verification Code",
-
-                    hintStyle: TextStyle(
-                      color: Colors.white38,
-                      fontSize: 18,
-                    ),
-
-                    prefixIcon: Icon(
-                      Icons.lock_outline,
-                      color: Color(0xFF6EA6C1),
+                  shape:
+                      RoundedRectangleBorder(
+                    borderRadius:
+                        BorderRadius.circular(
+                      40,
                     ),
                   ),
                 ),
-              ),
 
-              SizedBox(height: 25),
+                onPressed: sendResetEmail,
 
-              /// PASSWORD FIELD
-              Container(
-                decoration: BoxDecoration(
-                  borderRadius:
-                      BorderRadius.circular(24),
+                child: Row(
+                  mainAxisAlignment:
+                      MainAxisAlignment.center,
 
-                  color: const Color(0xFF1D1B20),
-
-                  border: Border.all(
-                    color: Colors.white12,
-                  ),
-                ),
-
-                child: TextField(
-
-                  controller:
-                      newPasswordController,
-
-                  obscureText: obscurePassword,
-
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 18,
-                  ),
-
-                  decoration: InputDecoration(
-
-                    border: InputBorder.none,
-
-                    contentPadding:
-                        EdgeInsets.symmetric(
-                      vertical: 24,
-                    ),
-
-                    hintText: "New Password",
-
-                    hintStyle: TextStyle(
-                      color: Colors.white38,
-                      fontSize: 18,
-                    ),
-
-                    prefixIcon: Icon(
-                      Icons.lock_outline,
-                      color: Color(0xFF6EA6C1),
-                    ),
-
-                    suffixIcon: IconButton(
-
-                      icon: Icon(
-                        obscurePassword
-                            ? Icons.visibility_off
-                            : Icons.visibility,
-
-                        color: Colors.white70,
-                      ),
-
-                      onPressed: () {
-
-                        setState(() {
-                          obscurePassword =
-                              !obscurePassword;
-                        });
-                      },
-                    ),
-                  ),
-                ),
-              ),
-
-              SizedBox(height: 30),
-
-              /// CHANGE PASSWORD BUTTON
-              SizedBox(
-                width: double.infinity,
-                height: 68,
-
-                child: ElevatedButton(
-
-                  style: ElevatedButton.styleFrom(
-
-                    backgroundColor:
-                        const Color(0xFF6EA6C1),
-
-                    elevation: 12,
-
-                    shadowColor:
-                        const Color(0x886EA6C1),
-
-                    shape: RoundedRectangleBorder(
-                      borderRadius:
-                          BorderRadius.circular(40),
-                    ),
-                  ),
-
-                  onPressed:
-                      verifyCodeAndChangePassword,
-
-                  child: Text(
-                    "Change Password",
-
-                    style: TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
+                  children: [
+                    Icon(
+                      Icons.send_rounded,
                       color: Colors.white,
+                      size: 28,
                     ),
-                  ),
+
+                    SizedBox(width: 12),
+
+                    Text(
+                      "Send Reset Email",
+
+                      style: TextStyle(
+                        fontSize: 24,
+                        fontWeight:
+                            FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ],
                 ),
               ),
-            ],
+            ),
 
             SizedBox(height: 35),
 
-            /// 🔒 PRIVACY
+            /// PRIVACY
             Container(
               padding: EdgeInsets.all(18),
 
@@ -14604,12 +14505,12 @@ class _ForgotPasswordScreenState
 
               child: Row(
                 children: [
-
                   Container(
                     padding: EdgeInsets.all(12),
 
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
+
                       color:
                           const Color(0x336EA6C1),
                     ),
@@ -14625,10 +14526,7 @@ class _ForgotPasswordScreenState
 
                   Expanded(
                     child: Text(
-
-                      useEmail
-                          ? "We’ll never share your email with anyone else."
-                          : "We’ll never share your phone number with anyone else.",
+                      "We’ll never share your email with anyone else.",
 
                       style: TextStyle(
                         color: Colors.white70,
@@ -14646,6 +14544,12 @@ class _ForgotPasswordScreenState
         ),
       ),
     );
+  }
+
+  @override
+  void dispose() {
+    emailController.dispose();
+    super.dispose();
   }
 }
 
@@ -16645,7 +16549,7 @@ String deliveredDate = deliveredAt != null
                     context,
                     MaterialPageRoute(
                       builder: (_) =>
-                          OrderDetailsScreen(order: order),
+                          MyOrderDetailsScreen(order: order),
                     ),
                   );
                 },
@@ -16657,6 +16561,217 @@ String deliveredDate = deliveredAt != null
     );
   }
 }
+
+class MyOrderDetailsScreen extends StatelessWidget {
+  final QueryDocumentSnapshot order;
+
+  const MyOrderDetailsScreen({
+    super.key,
+    required this.order,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final data = order.data() as Map<String, dynamic>;
+
+    List items = data['items'] ?? [];
+
+    return Scaffold(
+      backgroundColor: const Color(0xFF070B1A),
+
+      appBar: AppBar(
+        backgroundColor: const Color(0xFF070B1A),
+        elevation: 0,
+        title: const Text("My Order Details"),
+      ),
+
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
+
+        child: Container(
+          padding: const EdgeInsets.all(18),
+
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(28),
+            gradient: const LinearGradient(
+              colors: [
+                Color(0xFF0D1225),
+                Color(0xFF061A42),
+                Color(0xFF0D1225),
+              ],
+            ),
+          ),
+
+          child: Column(
+            children: [
+
+              /// المنتجات
+              ...items.map((item) {
+
+                int qty = item['quantity'] ?? 1;
+
+                double price =
+    double.tryParse(item['price'].toString()) ?? 0;
+
+                double total =
+                    price * qty;
+
+                return Container(
+                  margin: const EdgeInsets.only(
+                    bottom: 18,
+                  ),
+
+                  padding: const EdgeInsets.all(14),
+
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(.05),
+                    borderRadius:
+                        BorderRadius.circular(24),
+                  ),
+
+                  child: Row(
+                    children: [
+
+                      /// الصورة
+                      ClipRRect(
+                        borderRadius:
+                            BorderRadius.circular(20),
+
+                        child: Image.network(
+                          item['image'],
+                          width: 100,
+                          height: 100,
+                          fit: BoxFit.cover,
+                        ),
+                      ),
+
+                      const SizedBox(width: 16),
+
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment:
+                              CrossAxisAlignment.start,
+
+                          children: [
+
+                            Text(
+                              item['name'],
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 22,
+                                fontWeight:
+                                    FontWeight.bold,
+                              ),
+                            ),
+
+                            const SizedBox(height: 8),
+
+                            Text(
+                              "Size: ${item['size']}",
+                              style: const TextStyle(
+                                color: Colors.white70,
+                                fontSize: 16,
+                              ),
+                            ),
+
+                            const SizedBox(height: 8),
+
+                            Text(
+                              "${price.toStringAsFixed(0)} EGP",
+                              style: const TextStyle(
+                                color: Color(0xFF6EA6C1),
+                                fontSize: 20,
+                                fontWeight:
+                                    FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+
+                      Column(
+                        children: [
+
+                          Container(
+                            padding:
+                                const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 12,
+                            ),
+
+                            decoration: BoxDecoration(
+                              color: Colors.white12,
+                              borderRadius:
+                                  BorderRadius.circular(
+                                20,
+                              ),
+                            ),
+
+                            child: Text(
+                              "x$qty",
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontWeight:
+                                    FontWeight.bold,
+                              ),
+                            ),
+                          ),
+
+                          const SizedBox(height: 16),
+
+                          Text(
+                            "${total.toStringAsFixed(0)} EGP",
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 22,
+                              fontWeight:
+                                  FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                );
+              }).toList(),
+
+              const Divider(
+                color: Colors.white24,
+                height: 40,
+              ),
+
+              Row(
+                mainAxisAlignment:
+                    MainAxisAlignment.spaceBetween,
+
+                children: [
+                  const Text(
+                    "Total Amount",
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+
+                  Text(
+                    "${data['total']} EGP",
+                    style: const TextStyle(
+                      color: Color(0xFF6EA6C1),
+                      fontSize: 28,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class BannerSlider extends StatefulWidget {
   final bool isAdmin;
 
