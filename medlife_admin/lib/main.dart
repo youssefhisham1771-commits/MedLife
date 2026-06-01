@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-
+import 'dart:convert';
+import 'dart:typed_data';
+import 'package:file_picker/file_picker.dart';
+import 'package:http/http.dart' as http;
 import 'firebase_options.dart';
 
 void main() async {
@@ -45,6 +48,9 @@ class _DashboardScreenState
 
   double revenue = 0;
 
+  Uint8List? selectedImage;
+String uploadedImageUrl = '';
+
   @override
   void initState() {
     super.initState();
@@ -73,6 +79,40 @@ class _DashboardScreenState
       usersCount = users.docs.length;
     });
   }
+
+  Future<void> uploadToCloudinary() async {
+  if (selectedImage == null) return;
+
+  const cloudName = 'dzlorraqi';
+  const uploadPreset = 'Medlife';
+
+  final uri = Uri.parse(
+    'https://api.cloudinary.com/v1_1/dzlorraqi/image/upload',
+  );
+
+  final request = http.MultipartRequest(
+    'POST',
+    uri,
+  );
+
+  request.fields['upload_preset'] = uploadPreset;
+
+  request.files.add(
+    http.MultipartFile.fromBytes(
+      'file',
+      selectedImage!,
+      filename: 'product.jpg',
+    ),
+  );
+
+  final response = await request.send();
+
+  final data = jsonDecode(
+    await response.stream.bytesToString(),
+  );
+
+  uploadedImageUrl = data['secure_url'];
+}
 
   @override
   Widget build(BuildContext context) {
@@ -186,14 +226,353 @@ menuItem(Icons.local_offer, "Offers", 5),
 }
 
 Widget buildProductsPage() {
-  return const Center(
-    child: Text(
-      "Products Page",
+  return Padding(
+    padding: const EdgeInsets.all(25),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+
+        Row(
+  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+  children: [
+    const Text(
+      "Products",
       style: TextStyle(
-        fontSize: 30,
+        fontSize: 32,
         fontWeight: FontWeight.bold,
       ),
     ),
+
+    ElevatedButton.icon(
+      onPressed: () {
+        showAddProductDialog(context);
+      },
+      icon: const Icon(Icons.add),
+      label: const Text("Add Product"),
+    ),
+  ],
+),
+
+        const SizedBox(height: 25),
+
+        Expanded(
+          child: StreamBuilder<QuerySnapshot>(
+            stream: FirebaseFirestore.instance
+                .collection('Products')
+                .snapshots(),
+            builder: (context, snapshot) {
+
+              if (!snapshot.hasData) {
+                return const Center(
+                  child:
+                      CircularProgressIndicator(),
+                );
+              }
+
+              final products =
+                  snapshot.data!.docs;
+
+              return SingleChildScrollView(
+                child: DataTable(
+                  columns: const [
+
+  DataColumn(
+    label: Text("Image"),
+  ),
+
+  DataColumn(
+    label: Text("Name"),
+  ),
+
+  DataColumn(
+    label: Text("Category"),
+  ),
+
+  DataColumn(
+    label: Text("Price"),
+  ),
+
+  DataColumn(
+    label: Text("Actions"),
+  ),
+],
+                  rows: products.map((doc) {
+
+                    final data =
+                        doc.data()
+                            as Map<String, dynamic>;
+
+                    return DataRow(
+                      cells: [
+
+                       DataCell(
+  SizedBox(
+    width: 60,
+    height: 60,
+    child: ClipRRect(
+      borderRadius:
+          BorderRadius.circular(8),
+      child: Image.network(
+        data["images"] != null &&
+                data["images"].length > 0
+            ? data["images"][0]
+            : "",
+        fit: BoxFit.cover,
+        errorBuilder:
+            (_, __, ___) =>
+                const Icon(Icons.image),
+      ),
+    ),
+  ),
+),
+
+                        DataCell(
+                          Text(
+                            data["name"] ?? "",
+                          ),
+                        ),
+
+DataCell(
+  Text(
+    data["category"] ?? "",
+  ),
+),
+
+                        DataCell(
+                          Text(
+                            "${data["price"] ?? 0} EGP",
+                          ),
+                        ),
+
+                        DataCell(
+                          Row(
+                            children: [
+
+                              IconButton(
+                                icon: const Icon(
+                                  Icons.edit,
+                                  color:
+                                      Colors.blue,
+                                ),
+                                onPressed: () {},
+                              ),
+
+                              IconButton(
+                                icon: const Icon(
+                                  Icons.delete,
+                                  color:
+                                      Colors.red,
+                                ),
+                                onPressed: () async {
+  await FirebaseFirestore.instance
+      .collection('Products')
+      .doc(doc.id)
+      .delete();
+
+  await loadDashboardData();
+},
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    );
+                  }).toList(),
+                ),
+              );
+            },
+          ),
+        ),
+      ],
+    ),
+  );
+}
+
+void showAddProductDialog(BuildContext context) {
+  final nameController = TextEditingController();
+  final descriptionController = TextEditingController();
+  final priceController = TextEditingController();
+  final deliveryController = TextEditingController();
+  final categoryController = TextEditingController();
+
+  showDialog(
+    context: context,
+    builder: (context) {
+      return AlertDialog(
+        backgroundColor: const Color(0xff111827),
+
+        title: const Text(
+          "Add Product",
+          style: TextStyle(color: Colors.white),
+        ),
+
+        content: SizedBox(
+          width: 500,
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+
+                /// NAME
+                TextField(
+                  controller: nameController,
+                  decoration: const InputDecoration(
+                    labelText: "Product Name",
+                  ),
+                ),
+
+                const SizedBox(height: 15),
+
+                /// DESCRIPTION
+                TextField(
+                  controller: descriptionController,
+                  maxLines: 3,
+                  decoration: const InputDecoration(
+                    labelText: "Description",
+                  ),
+                ),
+
+                const SizedBox(height: 15),
+
+                /// PRICE
+                TextField(
+                  controller: priceController,
+                  keyboardType: TextInputType.number,
+                  decoration: const InputDecoration(
+                    labelText: "Price",
+                  ),
+                ),
+
+                const SizedBox(height: 15),
+
+                /// DELIVERY TEXT
+                TextField(
+                  controller: deliveryController,
+                  decoration: const InputDecoration(
+                    labelText: "Delivery Text",
+                  ),
+                ),
+
+                const SizedBox(height: 15),
+
+TextField(
+  controller: categoryController,
+  decoration: const InputDecoration(
+    labelText: "Category",
+  ),
+),
+
+const SizedBox(height: 15),
+
+ElevatedButton.icon(
+  icon: const Icon(Icons.image),
+  label: const Text("Choose Image"),
+  onPressed: () async {
+    final result =
+        await FilePicker.platform.pickFiles(
+      type: FileType.image,
+      withData: true,
+    );
+
+    if (result != null) {
+      selectedImage = result.files.first.bytes;
+
+      setState(() {});
+    }
+  },
+),
+
+if (selectedImage != null)
+  const Padding(
+    padding: EdgeInsets.only(top: 10),
+    child: Text(
+      "Image Selected ✅",
+    ),
+  ),
+              ],
+            ),
+          ),
+        ),
+
+        actions: [
+
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+            },
+            child: const Text("Cancel"),
+          ),
+
+          ElevatedButton.icon(
+            icon: const Icon(Icons.save),
+            label: const Text("Save"),
+
+            onPressed: () async {
+
+  if (selectedImage == null) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text("Choose an image first"),
+      ),
+    );
+    return;
+  }
+
+  await uploadToCloudinary();
+
+              await FirebaseFirestore.instance
+                  .collection("Products")
+                  .add({
+
+                "id": DateTime.now()
+    .millisecondsSinceEpoch
+    .toString(),
+
+                "name": nameController.text.trim(),
+
+                "description":
+                    descriptionController.text.trim(),
+
+                "price": double.tryParse(
+      priceController.text.trim(),
+    ) ??
+    0,
+
+                "deliveryText":
+                    deliveryController.text.trim(),
+
+                "category": categoryController.text.trim(),
+
+                "images": [
+  uploadedImageUrl,
+],
+
+                "createdAt":
+                    FieldValue.serverTimestamp(),
+              });
+
+
+
+              await loadDashboardData();
+
+
+              if (mounted) {
+                Navigator.pop(context);
+
+                ScaffoldMessenger.of(context)
+                    .showSnackBar(
+                  const SnackBar(
+                    content: Text(
+                      "Product Added Successfully ✅",
+                    ),
+                  ),
+                );
+              }
+            },
+          ),
+        ],
+      );
+    },
   );
 }
 
