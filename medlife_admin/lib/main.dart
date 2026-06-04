@@ -6,6 +6,8 @@ import 'dart:typed_data';
 import 'package:file_picker/file_picker.dart';
 import 'package:http/http.dart' as http;
 import 'firebase_options.dart';
+import 'admin_login.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -26,7 +28,9 @@ class MyApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       title: 'MedLife Admin',
       theme: ThemeData.dark(),
-      home: const DashboardScreen(),
+      home: FirebaseAuth.instance.currentUser != null
+    ? const DashboardScreen()
+    : const AdminLogin(),
     );
   }
 }
@@ -47,6 +51,11 @@ class _DashboardScreenState
   int selectedIndex = 0;
 
   double revenue = 0;
+
+  int pendingOrders = 0;
+int processingOrders = 0;
+int deliveredOrders = 0;
+int cancelledOrders = 0;
 
   Uint8List? selectedImage;
 String uploadedImageUrl = '';
@@ -73,11 +82,58 @@ String uploadedImageUrl = '';
             .collection('users')
             .get();
 
-    setState(() {
-      productsCount = products.docs.length;
-      ordersCount = orders.docs.length;
-      usersCount = users.docs.length;
-    });
+    double totalRevenue = 0;
+
+for (var order in orders.docs) {
+  final data =
+      order.data() as Map<String, dynamic>;
+
+  if (data["status"] == "delivered") {
+    totalRevenue +=
+        (data["total"] ?? 0).toDouble();
+  }
+}
+
+int pending = 0;
+int processing = 0;
+int delivered = 0;
+int cancelled = 0;
+
+for (var order in orders.docs) {
+  final data =
+      order.data() as Map<String, dynamic>;
+
+  switch (data["status"]) {
+    case "pending":
+      pending++;
+      break;
+
+    case "processing":
+      processing++;
+      break;
+
+    case "delivered":
+      delivered++;
+      break;
+
+    case "cancelled":
+      cancelled++;
+      break;
+  }
+}
+
+setState(() {
+  productsCount = products.docs.length;
+  ordersCount = orders.docs.length;
+  usersCount = users.docs.length;
+
+  revenue = totalRevenue;
+
+  pendingOrders = pending;
+  processingOrders = processing;
+  deliveredOrders = delivered;
+  cancelledOrders = cancelled;
+});
   }
 
   Future<void> uploadToCloudinary() async {
@@ -146,29 +202,60 @@ menuItem(Icons.shopping_cart, "Orders", 2),
 menuItem(Icons.people, "Users", 3),
 menuItem(Icons.discount, "Coupons", 4),
 menuItem(Icons.local_offer, "Offers", 5),
+menuItem(Icons.image, "Banners", 6),
+const Spacer(),
+ListTile(
+  leading: const Icon(
+    Icons.logout,
+    color: Colors.red,
+  ),
+  title: const Text(
+    "Logout",
+    style: TextStyle(
+      color: Colors.red,
+    ),
+  ),
+  onTap: () async {
+
+    await FirebaseAuth.instance
+        .signOut();
+
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(
+        builder:
+            (_) => const AdminLogin(),
+      ),
+    );
+  },
+),
               ],
             ),
           ),
 
 Expanded(
   child: selectedIndex == 0
-    ? buildDashboard()
-    : selectedIndex == 1
-        ? buildProductsPage()
-        : selectedIndex == 2
-    ? buildOrdersPage()
-    : selectedIndex == 3
-        ? buildUsersPage()
-        : selectedIndex == 4
-            ? buildCouponsPage()
-            : const Center(
-                child: Text(
-                  "Coming Soon",
-                  style: TextStyle(
-                    fontSize: 30,
-                  ),
-                ),
-              )
+      ? buildDashboard()
+      : selectedIndex == 1
+          ? buildProductsPage()
+          : selectedIndex == 2
+              ? buildOrdersPage()
+              : selectedIndex == 3
+                  ? buildUsersPage()
+                  : selectedIndex == 4
+                      ? buildCouponsPage()
+                      : selectedIndex == 5
+                          ? buildOffersPage()
+                          : selectedIndex == 6
+                              ? buildBannersPage()
+                              : const Center(
+                                  child: Text(
+                                    "Coming Soon",
+                                    style: TextStyle(
+                                      fontSize: 30,
+                                    ),
+                                  ),
+                                ),
 ),
         ],
       ),
@@ -227,6 +314,42 @@ Expanded(
             ),
           ],
         ),
+        const SizedBox(height: 25),
+
+Row(
+  children: [
+
+    dashboardCard(
+      "Pending",
+      pendingOrders.toString(),
+      Icons.schedule,
+    ),
+
+    const SizedBox(width: 20),
+
+    dashboardCard(
+      "Processing",
+      processingOrders.toString(),
+      Icons.autorenew,
+    ),
+
+    const SizedBox(width: 20),
+
+    dashboardCard(
+      "Delivered",
+      deliveredOrders.toString(),
+      Icons.check_circle,
+    ),
+
+    const SizedBox(width: 20),
+
+    dashboardCard(
+      "Cancelled",
+      cancelledOrders.toString(),
+      Icons.cancel,
+    ),
+  ],
+),
       ],
     ),
   );
@@ -300,6 +423,14 @@ Widget buildProductsPage() {
   ),
 
   DataColumn(
+  label: Text("Stock"),
+),
+
+DataColumn(
+  label: Text("Status"),
+),
+
+  DataColumn(
     label: Text("Actions"),
   ),
 ],
@@ -352,17 +483,49 @@ DataCell(
                         ),
 
                         DataCell(
+  Text(
+    "${data["stock"] ?? 0}",
+  ),
+),
+DataCell(
+  Container(
+    padding:
+        const EdgeInsets.symmetric(
+      horizontal: 10,
+      vertical: 5,
+    ),
+    decoration: BoxDecoration(
+      color:
+          (data["stock"] ?? 0) > 0
+              ? Colors.green
+              : Colors.red,
+      borderRadius:
+          BorderRadius.circular(20),
+    ),
+    child: Text(
+      (data["stock"] ?? 0) > 0
+          ? "In Stock"
+          : "Out Of Stock",
+    ),
+  ),
+),
+
+                        DataCell(
                           Row(
                             children: [
 
                               IconButton(
-                                icon: const Icon(
-                                  Icons.edit,
-                                  color:
-                                      Colors.blue,
-                                ),
-                                onPressed: () {},
-                              ),
+  icon: const Icon(
+    Icons.edit,
+    color: Colors.blue,
+  ),
+  onPressed: () {
+    showEditProductDialog(
+      doc.id,
+      data,
+    );
+  },
+),
 
                               IconButton(
                                 icon: const Icon(
@@ -401,6 +564,7 @@ void showAddProductDialog(BuildContext context) {
   final priceController = TextEditingController();
   final deliveryController = TextEditingController();
   final categoryController = TextEditingController();
+  final stockController = TextEditingController();
 
   showDialog(
     context: context,
@@ -466,6 +630,16 @@ TextField(
   controller: categoryController,
   decoration: const InputDecoration(
     labelText: "Category",
+  ),
+),
+
+const SizedBox(height: 15),
+
+TextField(
+  controller: stockController,
+  keyboardType: TextInputType.number,
+  decoration: const InputDecoration(
+    labelText: "Stock",
   ),
 ),
 
@@ -545,6 +719,11 @@ if (selectedImage != null)
     ) ??
     0,
 
+    "stock": int.tryParse(
+      stockController.text.trim(),
+    ) ??
+    0,
+
                 "deliveryText":
                     deliveryController.text.trim(),
 
@@ -578,6 +757,455 @@ if (selectedImage != null)
             },
           ),
         ],
+      );
+    },
+  );
+}
+
+void showEditProductDialog(
+  String docId,
+  Map<String, dynamic> product,
+) {
+  final nameController = TextEditingController(
+    text: product["name"] ?? "",
+  );
+
+  final descriptionController =
+      TextEditingController(
+    text: product["description"] ?? "",
+  );
+
+  final priceController = TextEditingController(
+    text: product["price"].toString(),
+  );
+
+  final categoryController =
+      TextEditingController(
+    text: product["category"] ?? "",
+  );
+
+  final stockController =
+    TextEditingController(
+  text:
+      (product["stock"] ?? 0)
+          .toString(),
+);
+
+  final deliveryController =
+      TextEditingController(
+    text: product["deliveryText"] ?? "",
+  );
+
+  Uint8List? newImage;
+
+  String imageUrl =
+      product["images"] != null &&
+              product["images"].isNotEmpty
+          ? product["images"][0]
+          : "";
+
+  showDialog(
+    context: context,
+    builder: (dialogContext) {
+      return StatefulBuilder(
+        builder: (context, setDialogState) {
+          return AlertDialog(
+            backgroundColor:
+                const Color(0xff111827),
+
+            title: const Text(
+              "Edit Product",
+              style: TextStyle(
+                color: Colors.white,
+              ),
+            ),
+
+            content: SizedBox(
+              width: 500,
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize:
+                      MainAxisSize.min,
+                  children: [
+
+                    TextField(
+                      controller:
+                          nameController,
+                      decoration:
+                          const InputDecoration(
+                        labelText:
+                            "Product Name",
+                      ),
+                    ),
+
+                    const SizedBox(
+                      height: 15,
+                    ),
+
+                    TextField(
+                      controller:
+                          descriptionController,
+                      maxLines: 3,
+                      decoration:
+                          const InputDecoration(
+                        labelText:
+                            "Description",
+                      ),
+                    ),
+
+                    const SizedBox(
+                      height: 15,
+                    ),
+
+                    TextField(
+                      controller:
+                          priceController,
+                      keyboardType:
+                          TextInputType.number,
+                      decoration:
+                          const InputDecoration(
+                        labelText:
+                            "Price",
+                      ),
+                    ),
+
+                    TextField(
+  controller: stockController,
+  keyboardType: TextInputType.number,
+  decoration: const InputDecoration(
+    labelText: "Stock",
+  ),
+),
+
+                    const SizedBox(
+                      height: 15,
+                    ),
+
+                    TextField(
+                      controller:
+                          categoryController,
+                      decoration:
+                          const InputDecoration(
+                        labelText:
+                            "Category",
+                      ),
+                    ),
+
+                    const SizedBox(
+                      height: 15,
+                    ),
+
+                    TextField(
+                      controller:
+                          deliveryController,
+                      decoration:
+                          const InputDecoration(
+                        labelText:
+                            "Delivery Text",
+                      ),
+                    ),
+
+                    const SizedBox(
+                      height: 20,
+                    ),
+
+                    ElevatedButton.icon(
+                      icon: const Icon(
+                        Icons.image,
+                      ),
+                      label: const Text(
+                        "Change Image",
+                      ),
+                      onPressed:
+                          () async {
+
+                        final result =
+                            await FilePicker
+                                .platform
+                                .pickFiles(
+                          type:
+                              FileType.image,
+                          withData:
+                              true,
+                        );
+
+                        if (result !=
+                            null) {
+                          newImage =
+                              result
+                                  .files
+                                  .first
+                                  .bytes;
+
+                          setDialogState(
+                            () {},
+                          );
+                        }
+                      },
+                    ),
+
+                    const SizedBox(
+                      height: 10,
+                    ),
+
+                    if (newImage != null)
+                      const Text(
+                        "New Image Selected ✅",
+                      ),
+
+                    const SizedBox(
+                      height: 15,
+                    ),
+
+                    if (imageUrl
+                        .isNotEmpty)
+                      ClipRRect(
+                        borderRadius:
+                            BorderRadius
+                                .circular(
+                          10,
+                        ),
+                        child:
+                            Image.network(
+                          imageUrl,
+                          width: 120,
+                          height: 120,
+                          fit: BoxFit.cover,
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ),
+
+            actions: [
+
+              TextButton(
+                onPressed: () {
+                  Navigator.pop(
+                    dialogContext,
+                  );
+                },
+                child: const Text(
+                  "Cancel",
+                ),
+              ),
+
+              ElevatedButton(
+                onPressed:
+                    () async {
+
+                  if (newImage !=
+                      null) {
+
+                    selectedImage =
+                        newImage;
+
+                    await uploadToCloudinary();
+
+                    imageUrl =
+                        uploadedImageUrl;
+                  }
+
+                  await FirebaseFirestore
+                      .instance
+                      .collection(
+                        "Products",
+                      )
+                      .doc(docId)
+                      .update({
+
+                    "name":
+                        nameController
+                            .text
+                            .trim(),
+
+                    "description":
+                        descriptionController
+                            .text
+                            .trim(),
+
+                    "price":
+                        double.tryParse(
+                              priceController
+                                  .text
+                                  .trim(),
+                            ) ??
+                            0,
+
+                    "category":
+                        categoryController
+                            .text
+                            .trim(),
+
+                    "stock": int.tryParse(
+      stockController.text,
+    ) ??
+    0,
+
+                    "deliveryText":
+                        deliveryController
+                            .text
+                            .trim(),
+
+                    "images": [
+                      imageUrl,
+                    ],
+                  });
+
+                  Navigator.pop(
+                    dialogContext,
+                  );
+
+                  ScaffoldMessenger.of(
+                    context,
+                  ).showSnackBar(
+                    const SnackBar(
+                      content: Text(
+                        "Product Updated Successfully ✅",
+                      ),
+                    ),
+                  );
+                },
+                child: const Text(
+                  "Save",
+                ),
+              ),
+            ],
+          );
+        },
+      );
+    },
+  );
+}
+
+void showAddBannerDialog() {
+  Uint8List? bannerImage;
+
+  showDialog(
+    context: context,
+    builder: (dialogContext) {
+      return StatefulBuilder(
+        builder:
+            (context, setDialogState) {
+
+          return AlertDialog(
+            backgroundColor:
+                const Color(
+              0xff111827,
+            ),
+
+            title: const Text(
+              "Add Banner",
+            ),
+
+            content: Column(
+              mainAxisSize:
+                  MainAxisSize.min,
+              children: [
+
+                ElevatedButton.icon(
+                  icon: const Icon(
+                    Icons.image,
+                  ),
+                  label: const Text(
+                    "Choose Image",
+                  ),
+                  onPressed:
+                      () async {
+
+                    final result =
+                        await FilePicker
+                            .platform
+                            .pickFiles(
+                      type:
+                          FileType.image,
+                      withData:
+                          true,
+                    );
+
+                    if (result !=
+                        null) {
+
+                      bannerImage =
+                          result
+                              .files
+                              .first
+                              .bytes;
+
+                      setDialogState(
+                        () {},
+                      );
+                    }
+                  },
+                ),
+
+                const SizedBox(
+                  height: 15,
+                ),
+
+                if (bannerImage !=
+                    null)
+                  const Text(
+                    "Image Selected ✅",
+                  ),
+              ],
+            ),
+
+            actions: [
+
+              TextButton(
+                onPressed: () {
+                  Navigator.pop(
+                    dialogContext,
+                  );
+                },
+                child: const Text(
+                  "Cancel",
+                ),
+              ),
+
+              ElevatedButton(
+                onPressed:
+                    () async {
+
+                  if (bannerImage ==
+                      null) {
+                    return;
+                  }
+
+                  selectedImage =
+                      bannerImage;
+
+                  await uploadToCloudinary();
+
+                  await FirebaseFirestore
+                      .instance
+                      .collection(
+                        "banners",
+                      )
+                      .add({
+
+                    "image":
+                        uploadedImageUrl,
+
+                    "active": true,
+
+                    "createdAt":
+                        FieldValue
+                            .serverTimestamp(),
+                  });
+
+                  Navigator.pop(
+                    dialogContext,
+                  );
+                },
+                child:
+                    const Text("Save"),
+              ),
+            ],
+          );
+        },
       );
     },
   );
@@ -1132,6 +1760,522 @@ Widget buildCouponsPage() {
         ),
       ],
     ),
+  );
+}
+
+Widget buildOffersPage() {
+  return Padding(
+    padding: const EdgeInsets.all(25),
+    child: Column(
+      crossAxisAlignment:
+          CrossAxisAlignment.start,
+      children: [
+
+        Row(
+          mainAxisAlignment:
+              MainAxisAlignment.spaceBetween,
+          children: [
+
+            const Text(
+              "Offers",
+              style: TextStyle(
+                fontSize: 32,
+                fontWeight:
+                    FontWeight.bold,
+              ),
+            ),
+
+            ElevatedButton.icon(
+              onPressed: () {
+                showAddOfferDialog();
+              },
+              icon: const Icon(Icons.add),
+              label: const Text(
+                "Add Offer",
+              ),
+            ),
+          ],
+        ),
+
+        const SizedBox(height: 25),
+
+        Expanded(
+          child: StreamBuilder<QuerySnapshot>(
+            stream: FirebaseFirestore.instance
+                .collection("offers")
+                .orderBy(
+                  "createdAt",
+                  descending: true,
+                )
+                .snapshots(),
+            builder: (context, snapshot) {
+
+              if (!snapshot.hasData) {
+                return const Center(
+                  child:
+                      CircularProgressIndicator(),
+                );
+              }
+
+              final offers =
+                  snapshot.data!.docs;
+
+              return DataTable(
+                columns: const [
+
+                  DataColumn(
+                    label: Text("Title"),
+                  ),
+
+                  DataColumn(
+                    label: Text("Discount"),
+                  ),
+
+                  DataColumn(
+                    label: Text("Status"),
+                  ),
+
+                  DataColumn(
+                    label: Text("Actions"),
+                  ),
+                ],
+
+                rows: offers.map((doc) {
+
+                  final data =
+                      doc.data()
+                          as Map<String, dynamic>;
+
+                  return DataRow(
+                    cells: [
+
+                      DataCell(
+                        Text(
+                          data["title"] ?? "",
+                        ),
+                      ),
+
+                      DataCell(
+                        Text(
+                          "${data["discount"]}%"
+                        ),
+                      ),
+
+                      DataCell(
+                        Switch(
+                          value:
+                              data["active"] ??
+                                  true,
+                          onChanged:
+                              (value) async {
+
+                            await FirebaseFirestore
+                                .instance
+                                .collection(
+                                    "offers")
+                                .doc(doc.id)
+                                .update({
+                              "active":
+                                  value,
+                            });
+                          },
+                        ),
+                      ),
+
+                      DataCell(
+                        Row(
+                          children: [
+
+                            IconButton(
+                              icon:
+                                  const Icon(
+                                Icons.edit,
+                                color:
+                                    Colors.blue,
+                              ),
+                              onPressed: () {
+                                showEditOfferDialog(
+                                  doc.id,
+                                  data,
+                                );
+                              },
+                            ),
+
+                            IconButton(
+                              icon:
+                                  const Icon(
+                                Icons.delete,
+                                color:
+                                    Colors.red,
+                              ),
+                              onPressed:
+                                  () async {
+
+                                await FirebaseFirestore
+                                    .instance
+                                    .collection(
+                                        "offers")
+                                    .doc(doc.id)
+                                    .delete();
+                              },
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  );
+                }).toList(),
+              );
+            },
+          ),
+        ),
+      ],
+    ),
+  );
+}
+
+Widget buildBannersPage() {
+  return Padding(
+    padding: const EdgeInsets.all(25),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+
+        Row(
+          mainAxisAlignment:
+              MainAxisAlignment.spaceBetween,
+          children: [
+
+            const Text(
+              "Banners",
+              style: TextStyle(
+                fontSize: 32,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+
+            ElevatedButton.icon(
+              onPressed: () {
+                showAddBannerDialog();
+              },
+              icon: const Icon(Icons.add),
+              label: const Text("Add Banner"),
+            ),
+          ],
+        ),
+
+        const SizedBox(height: 25),
+
+        Expanded(
+          child: StreamBuilder<QuerySnapshot>(
+            stream: FirebaseFirestore.instance
+                .collection("banners")
+                .snapshots(),
+            builder: (context, snapshot) {
+
+              if (!snapshot.hasData) {
+                return const Center(
+                  child:
+                      CircularProgressIndicator(),
+                );
+              }
+
+              final banners =
+                  snapshot.data!.docs;
+
+              return GridView.builder(
+                itemCount: banners.length,
+
+                gridDelegate:
+                    const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 3,
+                  crossAxisSpacing: 20,
+                  mainAxisSpacing: 20,
+                ),
+
+                itemBuilder: (context, index) {
+
+                  final banner =
+                      banners[index];
+
+                  final data =
+                      banner.data()
+                          as Map<String, dynamic>;
+
+                  return Container(
+                    decoration: BoxDecoration(
+                      color:
+                          const Color(0xff111827),
+                      borderRadius:
+                          BorderRadius.circular(
+                        15,
+                      ),
+                    ),
+
+                    child: Column(
+                      children: [
+
+                        Expanded(
+                          child: ClipRRect(
+                            borderRadius:
+                                const BorderRadius.vertical(
+                              top: Radius.circular(
+                                15,
+                              ),
+                            ),
+                            child: Image.network(
+                              data["image"] ?? "",
+                              width:
+                                  double.infinity,
+                              fit: BoxFit.cover,
+                            ),
+                          ),
+                        ),
+
+                        Padding(
+                          padding:
+                              const EdgeInsets.all(
+                            10,
+                          ),
+
+                          child: Row(
+                            mainAxisAlignment:
+                                MainAxisAlignment
+                                    .spaceBetween,
+                            children: [
+
+                              Switch(
+                                value:
+                                    data["active"] ??
+                                        true,
+                                onChanged:
+                                    (value) async {
+
+                                  await FirebaseFirestore
+                                      .instance
+                                      .collection(
+                                          "banners")
+                                      .doc(
+                                          banner.id)
+                                      .update({
+                                    "active":
+                                        value,
+                                  });
+                                },
+                              ),
+
+                              IconButton(
+                                icon:
+                                    const Icon(
+                                  Icons.delete,
+                                  color:
+                                      Colors.red,
+                                ),
+                                onPressed:
+                                    () async {
+
+                                  await FirebaseFirestore
+                                      .instance
+                                      .collection(
+                                          "banners")
+                                      .doc(
+                                          banner.id)
+                                      .delete();
+                                },
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              );
+            },
+          ),
+        ),
+      ],
+    ),
+  );
+}
+
+void showAddOfferDialog() {
+
+  final titleController =
+      TextEditingController();
+
+  final discountController =
+      TextEditingController();
+
+  showDialog(
+    context: context,
+    builder: (context) {
+
+      return AlertDialog(
+        backgroundColor:
+            const Color(0xff111827),
+
+        title: const Text(
+          "Add Offer",
+        ),
+
+        content: Column(
+          mainAxisSize:
+              MainAxisSize.min,
+          children: [
+
+            TextField(
+              controller:
+                  titleController,
+              decoration:
+                  const InputDecoration(
+                labelText:
+                    "Offer Title",
+              ),
+            ),
+
+            const SizedBox(
+              height: 15,
+            ),
+
+            TextField(
+              controller:
+                  discountController,
+              keyboardType:
+                  TextInputType.number,
+              decoration:
+                  const InputDecoration(
+                labelText:
+                    "Discount %",
+              ),
+            ),
+          ],
+        ),
+
+        actions: [
+
+          ElevatedButton(
+            onPressed: () async {
+
+              await FirebaseFirestore
+                  .instance
+                  .collection("offers")
+                  .add({
+
+                "title":
+                    titleController.text,
+
+                "discount":
+                    int.tryParse(
+                          discountController
+                              .text,
+                        ) ??
+                        0,
+
+                "active": true,
+
+                "createdAt":
+                    FieldValue
+                        .serverTimestamp(),
+              });
+
+              Navigator.pop(
+                context,
+              );
+            },
+            child:
+                const Text("Save"),
+          ),
+        ],
+      );
+    },
+  );
+}
+
+void showEditOfferDialog(
+  String docId,
+  Map<String, dynamic> offer,
+) {
+
+  final titleController =
+      TextEditingController(
+    text: offer["title"],
+  );
+
+  final discountController =
+      TextEditingController(
+    text:
+        offer["discount"]
+            .toString(),
+  );
+
+  showDialog(
+    context: context,
+    builder: (context) {
+
+      return AlertDialog(
+        backgroundColor:
+            const Color(0xff111827),
+
+        title: const Text(
+          "Edit Offer",
+        ),
+
+        content: Column(
+          mainAxisSize:
+              MainAxisSize.min,
+          children: [
+
+            TextField(
+              controller:
+                  titleController,
+            ),
+
+            const SizedBox(
+              height: 15,
+            ),
+
+            TextField(
+              controller:
+                  discountController,
+              keyboardType:
+                  TextInputType.number,
+            ),
+          ],
+        ),
+
+        actions: [
+
+          ElevatedButton(
+            onPressed: () async {
+
+              await FirebaseFirestore
+                  .instance
+                  .collection("offers")
+                  .doc(docId)
+                  .update({
+
+                "title":
+                    titleController.text,
+
+                "discount":
+                    int.tryParse(
+                          discountController
+                              .text,
+                        ) ??
+                        0,
+              });
+
+              Navigator.pop(
+                context,
+              );
+            },
+            child:
+                const Text("Save"),
+          ),
+        ],
+      );
+    },
   );
 }
 

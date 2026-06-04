@@ -77,30 +77,29 @@ class _MyAppState extends State<MyApp> {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
+   return MaterialApp(
+  debugShowCheckedModeBanner: false,
 
-      theme: ThemeData(
-        brightness: Brightness.light,
-        primarySwatch: Colors.blue,
-        appBarTheme: AppBarTheme(
-          backgroundColor: Colors.white,
-          foregroundColor: Colors.black,
-        ),
-      ),
+  theme: ThemeData(
+    brightness: Brightness.dark,
+    appBarTheme: const AppBarTheme(
+      backgroundColor: Colors.black,
+      foregroundColor: Colors.white,
+    ),
+  ),
 
-      darkTheme: ThemeData(
-        brightness: Brightness.dark,
-        appBarTheme: AppBarTheme(
-          backgroundColor: Colors.black,
-          foregroundColor: Colors.white,
-        ),
-      ),
+  darkTheme: ThemeData(
+    brightness: Brightness.dark,
+    appBarTheme: const AppBarTheme(
+      backgroundColor: Colors.black,
+      foregroundColor: Colors.white,
+    ),
+  ),
 
-      themeMode: isDark ? ThemeMode.dark : ThemeMode.light,
+  themeMode: ThemeMode.dark,
 
-      home: SplashScreen(),
-    );
+  home: SplashScreen(),
+);
   }
 }
 
@@ -2648,6 +2647,8 @@ Widget buildBadge({
   Widget build(BuildContext context) {
     var user = FirebaseAuth.instance.currentUser;
 
+
+
 int favCount = favourites.length;
     
 return Scaffold(
@@ -2724,7 +2725,7 @@ return Scaffold(
         ),
       ),
   actions: [
-    Padding(
+    /* Padding(
   padding: const EdgeInsets.symmetric(horizontal: 6),
   child: GestureDetector(
     onTap: () {
@@ -2784,6 +2785,7 @@ return Scaffold(
     ),
   ),
 ),
+*/
 
 /// 🔥 SALES
 Padding(
