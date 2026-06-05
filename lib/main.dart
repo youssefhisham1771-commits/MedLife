@@ -2249,9 +2249,9 @@ Widget buildFavourites() {
     child: Column(
       children: [
 
-        /// HEADER
+        /// HEADER fav
         Container(
-          padding: EdgeInsets.all(20),
+          padding: EdgeInsets.all(15),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(25),
             border: Border.all(color: Colors.white10),
@@ -2266,8 +2266,8 @@ Widget buildFavourites() {
             children: [
 
               Container(
-                width: 90,
-                height: 90,
+                width: 70,
+                height: 70,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   color: Color(0xFF1B2233),
@@ -2278,11 +2278,11 @@ Widget buildFavourites() {
                 child: Icon(
                   Icons.favorite,
                   color: Color(0xFF6EA6C1),
-                  size: 40,
+                  size: 30,
                 ),
               ),
 
-              SizedBox(width: 20),
+              SizedBox(width: 15),
 
               Expanded(
                 child: Column(
@@ -2293,7 +2293,7 @@ Widget buildFavourites() {
                     Text(
                       "My Favourites",
                       style: TextStyle(
-                        fontSize: 28,
+                        fontSize: 22,
                         fontWeight: FontWeight.bold,
                         color: Colors.white,
                       ),
@@ -2304,7 +2304,7 @@ Widget buildFavourites() {
                     Text(
                       "${favourites.length} items saved",
                       style: TextStyle(
-                        fontSize: 18,
+                        fontSize: 14,
                         color: Colors.white70,
                       ),
                     ),
@@ -2315,6 +2315,7 @@ Widget buildFavourites() {
                       "Items you love, all in one place.",
                       style: TextStyle(
                         color: Colors.white54,
+                        fontSize: 12,
                       ),
                     ),
                   ],
@@ -3420,6 +3421,22 @@ class SalesScreen extends StatelessWidget {
               ) /
               sales.length;
 
+              double totalDiscountValue =
+    sales.fold<double>(
+      0.0,
+      (sum, item) {
+        var sale = item.data() as Map<String, dynamic>;
+
+        double price =
+            ((sale['price'] ?? 0) as num).toDouble();
+
+        double discount =
+            ((sale['discount'] ?? 0) as num).toDouble();
+
+        return sum + (price * discount / 100);
+      },
+    );
+
           return ListView(
             padding:
                 const EdgeInsets.all(18),
@@ -3494,10 +3511,10 @@ class SalesScreen extends StatelessWidget {
                     divider(),
 
                     statItem(
-                      Icons.attach_money,
-                      "Total Discount",
-                      "2000 EGP",
-                    ),
+  Icons.attach_money,
+  "Total Discount",
+  "${totalDiscountValue.toStringAsFixed(0)} EGP",
+),
                   ],
                 ),
               ),
@@ -4139,6 +4156,7 @@ class _AddSaleScreenState extends State<AddSaleScreen> {
   String? uploadedImageUrl;
   String? selectedProductId;
   String? selectedProductName;
+  double? selectedProductPrice;
 
   /// 📸 PICK IMAGE
   Future<void> pickImage() async {
@@ -4202,6 +4220,7 @@ class _AddSaleScreenState extends State<AddSaleScreen> {
 
     if (
         selectedProductId == null ||
+        selectedProductPrice == null ||
         uploadedImageUrl == null ||
         titleController.text.trim().isEmpty ||
         detailsController.text.trim().isEmpty ||
@@ -4232,6 +4251,8 @@ class _AddSaleScreenState extends State<AddSaleScreen> {
         "productId": selectedProductId,
 
 "productName": selectedProductName,
+
+'price': selectedProductPrice,
 
         "title": titleController.text.trim(),
 
@@ -4408,11 +4429,13 @@ StreamBuilder(
 
         setState(() {
 
-          selectedProductId = selected.id;
+  selectedProductId = selected.id;
 
-          selectedProductName =
-              data['name'];
-        });
+  selectedProductName = data['name'];
+
+  selectedProductPrice =
+      (data['price'] as num).toDouble();
+});
       },
 
       decoration: InputDecoration(
