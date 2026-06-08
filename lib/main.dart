@@ -19,6 +19,89 @@ import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
 import 'package:http/http.dart' as http;
 import 'dart:async';
+import 'package:flutter/foundation.dart';
+
+
+final GoogleSignIn googleSignIn = GoogleSignIn.instance;
+
+Future<void> signInWithGoogleGlobal(
+  BuildContext context,
+) async {
+  try {
+    // WEB
+    if (kIsWeb) {
+      GoogleAuthProvider provider = GoogleAuthProvider();
+
+      final userCredential =
+          await FirebaseAuth.instance.signInWithPopup(provider);
+
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(userCredential.user!.uid)
+          .set({
+        'name': userCredential.user!.displayName ?? '',
+        'phone': userCredential.user!.phoneNumber ?? '',
+        'email': userCredential.user!.email ?? '',
+        'role': 'user',
+      }, SetOptions(merge: true));
+
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (_) => ProductsScreen(),
+        ),
+      );
+
+      return;
+    }
+
+    // ANDROID / IOS
+    await googleSignIn.signOut();
+    await FirebaseAuth.instance.signOut();
+
+    final GoogleSignInAccount? googleUser =
+        await googleSignIn.authenticate();
+
+    if (googleUser == null) return;
+
+    final GoogleSignInAuthentication googleAuth =
+        await googleUser.authentication;
+
+    final credential = GoogleAuthProvider.credential(
+      idToken: googleAuth.idToken,
+    );
+
+    final userCredential =
+        await FirebaseAuth.instance.signInWithCredential(
+      credential,
+    );
+
+    await FirebaseFirestore.instance
+        .collection('users')
+        .doc(userCredential.user!.uid)
+        .set({
+      'name': userCredential.user!.displayName ?? '',
+      'phone': userCredential.user!.phoneNumber ?? '',
+      'email': userCredential.user!.email ?? '',
+      'role': 'user',
+    }, SetOptions(merge: true));
+
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(
+        builder: (_) => ProductsScreen(),
+      ),
+    );
+  } catch (e) {
+    debugPrint("GOOGLE ERROR: $e");
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(e.toString()),
+      ),
+    );
+  }
+}
 
 // ✳️ ايميل الادمن
 const String adminEmail = "youssef.hisham1771@gmail.com";
@@ -32,11 +115,20 @@ final cloudinary = CloudinaryPublic(
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
+  try {
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
 
-  runApp(MyApp());
+    if (!kIsWeb) {
+  await googleSignIn.initialize();
+}
+
+    runApp(MyApp());
+  } catch (e, s) {
+    debugPrint("MAIN ERROR: $e");
+    debugPrint("$s");
+  }
 }
 
 class MyApp extends StatefulWidget {
@@ -342,52 +434,6 @@ class _LoginScreenState extends State<LoginScreen> {
 
     if (mounted) {
       setState(() => isLoading = false);
-    }
-  }
-
-  /// 🔥 GOOGLE SIGN IN
-  Future<void> signInWithGoogle() async {
-    try {
-      setState(() => isGoogleLoading = true);
-
-      final GoogleSignIn googleSignIn = GoogleSignIn.instance;
-
-await googleSignIn.initialize();
-
-await googleSignIn.signOut();
-    await FirebaseAuth.instance.signOut();
-
-final GoogleSignInAccount? googleUser =
-    await googleSignIn.authenticate();
-
-      if (googleUser == null) {
-        setState(() => isGoogleLoading = false);
-        return;
-      }
-
-      final GoogleSignInAuthentication googleAuth =
-          await googleUser.authentication;
-
-      final credential = GoogleAuthProvider.credential(
-  idToken: googleAuth.idToken,
-);
-
-      await FirebaseAuth.instance.signInWithCredential(credential);
-
-      if (mounted) {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (_) => ProductsScreen()),
-        );
-      }
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Google Login Failed")),
-      );
-    }
-
-    if (mounted) {
-      setState(() => isGoogleLoading = false);
     }
   }
 
@@ -828,8 +874,9 @@ final GoogleSignInAccount? googleUser =
     child: InkWell(
       borderRadius: BorderRadius.circular(18),
 
-      onTap:
-          isGoogleLoading ? null : signInWithGoogle,
+      onTap: isGoogleLoading
+    ? null
+    : () => signInWithGoogleGlobal(context),
 
       child: Container(
         width: 220,
@@ -984,69 +1031,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   bool isLoading = false;
   bool isPasswordHidden = true;
-
-  Future<void> signInWithGoogle() async {
-  try {
-    setState(() => isLoading = true);
-
-    final GoogleSignIn googleSignIn = GoogleSignIn.instance;
-
-await googleSignIn.initialize();
-
-await googleSignIn.signOut();
-    await FirebaseAuth.instance.signOut();
-
-final GoogleSignInAccount? googleUser =
-    await googleSignIn.authenticate();
-
-    if (googleUser == null) {
-      setState(() => isLoading = false);
-      return;
-    }
-
-    final GoogleSignInAuthentication googleAuth =
-        await googleUser.authentication;
-
-    final credential = GoogleAuthProvider.credential(
-  idToken: googleAuth.idToken,
-);
-
-    final userCredential = await FirebaseAuth.instance
-        .signInWithCredential(credential);
-
-    /// 🔥 SAVE USER DATA
-    await FirebaseFirestore.instance
-        .collection('users')
-        .doc(userCredential.user!.uid)
-        .set({
-      'name': userCredential.user!.displayName ?? '',
-      'phone': userCredential.user!.phoneNumber ?? '',
-      'email': userCredential.user!.email ?? '',
-      'role': 'user',
-    }, SetOptions(merge: true));
-
-    if (mounted) {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(
-          builder: (_) => ProductsScreen(),
-        ),
-      );
-    }
-  } catch (e) {
-    print(e);
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text("Google Sign In Failed"),
-      ),
-    );
-  }
-
-  if (mounted) {
-    setState(() => isLoading = false);
-  }
-}
 
   Future<void> register() async {
     if (name.text.trim().isEmpty ||
@@ -1509,7 +1493,7 @@ Center(
     text: "Google",
     image:
         "https://cdn-icons-png.flaticon.com/512/300/300221.png",
-    onTap: signInWithGoogle,
+    onTap: () => signInWithGoogleGlobal(context),
   ),
 ),
 
