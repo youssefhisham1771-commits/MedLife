@@ -61,10 +61,44 @@ int cancelledOrders = 0;
 String uploadedImageUrl = '';
 
   @override
-  void initState() {
-    super.initState();
-    loadDashboardData();
+void initState() {
+  super.initState();
+
+  checkAdmin();
+  loadDashboardData();
+}
+
+Future<void> checkAdmin() async {
+  final user = FirebaseAuth.instance.currentUser;
+
+  if (user == null) {
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(
+        builder: (_) => const AdminLogin(),
+      ),
+    );
+    return;
   }
+
+  final doc = await FirebaseFirestore.instance
+      .collection('users')
+      .doc(user.uid)
+      .get();
+
+  if (!doc.exists ||
+      doc.data()?['role'] != 'admin') {
+
+    await FirebaseAuth.instance.signOut();
+
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(
+        builder: (_) => const AdminLogin(),
+      ),
+    );
+  }
+}
 
   Future<void> loadDashboardData() async {
     final products =
@@ -171,6 +205,7 @@ setState(() {
 }
 
   @override
+
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xff0B1120),
