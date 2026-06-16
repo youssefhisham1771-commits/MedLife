@@ -20,6 +20,8 @@ import 'package:printing/printing.dart';
 import 'package:http/http.dart' as http;
 import 'dart:async';
 import 'package:flutter/foundation.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
+import 'notification_service.dart';
 
 
 final GoogleSignIn googleSignIn = GoogleSignIn.instance;
@@ -112,6 +114,48 @@ final cloudinary = CloudinaryPublic(
   cache: false,
 );
 
+Future<void> saveFcmToken() async {
+  try {
+    if (kIsWeb) return;
+
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    final token = await FirebaseMessaging.instance.getToken();
+    if (token == null) return;
+
+    await FirebaseFirestore.instance
+        .collection('users')
+        .doc(user.uid)
+        .set({
+      'fcmToken': token,
+    }, SetOptions(merge: true));
+  } catch (e) {
+    print("FCM ERROR: $e");
+  }
+}
+
+void listenForAdminNotifications() {
+  FirebaseFirestore.instance
+      .collection('notifications')
+      .orderBy('createdAt', descending: true)
+      .limit(1)
+      .snapshots()
+      .listen((snapshot) async {
+    if (snapshot.docs.isEmpty) return;
+
+    final data = snapshot.docs.first.data();
+
+    final title = data['title'] ?? '';
+    final body = data['body'] ?? '';
+
+    await NotificationService.showNotification(
+      title,
+      body,
+    );
+  });
+}
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
@@ -120,9 +164,21 @@ void main() async {
       options: DefaultFirebaseOptions.currentPlatform,
     );
 
+    await NotificationService.init();
+
+    await FirebaseMessaging.instance.requestPermission(
+  alert: true,
+  badge: true,
+  sound: true,
+);
+
     if (!kIsWeb) {
   await googleSignIn.initialize();
 }
+
+await saveFcmToken();
+
+listenForAdminNotifications();
 
     runApp(MyApp());
   } catch (e, s) {
@@ -143,10 +199,12 @@ class _MyAppState extends State<MyApp> {
   bool isDark = false;
 
   @override
-  void initState() {
-    super.initState();
-    loadTheme();
-  }
+void initState() {
+  super.initState();
+
+  loadTheme();
+  startNotificationsListener();
+}
 
   // 📥 تحميل من الميموري
   void loadTheme() async {
@@ -166,6 +224,25 @@ class _MyAppState extends State<MyApp> {
 
     await prefs.setBool("isDark", isDark);
   }
+
+  void startNotificationsListener() {
+  FirebaseFirestore.instance
+      .collection('notifications')
+      .orderBy('createdAt', descending: true)
+      .limit(1)
+      .snapshots()
+      .listen((snapshot) {
+
+    if (snapshot.docs.isEmpty) return;
+
+    final data = snapshot.docs.first.data();
+
+    NotificationService.showNotification(
+      data['title'] ?? '',
+      data['body'] ?? '',
+    );
+  });
+}
 
   @override
   Widget build(BuildContext context) {
@@ -403,10 +480,25 @@ class _LoginScreenState extends State<LoginScreen> {
     setState(() => isLoading = true);
 
     try {
-      await FirebaseAuth.instance.signInWithEmailAndPassword(
-        email: emailController.text.trim(),
-        password: passController.text.trim(),
-      );
+      final credential =
+    await FirebaseAuth.instance.signInWithEmailAndPassword(
+  email: emailController.text.trim(),
+  password: passController.text.trim(),
+);
+
+String? token =
+    await FirebaseMessaging.instance.getToken();
+
+    print("TOKEN = $token");
+
+await FirebaseFirestore.instance
+    .collection('users')
+    .doc(credential.user!.uid)
+    .set({
+  'fcmToken': token,
+}, SetOptions(merge: true));
+
+print("TOKEN SAVED");
 
       if (mounted) {
         Navigator.pushReplacement(
@@ -1055,10 +1147,25 @@ class _RegisterScreenState extends State<RegisterScreen> {
     try {
       /// 🔐 CREATE ACCOUNT
       final userCred = await FirebaseAuth.instance
-          .createUserWithEmailAndPassword(
-        email: email.text.trim(),
-        password: pass.text.trim(),
-      );
+    .createUserWithEmailAndPassword(
+  email: email.text.trim(),
+  password: pass.text.trim(),
+);
+
+String? token = await FirebaseMessaging.instance.getToken();
+
+print("FCM TOKEN: $token");
+
+await FirebaseFirestore.instance
+    .collection('users')
+    .doc(userCred.user!.uid)
+    .set({
+  'name': name.text.trim(),
+  'phone': phone.text.trim(),
+  'email': email.text.trim(),
+  'role': 'user',
+  'fcmToken': token,
+});
 
       /// 🔥 SAVE USER DATA
       await FirebaseFirestore.instance
@@ -1070,6 +1177,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
         'email': email.text.trim(),
         'role': 'user',
       });
+
+      await saveFcmToken();
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -1086,28 +1195,22 @@ class _RegisterScreenState extends State<RegisterScreen> {
         );
       }
     } on FirebaseAuthException catch (e) {
-      String message = "حصل خطأ";
+  print("AUTH ERROR: ${e.code}");
+  print("AUTH MESSAGE: ${e.message}");
 
-      if (e.code == 'email-already-in-use') {
-        message = "الايميل مستخدم بالفعل";
-      } else if (e.code == 'invalid-email') {
-        message = "الايميل غير صحيح";
-      } else if (e.code == 'weak-password') {
-        message = "الباسورد ضعيف";
-      }
+  ScaffoldMessenger.of(context).showSnackBar(
+    SnackBar(content: Text(e.message ?? e.code)),
+  );
+}
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(message)),
-      );
-    } catch (e) {
-      print(e);
+catch (e, st) {
+  print("GENERAL ERROR: $e");
+  print(st);
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text("Register Error ❌"),
-        ),
-      );
-    }
+  ScaffoldMessenger.of(context).showSnackBar(
+    SnackBar(content: Text("Register Error ❌")),
+  );
+}
 
     if (mounted) {
       setState(() => isLoading = false);
@@ -1572,6 +1675,8 @@ class _ProductsScreenState extends State<ProductsScreen> {
 @override
 void initState() {
   super.initState();
+
+  FirebaseMessaging.instance.requestPermission();
 
   loadFavourites();
   loadCart();

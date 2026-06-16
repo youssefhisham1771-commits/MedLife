@@ -238,6 +238,10 @@ menuItem(Icons.people, "Users", 3),
 menuItem(Icons.discount, "Coupons", 4),
 menuItem(Icons.local_offer, "Offers", 5),
 menuItem(Icons.image, "Banners", 6),
+
+menuItem(Icons.notifications, "Notifications", 7),
+menuItem(Icons.campaign, "Push Notifications", 8),
+
 const Spacer(),
 ListTile(
   leading: const Icon(
@@ -283,15 +287,10 @@ Expanded(
                           ? buildOffersPage()
                           : selectedIndex == 6
                               ? buildBannersPage()
-                              : const Center(
-                                  child: Text(
-                                    "Coming Soon",
-                                    style: TextStyle(
-                                      fontSize: 30,
-                                    ),
-                                  ),
-                                ),
-),
+                                : selectedIndex == 7
+                                  ? buildNotificationsPage()
+                                  : buildPushNotificationsPage(),
+)
         ],
       ),
     );
@@ -2311,6 +2310,162 @@ void showEditOfferDialog(
         ],
       );
     },
+  );
+}
+
+final notificationTitleController = TextEditingController();
+final notificationBodyController = TextEditingController();
+final pushTitleController =
+    TextEditingController();
+
+final pushBodyController =
+    TextEditingController();
+
+Widget buildNotificationsPage() {
+  return Padding(
+    padding: const EdgeInsets.all(20),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+
+        const Text(
+          "Send Notification",
+          style: TextStyle(
+            fontSize: 28,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+
+        const SizedBox(height: 30),
+
+        TextField(
+          controller: notificationTitleController,
+          decoration: const InputDecoration(
+            labelText: "Title",
+            border: OutlineInputBorder(),
+          ),
+        ),
+
+        const SizedBox(height: 20),
+
+        TextField(
+          controller: notificationBodyController,
+          maxLines: 5,
+          decoration: const InputDecoration(
+            labelText: "Message",
+            border: OutlineInputBorder(),
+          ),
+        ),
+
+        const SizedBox(height: 20),
+
+        ElevatedButton(
+          onPressed: () async {
+
+            await FirebaseFirestore.instance
+                .collection('notifications')
+                .add({
+              'title':
+                  notificationTitleController.text.trim(),
+              'body':
+                  notificationBodyController.text.trim(),
+              'createdAt':
+                  FieldValue.serverTimestamp(),
+            });
+
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text("Notification Sent"),
+              ),
+            );
+
+            notificationTitleController.clear();
+            notificationBodyController.clear();
+          },
+          child: const Text("Send"),
+        ),
+      ],
+    ),
+  );
+}
+
+Widget buildPushNotificationsPage() {
+  return Padding(
+    padding: const EdgeInsets.all(20),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+
+        const Text(
+          "Push Notifications",
+          style: TextStyle(
+            fontSize: 28,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+
+        const SizedBox(height: 30),
+
+        TextField(
+          controller: pushTitleController,
+          decoration: const InputDecoration(
+            labelText: "Title",
+            border: OutlineInputBorder(),
+          ),
+        ),
+
+        const SizedBox(height: 20),
+
+        TextField(
+          controller: pushBodyController,
+          maxLines: 5,
+          decoration: const InputDecoration(
+            labelText: "Message",
+            border: OutlineInputBorder(),
+          ),
+        ),
+
+        const SizedBox(height: 20),
+
+        ElevatedButton(
+          onPressed: () async {
+
+            final response = await http.post(
+              Uri.parse(
+                "http://192.168.1.4:3000/sendNotification",
+              ),
+              headers: {
+                "Content-Type":
+                    "application/json",
+              },
+              body: jsonEncode({
+                "title":
+                    pushTitleController.text.trim(),
+                "body":
+                    pushBodyController.text.trim(),
+              }),
+            );
+            print("STATUS = ${response.statusCode}");
+  print("BODY = ${response.body}");
+
+            if (response.statusCode == 200) {
+              ScaffoldMessenger.of(context)
+                  .showSnackBar(
+                const SnackBar(
+                  content: Text(
+                    "Push Notification Sent",
+                  ),
+                ),
+              );
+
+              pushTitleController.clear();
+              pushBodyController.clear();
+            }
+          },
+          child: const Text("Send Push"),
+        ),
+      ],
+    ),
   );
 }
 
