@@ -50,6 +50,18 @@ class _DashboardScreenState
   int usersCount = 0;
   int selectedIndex = 0;
 
+  List<Map<String, dynamic>> users = [];
+
+List<String> selectedUserIds = [];
+
+List<Map<String, dynamic>> filteredUsers = [];
+
+String searchText = '';
+
+String selectedRoleFilter = 'All';
+
+String sendType = 'selected';
+
   double revenue = 0;
 
   int pendingOrders = 0;
@@ -66,6 +78,7 @@ void initState() {
 
   checkAdmin();
   loadDashboardData();
+  loadUsers();
 }
 
 Future<void> checkAdmin() async {
@@ -169,6 +182,62 @@ setState(() {
   cancelledOrders = cancelled;
 });
   }
+
+
+
+Future<void> loadUsers() async {
+  final snapshot = await FirebaseFirestore.instance
+      .collection('users')
+      .get();
+
+  users = snapshot.docs.map((doc) {
+    final data = doc.data();
+
+    return {
+      'uid': doc.id,
+      'name': data['name'] ?? '',
+      'email': data['email'] ?? '',
+      'role': data['role'] ?? 'user',
+    };
+  }).toList();
+
+  filteredUsers = List.from(users);
+
+  if (mounted) {
+    setState(() {});
+  }
+}
+
+void filterUsers() {
+  filteredUsers = users.where((user) {
+
+    final matchesSearch =
+        user['name']
+            .toString()
+            .toLowerCase()
+            .contains(searchText.toLowerCase()) ||
+
+        user['email']
+            .toString()
+            .toLowerCase()
+            .contains(searchText.toLowerCase());
+
+    bool matchesRole = true;
+
+    if (selectedRoleFilter == 'Users') {
+      matchesRole = user['role'] != 'admin';
+    }
+
+    if (selectedRoleFilter == 'Admins') {
+      matchesRole = user['role'] == 'admin';
+    }
+
+    return matchesSearch && matchesRole;
+
+  }).toList();
+
+  setState(() {});
+}
 
   Future<void> uploadToCloudinary() async {
   if (selectedImage == null) return;
@@ -287,7 +356,7 @@ Expanded(
                           ? buildOffersPage()
                           : selectedIndex == 6
                               ? buildBannersPage()
-                                : selectedIndex == 7
+                              : selectedIndex == 7
                                   ? buildNotificationsPage()
                                   : buildPushNotificationsPage(),
 )
@@ -2390,81 +2459,202 @@ Widget buildNotificationsPage() {
 }
 
 Widget buildPushNotificationsPage() {
-  return Padding(
-    padding: const EdgeInsets.all(20),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-
-        const Text(
-          "Push Notifications",
-          style: TextStyle(
-            fontSize: 28,
-            fontWeight: FontWeight.bold,
+  return SingleChildScrollView(
+    child: Padding(
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            "Push Notifications",
+            style: TextStyle(
+              fontSize: 28,
+              fontWeight: FontWeight.bold,
+            ),
           ),
-        ),
 
-        const SizedBox(height: 30),
+          const SizedBox(height: 30),
 
-        TextField(
-          controller: pushTitleController,
-          decoration: const InputDecoration(
-            labelText: "Title",
-            border: OutlineInputBorder(),
+          TextField(
+            controller: pushTitleController,
+            decoration: const InputDecoration(
+              labelText: "Title",
+              border: OutlineInputBorder(),
+            ),
           ),
-        ),
 
-        const SizedBox(height: 20),
+          const SizedBox(height: 20),
 
-        TextField(
-          controller: pushBodyController,
-          maxLines: 5,
-          decoration: const InputDecoration(
-            labelText: "Message",
-            border: OutlineInputBorder(),
+          TextField(
+            controller: pushBodyController,
+            maxLines: 5,
+            decoration: const InputDecoration(
+              labelText: "Message",
+              border: OutlineInputBorder(),
+            ),
           ),
-        ),
 
-        const SizedBox(height: 20),
+          const SizedBox(height: 20),
 
-        ElevatedButton(
-          onPressed: () async {
+          TextField(
+            decoration: const InputDecoration(
+              labelText: 'Search User',
+              prefixIcon: Icon(Icons.search),
+              border: OutlineInputBorder(),
+            ),
+            onChanged: (value) {
+              searchText = value;
+              filterUsers();
+            },
+          ),
 
-            final response = await http.post(
-              Uri.parse(
-                "http://192.168.1.4:3000/sendNotification",
+          const SizedBox(height: 15),
+
+          DropdownButtonFormField<String>(
+            value: selectedRoleFilter,
+            decoration: const InputDecoration(
+              labelText: 'Filter',
+              border: OutlineInputBorder(),
+            ),
+            items: const [
+              DropdownMenuItem(
+                value: 'All',
+                child: Text('All'),
               ),
-              headers: {
-                "Content-Type":
-                    "application/json",
-              },
-              body: jsonEncode({
-                "title":
-                    pushTitleController.text.trim(),
-                "body":
-                    pushBodyController.text.trim(),
-              }),
-            );
-            print("STATUS = ${response.statusCode}");
-  print("BODY = ${response.body}");
+              DropdownMenuItem(
+                value: 'Users',
+                child: Text('Users'),
+              ),
+              DropdownMenuItem(
+                value: 'Admins',
+                child: Text('Admins'),
+              ),
+            ],
+            onChanged: (value) {
+              setState(() {
+                selectedRoleFilter = value!;
+                filterUsers();
+              });
+            },
+          ),
 
-            if (response.statusCode == 200) {
-              ScaffoldMessenger.of(context)
-                  .showSnackBar(
-                const SnackBar(
-                  content: Text(
-                    "Push Notification Sent",
+          const SizedBox(height: 15),
+
+          Container(
+            height: 250,
+            decoration: BoxDecoration(
+              border: Border.all(color: Colors.grey),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: ListView.builder(
+              itemCount: filteredUsers.length,
+              itemBuilder: (context, index) {
+                final user = filteredUsers[index];
+
+                return CheckboxListTile(
+                  value: selectedUserIds.contains(user['uid']),
+                  title: Text(
+                    '${user['name']} (${user['email']})',
                   ),
+                  onChanged: (value) {
+                    setState(() {
+                      if (value == true) {
+                        selectedUserIds.add(user['uid']);
+                      } else {
+                        selectedUserIds.remove(user['uid']);
+                      }
+                    });
+                  },
+                );
+              },
+            ),
+          ),
+
+          const SizedBox(height: 15),
+
+          DropdownButtonFormField<String>(
+            value: sendType,
+            decoration: const InputDecoration(
+              labelText: 'Send To',
+              border: OutlineInputBorder(),
+            ),
+            items: const [
+              DropdownMenuItem(
+                value: 'selected',
+                child: Text('Selected Users'),
+              ),
+              DropdownMenuItem(
+                value: 'users',
+                child: Text('All Users'),
+              ),
+              DropdownMenuItem(
+                value: 'admins',
+                child: Text('All Admins'),
+              ),
+              DropdownMenuItem(
+                value: 'all',
+                child: Text('Everyone'),
+              ),
+            ],
+            onChanged: (v) {
+              setState(() {
+                sendType = v!;
+              });
+            },
+          ),
+
+          const SizedBox(height: 20),
+
+          ElevatedButton(
+            onPressed: () async {
+              if (sendType == 'selected' &&
+                  selectedUserIds.isEmpty) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text(
+                      "Please select at least one user",
+                    ),
+                  ),
+                );
+                return;
+              }
+
+              final response = await http.post(
+                Uri.parse(
+                  "http://192.168.1.4:3000/sendNotification",
                 ),
+                headers: {
+                  "Content-Type": "application/json",
+                },
+                body: jsonEncode({
+                  "title": pushTitleController.text.trim(),
+                  "body": pushBodyController.text.trim(),
+                  "sendType": sendType,
+                  "userIds": selectedUserIds,
+                }),
               );
 
-              pushTitleController.clear();
-              pushBodyController.clear();
-            }
-          },
-          child: const Text("Send Push"),
-        ),
-      ],
+              print("STATUS = ${response.statusCode}");
+              print("BODY = ${response.body}");
+
+              if (response.statusCode == 200) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text(
+                      "Push Notification Sent",
+                    ),
+                  ),
+                );
+
+                pushTitleController.clear();
+                pushBodyController.clear();
+                selectedUserIds.clear();
+              }
+            },
+            child: const Text("Send Push"),
+          ),
+        ],
+      ),
     ),
   );
 }
