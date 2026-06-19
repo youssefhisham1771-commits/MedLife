@@ -1238,6 +1238,11 @@ catch (e, st) {
         controller: controller,
         obscureText: isPassword ? isPasswordHidden : false,
         keyboardType: keyboard,
+        style: const TextStyle(
+  color: Color(0xff0B1F51),
+  fontSize: 17,
+  fontWeight: FontWeight.w500,
+),
         decoration: InputDecoration(
           hintText: hint,
           hintStyle: TextStyle(
@@ -3477,6 +3482,27 @@ class SalesScreen extends StatelessWidget {
 
           var sales = snapshot.data!.docs;
 
+if (!isAdmin) {
+  sales = sales.where((doc) {
+
+    final sale =
+        doc.data() as Map<String, dynamic>;
+
+    if (sale['expiryDate'] == null) {
+      return true;
+    }
+
+    final expiryDate =
+        (sale['expiryDate'] as Timestamp)
+            .toDate();
+
+    return expiryDate.isAfter(
+      DateTime.now(),
+    );
+
+  }).toList();
+}
+
           if (sales.isEmpty) {
             return Center(
               child: Text(
@@ -3525,6 +3551,23 @@ class SalesScreen extends StatelessWidget {
         return sum + (price * discount / 100);
       },
     );
+
+    int activeSales =
+    sales.where((saleDoc) {
+
+  final data =
+      saleDoc.data()
+          as Map<String, dynamic>;
+
+  final expiry =
+      (data['expiryDate']
+              as Timestamp)
+          .toDate();
+
+  return expiry.isAfter(
+      DateTime.now());
+
+}).length;
 
           return ListView(
             padding:
@@ -3586,7 +3629,7 @@ class SalesScreen extends StatelessWidget {
                       Icons
                           .shopping_bag_outlined,
                       "Active Sales",
-                      "$totalSales",
+                      "$activeSales",
                     ),
 
                     divider(),
@@ -3620,6 +3663,12 @@ class SalesScreen extends StatelessWidget {
                             String,
                             dynamic
                           >;
+
+                          DateTime expiryDate =
+    (sale['expiryDate'] as Timestamp).toDate();
+
+bool isExpired =
+    expiryDate.isBefore(DateTime.now());
 
                   return Container(
                     height: 170,
@@ -3933,64 +3982,51 @@ class SalesScreen extends StatelessWidget {
                                   ),
 
                                   Text(
-                                    "May 31, 2024",
-
-                                    style: TextStyle(
-                                      color:
-                                          isDark
-                                              ? Colors
-                                                  .white70
-                                              : Colors
-                                                  .black54,
-
-                                      fontSize:
-                                          12,
-                                    ),
-                                  ),
+  sale['expiryDate'] != null
+      ? DateFormat(
+          'dd MMM yyyy',
+        ).format(
+          (sale['expiryDate'] as Timestamp)
+              .toDate(),
+        )
+      : "No Expiry Date",
+  style: TextStyle(
+    color: isDark
+        ? Colors.white70
+        : Colors.black54,
+    fontSize: 12,
+  ),
+),
 
                                   const SizedBox(
                                     width: 16,
                                   ),
 
                                   Container(
-                                    width: 7,
-                                    height: 7,
-
-                                    decoration:
-                                        const BoxDecoration(
-                                          color:
-                                              Color(
-                                                0xFF6DFF4D,
-                                              ),
-
-                                          shape:
-                                              BoxShape
-                                                  .circle,
-                                        ),
-                                  ),
+  width: 7,
+  height: 7,
+  decoration: BoxDecoration(
+    color: isExpired
+        ? Colors.red
+        : const Color(0xFF6DFF4D),
+    shape: BoxShape.circle,
+  ),
+),
 
                                   const SizedBox(
                                     width: 5,
                                   ),
 
-                                  const Text(
-                                    "Active",
-
-                                    style:
-                                        TextStyle(
-                                          color:
-                                              Color(
-                                                0xFF6DFF4D,
-                                              ),
-
-                                          fontSize:
-                                              13,
-
-                                          fontWeight:
-                                              FontWeight
-                                                  .w600,
-                                        ),
-                                  ),
+                                  Text(
+  isExpired ? "Expired" : "Active",
+  style: TextStyle(
+    color: isExpired
+        ? Colors.red
+        : const Color(0xFF6DFF4D),
+    fontSize: 13,
+    fontWeight: FontWeight.w600,
+  ),
+),
                                 ],
                               ),
                             ],
