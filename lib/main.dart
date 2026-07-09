@@ -166,11 +166,13 @@ void main() async {
 
     await NotificationService.init();
 
+if (!kIsWeb) {
     await FirebaseMessaging.instance.requestPermission(
   alert: true,
   badge: true,
   sound: true,
 );
+}
 
     if (!kIsWeb) {
   await googleSignIn.initialize();
@@ -1681,7 +1683,10 @@ class _ProductsScreenState extends State<ProductsScreen> {
 void initState() {
   super.initState();
 
+if (!kIsWeb){
+
   FirebaseMessaging.instance.requestPermission();
+}
 
   loadFavourites();
   loadCart();
