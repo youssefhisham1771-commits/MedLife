@@ -2334,7 +2334,7 @@ Widget buildFavourites() {
   if (favourites.isEmpty) {
     return Center(
       child: Text(
-        "No Favourites Yet ❤️",
+        "No Favourites Yet",
         style: TextStyle(
           color: Colors.white,
           fontSize: 18,
@@ -4398,7 +4398,7 @@ class _AddSaleScreenState extends State<AddSaleScreen> {
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text("Sale Added 🔥"),
+          content: Text("Sale Added!"),
         ),
       );
 
@@ -4424,7 +4424,7 @@ class _AddSaleScreenState extends State<AddSaleScreen> {
     return Scaffold(
 
       appBar: AppBar(
-        title: Text("Add Sale 🔥"),
+        title: Text("Add Sale"),
       ),
 
       body: SingleChildScrollView(
@@ -5375,7 +5375,7 @@ if (user?.metadata.creationTime != null) {
 
                     icon: Icons.settings,
 
-                    title: "Settings",
+                    title: "Settings (Soon!)",
 
                     subtitle: "App preferences",
 
@@ -5389,7 +5389,7 @@ if (user?.metadata.creationTime != null) {
 
                     icon: Icons.privacy_tip,
 
-                    title: "Privacy Policy",
+                    title: "Privacy Policy (Soon!)",
 
                     subtitle:
                         "Your data is safe with us",
@@ -5405,7 +5405,7 @@ if (user?.metadata.creationTime != null) {
                     icon: Icons.description,
 
                     title:
-                        "Terms & Conditions",
+                        "Terms & Conditions (Soon!)",
 
                     subtitle:
                         "Read our terms of service",
@@ -9024,7 +9024,7 @@ Container(
                             ),
 
                             title: Text(
-                              "Enter your data",
+                              "Data Confirmation",
 
                               style:
                                   TextStyle(
@@ -9053,7 +9053,7 @@ Container(
                                   decoration:
                                       InputDecoration(
                                     labelText:
-                                        "Name",
+                                        "Name (in English)",
 
                                     labelStyle:
                                         TextStyle(
@@ -9080,7 +9080,7 @@ Container(
                                   decoration:
                                       InputDecoration(
                                     labelText:
-                                        "Phone",
+                                        "Phone (in English)",
 
                                     labelStyle:
                                         TextStyle(
@@ -9161,6 +9161,8 @@ Container(
                                             item["size"],
                                       };
                                     }).toList(),
+
+                                    "discount": discount,
 
                                     "total":
                                         total(),
