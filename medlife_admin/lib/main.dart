@@ -8,6 +8,7 @@ import 'package:http/http.dart' as http;
 import 'firebase_options.dart';
 import 'admin_login.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:fl_chart/fl_chart.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -35,6 +36,95 @@ class MyApp extends StatelessWidget {
   }
 }
 
+class DashboardCard extends StatelessWidget {
+  final String title;
+  final String value;
+  final IconData icon;
+  final Color color;
+  final String? subtitle;
+  final VoidCallback? onTap;
+
+  const DashboardCard({
+    super.key,
+    required this.title,
+    required this.value,
+    required this.icon,
+    required this.color,
+    this.subtitle,
+    this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(20),
+      child: Container(
+        width: 250,
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: const Color(0xff131C2F),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: Colors.white10,
+          ),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+
+            Container(
+              width: 55,
+              height: 55,
+              decoration: BoxDecoration(
+                color: color.withOpacity(.15),
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Icon(
+                icon,
+                color: color,
+                size: 30,
+              ),
+            ),
+
+            const SizedBox(height: 18),
+
+            Text(
+              value,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 30,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+
+            const SizedBox(height: 6),
+
+            Text(
+              title,
+              style: const TextStyle(
+                color: Colors.white70,
+                fontSize: 16,
+              ),
+            ),
+
+            if (subtitle != null) ...[
+              const SizedBox(height: 12),
+              Text(
+                subtitle!,
+                style: TextStyle(
+                  color: color,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
 
@@ -49,6 +139,9 @@ class _DashboardScreenState
   int ordersCount = 0;
   int usersCount = 0;
   int selectedIndex = 0;
+
+  List<FlSpot> revenueSpots = [];
+List<String> chartDays = [];
 
   List<Map<String, dynamic>> users = [];
 
@@ -79,6 +172,7 @@ void initState() {
   checkAdmin();
   loadDashboardData();
   loadUsers();
+  loadRevenueChart();
 }
 
 Future<void> checkAdmin() async {
@@ -183,7 +277,54 @@ setState(() {
 });
   }
 
+  Future<void> loadRevenueChart() async {
 
+  final snapshot = await FirebaseFirestore.instance
+      .collection("orders")
+      .where("status", isEqualTo: "delivered")
+      .orderBy("orderedAt")
+      .get();
+
+  Map<String, double> revenueMap = {};
+
+  for (var doc in snapshot.docs) {
+
+    final data = doc.data();
+
+    if (data["orderedAt"] == null) continue;
+
+    final date =
+        (data["orderedAt"] as Timestamp)
+            .toDate();
+
+    final key =
+        "${date.day}/${date.month}";
+
+    revenueMap[key] =
+        (revenueMap[key] ?? 0) +
+            (data["total"] ?? 0).toDouble();
+  }
+
+  revenueSpots.clear();
+  chartDays.clear();
+
+  int index = 0;
+
+  revenueMap.forEach((day, total) {
+
+    chartDays.add(day);
+
+    revenueSpots.add(
+      FlSpot(index.toDouble(), total),
+    );
+
+    index++;
+  });
+
+  if (mounted) {
+    setState(() {});
+  }
+}
 
 Future<void> loadUsers() async {
   final snapshot = await FirebaseFirestore.instance
@@ -366,93 +507,329 @@ Expanded(
   }
 
   Widget buildDashboard() {
-  return Padding(
+  return SingleChildScrollView(
     padding: const EdgeInsets.all(30),
     child: Column(
-      crossAxisAlignment:
-          CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
 
-        const Text(
+        Row(
+  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+  children: [
+
+    Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: const [
+
+        Text(
           "Dashboard",
           style: TextStyle(
-            fontSize: 32,
+            fontSize: 34,
             fontWeight: FontWeight.bold,
           ),
         ),
 
-        const SizedBox(height: 30),
+        SizedBox(height: 5),
 
-        Row(
-          children: [
-
-            dashboardCard(
-              "Products",
-              productsCount.toString(),
-              Icons.inventory_2,
-            ),
-
-            const SizedBox(width: 20),
-
-            dashboardCard(
-              "Orders",
-              ordersCount.toString(),
-              Icons.shopping_cart,
-            ),
-
-            const SizedBox(width: 20),
-
-            dashboardCard(
-              "Users",
-              usersCount.toString(),
-              Icons.people,
-            ),
-
-            const SizedBox(width: 20),
-
-            dashboardCard(
-              "Revenue",
-              "${revenue.toStringAsFixed(0)} EGP",
-              Icons.attach_money,
-            ),
-          ],
+        Text(
+          "Welcome back, Dr Youssef 👋",
+          style: TextStyle(
+            color: Colors.white70,
+            fontSize: 16,
+          ),
         ),
-        const SizedBox(height: 25),
-
-Row(
-  children: [
-
-    dashboardCard(
-      "Pending",
-      pendingOrders.toString(),
-      Icons.schedule,
+      ],
     ),
 
-    const SizedBox(width: 20),
+    Container(
+      padding: const EdgeInsets.symmetric(
+        horizontal: 20,
+        vertical: 14,
+      ),
+      decoration: BoxDecoration(
+        color: Color(0xff131C2F),
+        borderRadius: BorderRadius.circular(15),
+      ),
+      child: const Row(
+        children: [
 
-    dashboardCard(
-      "Processing",
-      processingOrders.toString(),
-      Icons.autorenew,
-    ),
+          Icon(Icons.calendar_month),
 
-    const SizedBox(width: 20),
+          SizedBox(width: 10),
 
-    dashboardCard(
-      "Delivered",
-      deliveredOrders.toString(),
-      Icons.check_circle,
-    ),
-
-    const SizedBox(width: 20),
-
-    dashboardCard(
-      "Cancelled",
-      cancelledOrders.toString(),
-      Icons.cancel,
+          Text("This Month"),
+        ],
+      ),
     ),
   ],
 ),
+
+const SizedBox(height: 35),
+
+        const SizedBox(height: 30),
+
+        Wrap(
+  spacing: 20,
+  runSpacing: 20,
+  children: [
+
+    DashboardCard(
+      title: "Products",
+      value: productsCount.toString(),
+      icon: Icons.inventory_2_rounded,
+      color: Colors.blue,
+    ),
+
+    DashboardCard(
+      title: "Orders",
+      value: ordersCount.toString(),
+      icon: Icons.shopping_cart_rounded,
+      color: Colors.orange,
+    ),
+
+    DashboardCard(
+      title: "Users",
+      value: usersCount.toString(),
+      icon: Icons.people_alt_rounded,
+      color: Colors.green,
+    ),
+
+    DashboardCard(
+      title: "Revenue",
+      value: "${revenue.toStringAsFixed(0)} EGP",
+      icon: Icons.attach_money_rounded,
+      color: Colors.purple,
+    ),
+  ],
+),
+        const SizedBox(height: 25),
+
+const SizedBox(height: 25),
+
+Wrap(
+  spacing: 20,
+  runSpacing: 20,
+  children: [
+
+    DashboardCard(
+      title: "Pending",
+      value: pendingOrders.toString(),
+      icon: Icons.schedule,
+      color: Colors.amber,
+    ),
+
+    DashboardCard(
+      title: "Processing",
+      value: processingOrders.toString(),
+      icon: Icons.sync,
+      color: Colors.lightBlue,
+    ),
+
+    DashboardCard(
+      title: "Delivered",
+      value: deliveredOrders.toString(),
+      icon: Icons.check_circle,
+      color: Colors.green,
+    ),
+
+    DashboardCard(
+      title: "Cancelled",
+      value: cancelledOrders.toString(),
+      icon: Icons.cancel,
+      color: Colors.red,
+    ),
+  ],
+),
+
+const SizedBox(height: 30),
+
+buildCharts(),
+
+const SizedBox(height: 30),
+
+buildRecentOrders(),
+
+      ],
+    ),
+  );
+}
+
+Widget buildCharts() {
+  return Row(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+
+      Expanded(
+        flex: 2,
+        child: Container(
+          height: 350,
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: const Color(0xff131C2F),
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: LineChart(
+            LineChartData(
+              gridData: const FlGridData(show: true),
+              borderData: FlBorderData(show: false),
+              titlesData: FlTitlesData(
+  bottomTitles: AxisTitles(
+    sideTitles: SideTitles(
+      showTitles: true,
+      reservedSize: 30,
+      getTitlesWidget: (value, meta) {
+
+        if (value.toInt() >= chartDays.length) {
+          return const SizedBox();
+        }
+
+        return Text(
+          chartDays[value.toInt()],
+          style: const TextStyle(fontSize: 10),
+        );
+      },
+    ),
+  ),
+),
+              lineBarsData: [
+                LineChartBarData(
+                  isCurved: true,
+                  spots: revenueSpots,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+
+      const SizedBox(width: 20),
+
+      Expanded(
+        child: Container(
+          height: 350,
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: const Color(0xff131C2F),
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: PieChart(
+            PieChartData(
+              sections: [
+
+                PieChartSectionData(
+  value: pendingOrders.toDouble(),
+  title: "Pending",
+  color: Colors.orange,
+),
+
+                PieChartSectionData(
+  value: processingOrders.toDouble(),
+  title: "Processing",
+  color: Colors.blue,
+),
+
+                PieChartSectionData(
+  value: deliveredOrders.toDouble(),
+  title: "Delivered",
+  color: Colors.green,
+),
+
+                PieChartSectionData(
+  value: cancelledOrders.toDouble(),
+  title: "Cancelled",
+  color: Colors.red,
+),
+              ],
+            ),
+          ),
+        ),
+      ),
+    ],
+  );
+}
+
+Widget buildRecentOrders() {
+  return Container(
+    margin: const EdgeInsets.only(top: 30),
+    padding: const EdgeInsets.all(20),
+    decoration: BoxDecoration(
+      color: const Color(0xff131C2F),
+      borderRadius: BorderRadius.circular(20),
+    ),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+
+        const Text(
+          "Recent Orders",
+          style: TextStyle(
+            fontSize: 22,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+
+        const SizedBox(height: 20),
+
+        StreamBuilder<QuerySnapshot>(
+          stream: FirebaseFirestore.instance
+              .collection("orders")
+              .orderBy("orderedAt", descending: true)
+              .limit(5)
+              .snapshots(),
+          builder: (context, snapshot) {
+
+            if (!snapshot.hasData) {
+              return const Center(
+                child: CircularProgressIndicator(),
+              );
+            }
+
+            return DataTable(
+
+              columns: const [
+
+                DataColumn(label: Text("Customer")),
+
+                DataColumn(label: Text("Phone")),
+
+                DataColumn(label: Text("Total")),
+
+                DataColumn(label: Text("Status")),
+
+              ],
+
+              rows: snapshot.data!.docs.map((doc) {
+
+                final data =
+                    doc.data() as Map<String, dynamic>;
+
+                return DataRow(
+
+                  cells: [
+
+                    DataCell(
+                      Text(data["name"] ?? ""),
+                    ),
+
+                    DataCell(
+                      Text(data["phone"] ?? ""),
+                    ),
+
+                    DataCell(
+                      Text("${data["total"]} EGP"),
+                    ),
+
+                    DataCell(
+                      Text(data["status"] ?? ""),
+                    ),
+
+                  ],
+                );
+
+              }).toList(),
+            );
+          },
+        ),
       ],
     ),
   );
@@ -643,6 +1020,7 @@ DataCell(
       .delete();
 
   await loadDashboardData();
+  await loadRevenueChart();
 },
                               ),
                             ],
@@ -843,6 +1221,7 @@ if (selectedImage != null)
 
 
               await loadDashboardData();
+              await loadRevenueChart();
 
 
               if (mounted) {
@@ -1664,6 +2043,7 @@ Widget buildUsersPage() {
                                   .delete();
 
                               await loadDashboardData();
+                              await loadRevenueChart();
                             },
                           ),
                         ),
