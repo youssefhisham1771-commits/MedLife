@@ -1126,98 +1126,125 @@ class _RegisterScreenState extends State<RegisterScreen> {
   bool isLoading = false;
   bool isPasswordHidden = true;
 
-  Future<void> register() async {
-    if (name.text.trim().isEmpty ||
-        phone.text.trim().isEmpty ||
-        email.text.trim().isEmpty ||
-        pass.text.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("املأ كل البيانات")),
-      );
-      return;
+ Future<void> register() async {
+  if (name.text.trim().isEmpty ||
+      phone.text.trim().isEmpty ||
+      email.text.trim().isEmpty ||
+      pass.text.trim().isEmpty) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text("املأ كل البيانات"),
+      ),
+    );
+    return;
+  }
+
+  if (pass.text.length < 8) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text("الباسورد لازم يكون 8 حروف على الأقل"),
+      ),
+    );
+    return;
+  }
+
+  setState(() => isLoading = true);
+
+  try {
+    // 🔐 CREATE FIREBASE AUTH ACCOUNT
+    final userCred =
+        await FirebaseAuth.instance.createUserWithEmailAndPassword(
+      email: email.text.trim(),
+      password: pass.text.trim(),
+    );
+
+    final user = userCred.user;
+
+    if (user == null) {
+      throw Exception("User account was not created.");
     }
 
-    if (pass.text.length < 8) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("الباسورد لازم يكون 8 حروف على الأقل")),
-      );
-      return;
+    // 🔥 SAVE USER DATA TO FIRESTORE
+    await FirebaseFirestore.instance
+        .collection('users')
+        .doc(user.uid)
+        .set({
+      'name': name.text.trim(),
+      'phone': phone.text.trim(),
+      'email': email.text.trim(),
+      'role': 'user',
+      'createdAt': FieldValue.serverTimestamp(),
+    });
+
+    // 🔔 SAVE FCM TOKEN
+    // This function automatically skips Web.
+    await saveFcmToken();
+
+    if (!mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text("Account Created Successfully 🎉"),
+      ),
+    );
+
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(
+        builder: (_) => ProductsScreen(),
+      ),
+    );
+  } on FirebaseAuthException catch (e) {
+    debugPrint("AUTH ERROR: ${e.code}");
+    debugPrint("AUTH MESSAGE: ${e.message}");
+
+    String message;
+
+    switch (e.code) {
+      case 'email-already-in-use':
+        message = "This email is already registered.";
+        break;
+
+      case 'invalid-email':
+        message = "Please enter a valid email address.";
+        break;
+
+      case 'weak-password':
+        message = "Password is too weak.";
+        break;
+
+      case 'network-request-failed':
+        message = "Please check your internet connection.";
+        break;
+
+      default:
+        message = e.message ?? "Registration failed.";
     }
 
-    setState(() => isLoading = true);
-
-    try {
-      /// 🔐 CREATE ACCOUNT
-      final userCred = await FirebaseAuth.instance
-    .createUserWithEmailAndPassword(
-  email: email.text.trim(),
-  password: pass.text.trim(),
-);
-
-String? token = await FirebaseMessaging.instance.getToken();
-
-print("FCM TOKEN: $token");
-
-await FirebaseFirestore.instance
-    .collection('users')
-    .doc(userCred.user!.uid)
-    .set({
-  'name': name.text.trim(),
-  'phone': phone.text.trim(),
-  'email': email.text.trim(),
-  'role': 'user',
-  'fcmToken': token,
-});
-
-      /// 🔥 SAVE USER DATA
-      await FirebaseFirestore.instance
-          .collection('users')
-          .doc(userCred.user!.uid)
-          .set({
-        'name': name.text.trim(),
-        'phone': phone.text.trim(),
-        'email': email.text.trim(),
-        'role': 'user',
-      });
-
-      await saveFcmToken();
-
+    if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text("Account Created Successfully 🎉"),
+          content: Text(message),
         ),
       );
+    }
+  } catch (e, st) {
+    debugPrint("REGISTER ERROR: $e");
+    debugPrint("$st");
 
-      if (mounted) {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-            builder: (_) => ProductsScreen(),
-          ),
-        );
-      }
-    } on FirebaseAuthException catch (e) {
-  print("AUTH ERROR: ${e.code}");
-  print("AUTH MESSAGE: ${e.message}");
-
-  ScaffoldMessenger.of(context).showSnackBar(
-    SnackBar(content: Text(e.message ?? e.code)),
-  );
-}
-
-catch (e, st) {
-  print("GENERAL ERROR: $e");
-  print(st);
-
-  ScaffoldMessenger.of(context).showSnackBar(
-    SnackBar(content: Text("Register Error ❌")),
-  );
-}
-
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("Registration failed: $e"),
+        ),
+      );
+    }
+  } finally {
     if (mounted) {
       setState(() => isLoading = false);
     }
   }
+}
 
   
 
