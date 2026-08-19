@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+import '../services/delivery_fee_service.dart';
+
 class MyAddressesScreen extends StatefulWidget {
   const MyAddressesScreen({super.key});
 
@@ -17,10 +19,54 @@ class _MyAddressesScreenState
 
   bool isLoading = true;
 
+  bool isAdmin = false;
+  bool isLoadingFees = true;
+
+  Map<String, double> deliveryFees = {};
+
+  String? selectedDeliveryGovernorate;
+
+  final TextEditingController _deliveryFeeController =
+      TextEditingController();
+
+  final DeliveryFeeService _deliveryFeeService =
+      DeliveryFeeService();
+
+  static const List<String> egyptGovernorates = [
+  'القاهرة',
+  'الجيزة',
+  'الإسكندرية',
+  'الدقهلية',
+  'البحر الأحمر',
+  'البحيرة',
+  'الفيوم',
+  'الغربية',
+  'الإسماعيلية',
+  'المنوفية',
+  'المنيا',
+  'القليوبية',
+  'الوادي الجديد',
+  'السويس',
+  'أسوان',
+  'أسيوط',
+  'بني سويف',
+  'بورسعيد',
+  'دمياط',
+  'الشرقية',
+  'جنوب سيناء',
+  'كفر الشيخ',
+  'مطروح',
+  'الأقصر',
+  'قنا',
+  'شمال سيناء',
+  'سوهاج',
+];
+
   @override
   void initState() {
     super.initState();
     _loadAddresses();
+    _checkAdmin();
   }
 
   /// 🔥 LOAD ADDRESSES INSTANTLY
@@ -29,6 +75,8 @@ class _MyAddressesScreenState
     final user = FirebaseAuth.instance.currentUser;
 
     if (user == null) {
+      if (!mounted) return;
+
       setState(() {
         isLoading = false;
       });
@@ -46,15 +94,568 @@ class _MyAddressesScreenState
     for (var doc in snapshot.docs) {
 
       addresses.add({
-        "id": doc.id,
-        "title": doc['title'],
-        "address": doc['address'],
-      });
+  "id": doc.id,
+  "title": doc['title'] ?? '',
+  "governorate": doc['governorate'] ?? '',
+  "address": doc['address'] ?? '',
+});
     }
+
+    if (!mounted) return;
 
     setState(() {
       isLoading = false;
     });
+  }
+
+  Future<void> _checkAdmin() async {
+    final user = FirebaseAuth.instance.currentUser;
+
+    if (user == null) {
+      if (!mounted) return;
+      setState(() {
+        isAdmin = false;
+        isLoadingFees = false;
+      });
+      return;
+    }
+
+    try {
+      final doc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .get();
+
+      if (!mounted) return;
+
+      final admin =
+          doc.exists && (doc.data()?['role'] ?? '') == 'admin';
+
+      setState(() {
+        isAdmin = admin;
+        isLoadingFees = admin;
+      });
+
+      if (admin) {
+        await _loadDeliveryFees();
+      }
+    } catch (_) {
+      if (!mounted) return;
+
+      setState(() {
+        isAdmin = false;
+        isLoadingFees = false;
+      });
+    }
+  }
+
+  Future<void> _loadDeliveryFees() async {
+    try {
+      final fees = await _deliveryFeeService.getAllFees();
+
+      if (!mounted) return;
+
+      setState(() {
+        deliveryFees = fees;
+        isLoadingFees = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+
+      setState(() {
+        isLoadingFees = false;
+      });
+    }
+  }
+
+  Future<void> _saveDeliveryFee() async {
+    final governorate = selectedDeliveryGovernorate;
+
+    if (governorate == null || governorate.isEmpty) {
+      _showMessage("Please select a governorate.");
+      return;
+    }
+
+    final fee =
+        double.tryParse(_deliveryFeeController.text.trim());
+
+    if (fee == null || fee < 0) {
+      _showMessage("Please enter a valid delivery fee.");
+      return;
+    }
+
+    try {
+      await _deliveryFeeService.saveFee(
+        governorate: governorate,
+        fee: fee,
+      );
+
+      if (!mounted) return;
+
+      setState(() {
+        deliveryFees[governorate] = fee;
+        selectedDeliveryGovernorate = null;
+        _deliveryFeeController.clear();
+      });
+
+      _showMessage("Delivery fee saved successfully.");
+    } catch (_) {
+      _showMessage(
+        "Failed to save delivery fee. Please try again.",
+      );
+    }
+  }
+
+  Future<void> _deleteDeliveryFee(String governorate) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          backgroundColor: const Color(0xFF1D1B20),
+          title: const Text(
+            "Delete delivery fee?",
+            style: TextStyle(color: Colors.white),
+          ),
+          content: Text(
+            "Remove the delivery fee for $governorate?",
+            style: const TextStyle(color: Colors.white70),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () =>
+                  Navigator.pop(dialogContext, false),
+              child: const Text(
+                "Cancel",
+                style: TextStyle(color: Colors.white70),
+              ),
+            ),
+            TextButton(
+              onPressed: () =>
+                  Navigator.pop(dialogContext, true),
+              child: const Text(
+                "Delete",
+                style: TextStyle(color: Colors.redAccent),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (confirmed != true) return;
+
+    try {
+      await _deliveryFeeService.deleteFee(governorate);
+
+      if (!mounted) return;
+
+      setState(() {
+        deliveryFees.remove(governorate);
+
+        if (selectedDeliveryGovernorate == governorate) {
+          selectedDeliveryGovernorate = null;
+          _deliveryFeeController.clear();
+        }
+      });
+
+      _showMessage("Delivery fee deleted.");
+    } catch (_) {
+      _showMessage(
+        "Failed to delete delivery fee. Please try again.",
+      );
+    }
+  }
+
+  Future<void> _editDeliveryFee(
+    String governorate,
+    double currentFee,
+  ) async {
+    final controller = TextEditingController(
+      text: currentFee.toStringAsFixed(2),
+    );
+
+    final result = await showDialog<double>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          backgroundColor: const Color(0xFF1D1B20),
+          title: Text(
+            "Edit $governorate",
+            style: const TextStyle(color: Colors.white),
+          ),
+          content: TextField(
+            controller: controller,
+            keyboardType:
+                const TextInputType.numberWithOptions(
+              decimal: true,
+            ),
+            style: const TextStyle(color: Colors.white),
+            decoration: const InputDecoration(
+              labelText: "Delivery Fee",
+              suffixText: "EGP",
+              labelStyle: TextStyle(color: Colors.white70),
+              suffixStyle: TextStyle(color: Colors.white70),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () =>
+                  Navigator.pop(dialogContext),
+              child: const Text(
+                "Cancel",
+                style: TextStyle(color: Colors.white70),
+              ),
+            ),
+            TextButton(
+              onPressed: () {
+                final value =
+                    double.tryParse(controller.text.trim());
+
+                if (value == null || value < 0) {
+                  return;
+                }
+
+                Navigator.pop(dialogContext, value);
+              },
+              child: const Text(
+                "Save",
+                style: TextStyle(
+                  color: Color(0xFF6EA6C1),
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+
+    controller.dispose();
+
+    if (result == null) return;
+
+    try {
+      await _deliveryFeeService.saveFee(
+        governorate: governorate,
+        fee: result,
+      );
+
+      if (!mounted) return;
+
+      setState(() {
+        deliveryFees[governorate] = result;
+
+        if (selectedDeliveryGovernorate == governorate) {
+          _deliveryFeeController.text =
+              result.toStringAsFixed(2);
+        }
+      });
+
+      _showMessage("Delivery fee updated successfully.");
+    } catch (_) {
+      _showMessage(
+        "Failed to update delivery fee. Please try again.",
+      );
+    }
+  }
+
+  void _showMessage(String message) {
+    if (!mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message)),
+    );
+  }
+
+  Widget _buildDeliveryFeesContent() {
+    final entries = deliveryFees.entries.toList()
+      ..sort(
+        (a, b) => egyptGovernorates
+            .indexOf(a.key)
+            .compareTo(egyptGovernorates.indexOf(b.key)),
+      );
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          "Delivery Fees by Governorate",
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 21,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+
+        const SizedBox(height: 6),
+
+        const Text(
+          "Set delivery fees for each governorate",
+          style: TextStyle(
+            color: Colors.white70,
+            fontSize: 15,
+          ),
+        ),
+
+        const SizedBox(height: 18),
+
+        LayoutBuilder(
+          builder: (context, constraints) {
+            final narrow = constraints.maxWidth < 520;
+
+            final governorateField =
+                DropdownButtonFormField<String>(
+              value: selectedDeliveryGovernorate,
+              isExpanded: true,
+              dropdownColor: const Color(0xFF1D1B20),
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 15,
+              ),
+              decoration: InputDecoration(
+                hintText: "Select governorate",
+                hintStyle: const TextStyle(
+                  color: Colors.white70,
+                ),
+                contentPadding:
+                    const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 16,
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  borderSide: const BorderSide(
+                    color: Colors.white30,
+                  ),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  borderSide: const BorderSide(
+                    color: Color(0xFF6EA6C1),
+                  ),
+                ),
+              ),
+              items: egyptGovernorates.map((governorate) {
+                final alreadyAdded =
+                    deliveryFees.containsKey(governorate);
+
+                return DropdownMenuItem<String>(
+                  value: governorate,
+                  child: Text(
+                    alreadyAdded
+                        ? "$governorate ✓"
+                        : governorate,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                );
+              }).toList(),
+              onChanged: (value) {
+                if (value == null) return;
+
+                setState(() {
+                  selectedDeliveryGovernorate = value;
+
+                  final existing = deliveryFees[value];
+
+                  _deliveryFeeController.text =
+                      existing == null
+                          ? ""
+                          : existing.toStringAsFixed(2);
+                });
+              },
+            );
+
+            final feeField = TextField(
+              controller: _deliveryFeeController,
+              keyboardType:
+                  const TextInputType.numberWithOptions(
+                decimal: true,
+              ),
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 16,
+              ),
+              decoration: InputDecoration(
+                hintText: "0.00",
+                hintStyle: const TextStyle(
+                  color: Colors.white70,
+                ),
+                suffixText: "EGP",
+                suffixStyle: const TextStyle(
+                  color: Colors.white70,
+                ),
+                contentPadding:
+                    const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 16,
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  borderSide: const BorderSide(
+                    color: Colors.white30,
+                  ),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  borderSide: const BorderSide(
+                    color: Color(0xFF6EA6C1),
+                  ),
+                ),
+              ),
+            );
+
+            final addButton = SizedBox(
+              height: 56,
+              child: ElevatedButton(
+                onPressed: _saveDeliveryFee,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor:
+                      const Color(0xFF6EA6C1),
+                  foregroundColor: Colors.white,
+                  elevation: 0,
+                  padding:
+                      const EdgeInsets.symmetric(
+                    horizontal: 22,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                ),
+                child: const Text(
+                  "Add",
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            );
+
+            if (narrow) {
+              return Column(
+                children: [
+                  governorateField,
+                  const SizedBox(height: 10),
+                  Row(
+                    children: [
+                      Expanded(child: feeField),
+                      const SizedBox(width: 10),
+                      addButton,
+                    ],
+                  ),
+                ],
+              );
+            }
+
+            return Row(
+              children: [
+                Expanded(flex: 3, child: governorateField),
+                const SizedBox(width: 10),
+                Expanded(flex: 2, child: feeField),
+                const SizedBox(width: 10),
+                addButton,
+              ],
+            );
+          },
+        ),
+
+        const SizedBox(height: 18),
+
+        if (isLoadingFees)
+          const Center(
+            child: Padding(
+              padding: EdgeInsets.all(18),
+              child: CircularProgressIndicator(
+                color: Color(0xFF6EA6C1),
+              ),
+            ),
+          )
+        else if (entries.isEmpty)
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 12),
+            child: Text(
+              "No delivery fees added yet.",
+              style: TextStyle(
+                color: Colors.white54,
+                fontSize: 15,
+              ),
+            ),
+          )
+        else
+          Container(
+            decoration: const BoxDecoration(
+              border: Border(
+                top: BorderSide(color: Colors.white10),
+              ),
+            ),
+            child: Column(
+              children: entries.map((entry) {
+                return _buildDeliveryFeeRow(
+                  entry.key,
+                  entry.value,
+                );
+              }).toList(),
+            ),
+          ),
+      ],
+    );
+  }
+
+  Widget _buildDeliveryFeeRow(
+    String governorate,
+    double fee,
+  ) {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 11),
+      decoration: const BoxDecoration(
+        border: Border(
+          bottom: BorderSide(color: Colors.white10),
+        ),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              governorate,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 16,
+              ),
+            ),
+          ),
+
+          Text(
+            "${fee.toStringAsFixed(2)} EGP",
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 16,
+            ),
+          ),
+
+          const SizedBox(width: 6),
+
+          IconButton(
+            tooltip: "Edit",
+            onPressed: () =>
+                _editDeliveryFee(governorate, fee),
+            icon: const Icon(
+              Icons.edit,
+              color: Color(0xFF6EA6C1),
+              size: 22,
+            ),
+          ),
+
+          IconButton(
+            tooltip: "Delete",
+            onPressed: () =>
+                _deleteDeliveryFee(governorate),
+            icon: const Icon(
+              Icons.delete_outline,
+              color: Colors.redAccent,
+              size: 24,
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   void _showAddAddressDialog() {
@@ -73,6 +674,8 @@ class _MyAddressesScreenState
 
     final titleController =
         TextEditingController();
+
+        String? selectedGovernorate;
 
     final addressController =
         TextEditingController();
@@ -194,66 +797,144 @@ class _MyAddressesScreenState
 
               const SizedBox(height: 18),
 
-              TextField(
+              const SizedBox(height: 18),
 
-                controller: addressController,
+// ===============================
+// GOVERNORATE
+// ===============================
 
-                maxLines: 3,
+InkWell(
+  onTap: () async {
+    final result = await showModalBottomSheet<String>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: const Color(0xFF1D1B20),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(
+          top: Radius.circular(28),
+        ),
+      ),
+      builder: (_) {
+        return _GovernoratePicker(
+          governorates: egyptGovernorates,
+          selectedGovernorate: selectedGovernorate,
+        );
+      },
+    );
 
-                style: const TextStyle(
-                  color: Colors.white,
-                ),
+    if (result != null && mounted) {
+      setState(() {
+        selectedGovernorate = result;
+      });
+    }
+  },
+  child: Container(
+    width: double.infinity,
+    padding: const EdgeInsets.symmetric(
+      horizontal: 16,
+      vertical: 16,
+    ),
+    decoration: BoxDecoration(
+      borderRadius: BorderRadius.circular(18),
+      border: Border.all(
+        color: const Color(0xFF6EA6C1),
+      ),
+    ),
+    child: Row(
+      children: [
+        const Icon(
+          Icons.account_balance_outlined,
+          color: Color(0xFF6EA6C1),
+        ),
 
-                decoration: InputDecoration(
+        const SizedBox(width: 12),
 
-                  labelText: "Address",
-
-                  labelStyle: const TextStyle(
-                    color: Colors.white70,
-                  ),
-
-                  hintText:
-                      "Enter full address details",
-
-                  hintStyle: const TextStyle(
-                    color: Colors.white38,
-                  ),
-
-                  prefixIcon: const Padding(
-                    padding: EdgeInsets.only(
-                      bottom: 50,
-                    ),
-
-                    child: Icon(
-                      Icons.location_on,
-                      color: Color(0xFF6EA6C1),
-                    ),
-                  ),
-
-                  enabledBorder:
-                      OutlineInputBorder(
-                    borderRadius:
-                        BorderRadius.circular(18),
-
-                    borderSide:
-                        const BorderSide(
-                      color: Color(0xFF6EA6C1),
-                    ),
-                  ),
-
-                  focusedBorder:
-                      OutlineInputBorder(
-                    borderRadius:
-                        BorderRadius.circular(18),
-
-                    borderSide:
-                        const BorderSide(
-                      color: Color(0xFF6EA6C1),
-                      width: 2,
-                    ),
-                  ),
+        Expanded(
+          child: Column(
+            crossAxisAlignment:
+                CrossAxisAlignment.start,
+            children: [
+              const Text(
+                "Governorate",
+                style: TextStyle(
+                  color: Colors.white70,
+                  fontSize: 13,
                 ),
               ),
+
+              const SizedBox(height: 5),
+
+              Text(
+                selectedGovernorate ??
+                    "Select your governorate",
+                style: TextStyle(
+                  color: selectedGovernorate == null
+                      ? Colors.white54
+                      : Colors.white,
+                  fontSize: 16,
+                ),
+              ),
+            ],
+          ),
+        ),
+
+        const Icon(
+          Icons.keyboard_arrow_down,
+          color: Colors.white70,
+        ),
+      ],
+    ),
+  ),
+),
+
+const SizedBox(height: 18),
+
+// ===============================
+// ADDRESS DETAILS
+// ===============================
+
+TextField(
+  controller: addressController,
+  maxLines: 3,
+  style: const TextStyle(
+    color: Colors.white,
+  ),
+  decoration: InputDecoration(
+    labelText: "Address Details",
+    labelStyle: const TextStyle(
+      color: Colors.white70,
+    ),
+    hintText:
+        "Street, Area, Building, Floor, Apartment...",
+    hintStyle: const TextStyle(
+      color: Colors.white38,
+    ),
+    prefixIcon: const Padding(
+      padding: EdgeInsets.only(
+        bottom: 50,
+      ),
+      child: Icon(
+        Icons.location_on,
+        color: Color(0xFF6EA6C1),
+      ),
+    ),
+    enabledBorder: OutlineInputBorder(
+      borderRadius:
+          BorderRadius.circular(18),
+      borderSide: const BorderSide(
+        color: Color(0xFF6EA6C1),
+      ),
+    ),
+    focusedBorder: OutlineInputBorder(
+      borderRadius:
+          BorderRadius.circular(18),
+      borderSide: const BorderSide(
+        color: Color(0xFF6EA6C1),
+        width: 2,
+      ),
+    ),
+  ),
+),
 
               const SizedBox(height: 24),
 
@@ -279,14 +960,32 @@ class _MyAddressesScreenState
 
                   onPressed: () async {
 
-                    if (titleController.text
-                            .trim()
-                            .isEmpty ||
-                        addressController.text
-                            .trim()
-                            .isEmpty) {
-                      return;
-                    }
+                    if (titleController.text.trim().isEmpty) {
+  ScaffoldMessenger.of(context).showSnackBar(
+    const SnackBar(
+      content: Text("Please enter an address title."),
+    ),
+  );
+  return;
+}
+
+if (selectedGovernorate == null) {
+  ScaffoldMessenger.of(context).showSnackBar(
+    const SnackBar(
+      content: Text("Please select your governorate."),
+    ),
+  );
+  return;
+}
+
+if (addressController.text.trim().isEmpty) {
+  ScaffoldMessenger.of(context).showSnackBar(
+    const SnackBar(
+      content: Text("Please enter your address details."),
+    ),
+  );
+  return;
+}
 
                     final user =
                         FirebaseAuth.instance
@@ -295,50 +994,44 @@ class _MyAddressesScreenState
                     if (user == null) return;
 
                     final newAddress = {
-                      "title":
-                          titleController.text
-                              .trim(),
+  "title": titleController.text.trim(),
 
-                      "address":
-                          addressController.text
-                              .trim(),
-                    };
+  "governorate":
+      selectedGovernorate!,
 
-                    /// 🔥 INSTANT UI UPDATE
-                    setState(() {
+  "address":
+      addressController.text.trim(),
+};
 
-                      addresses.add({
-                        "id": "",
-                        ...newAddress,
-                      });
-                    });
+                    try {
+                      final doc =
+                          await FirebaseFirestore
+                              .instance
+                              .collection('users')
+                              .doc(user.uid)
+                              .collection('addresses')
+                              .add(newAddress);
 
-                    Navigator.pop(context);
-
-                    /// 🔥 SAVE TO FIREBASE
-                    final doc =
-                        await FirebaseFirestore
-                            .instance
-                            .collection('users')
-                            .doc(user.uid)
-                            .collection(
-                              'addresses',
-                            )
-                            .add(newAddress);
-
-                    /// 🔥 UPDATE ID
-                    final index =
-                        addresses.indexWhere(
-                      (e) => e["id"] == "",
-                    );
-
-                    if (index != -1) {
+                      if (!mounted) return;
 
                       setState(() {
-
-                        addresses[index]["id"] =
-                            doc.id;
+                        addresses.add({
+                          "id": doc.id,
+                          ...newAddress,
+                        });
                       });
+
+                      Navigator.pop(context);
+                    } catch (_) {
+                      if (!mounted) return;
+
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text(
+                            "Failed to save address. Please try again.",
+                          ),
+                        ),
+                      );
                     }
                   },
 
@@ -405,6 +1098,12 @@ class _MyAddressesScreenState
       default:
         return Icons.location_on_outlined;
     }
+  }
+
+  @override
+  void dispose() {
+    _deliveryFeeController.dispose();
+    super.dispose();
   }
 
   @override
@@ -543,151 +1242,110 @@ class _MyAddressesScreenState
 
                   children: [
 
-                    /// TOP CARD
+                    /// TOP CARD + ADMIN DELIVERY FEES
                     Container(
-
                       width: double.infinity,
-
-                      padding:
-                          const EdgeInsets.all(
-                            20,
-                          ),
-
+                      padding: const EdgeInsets.all(20),
                       decoration: BoxDecoration(
-
                         borderRadius:
-                            BorderRadius.circular(
-                              24,
-                            ),
-
+                            BorderRadius.circular(24),
                         gradient:
                             const LinearGradient(
-
-                              colors: [
-                                Color(0xFF1D1B20),
-                                Color(0xFF141118),
-                              ],
-                            ),
+                          colors: [
+                            Color(0xFF1D1B20),
+                            Color(0xFF141118),
+                          ],
+                        ),
                       ),
-
-                      child: Row(
+                      child: Column(
+                        crossAxisAlignment:
+                            CrossAxisAlignment.start,
                         children: [
-
-                          Container(
-
-                            width: 70,
-                            height: 70,
-
-                            decoration: BoxDecoration(
-                              color:
-                                  blue.withValues(alpha: 
-                                    .15,
+                          Row(
+                            children: [
+                              Container(
+                                width: 70,
+                                height: 70,
+                                decoration: BoxDecoration(
+                                  color: blue.withValues(
+                                    alpha: .15,
                                   ),
-
-                              shape:
-                                  BoxShape.circle,
-                            ),
-
-                            child: const Icon(
-                              Icons.location_on,
-                              color: blue,
-                              size: 36,
-                            ),
-                          ),
-
-                          const SizedBox(
-                            width: 18,
-                          ),
-
-                          Expanded(
-
-                            child: Column(
-
-                              crossAxisAlignment:
-                                  CrossAxisAlignment
-                                      .start,
-
-                              children: [
-
-                                const Text(
-
-                                  "Manage your addresses",
-
-                                  style: TextStyle(
-                                    color:
-                                        mainText,
-
-                                    fontSize:
-                                        22,
-
-                                    fontWeight:
-                                        FontWeight
-                                            .bold,
-                                  ),
+                                  shape: BoxShape.circle,
                                 ),
-
-                                const SizedBox(
-                                  height: 6,
+                                child: const Icon(
+                                  Icons.location_on,
+                                  color: blue,
+                                  size: 36,
                                 ),
-
-                                const Text(
-
-                                  "You can add up to 3 addresses",
-
-                                  style: TextStyle(
-                                    color:
-                                        subText,
-
-                                    fontSize:
-                                        15,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-
-                          Container(
-
-                            padding:
-                                const EdgeInsets.symmetric(
-                                  horizontal:
-                                      16,
-
-                                  vertical:
-                                      12,
-                                ),
-
-                            decoration:
-                                BoxDecoration(
-                              color:
-                                  blue.withValues(alpha: 
-                                    .15,
-                                  ),
-
-                              borderRadius:
-                                  BorderRadius.circular(
-                                    18,
-                                  ),
-                            ),
-
-                            child: Text(
-
-                              "${addresses.length}/3",
-
-                              style:
-                                  const TextStyle(
-                                color:
-                                    Colors.white,
-
-                                fontWeight:
-                                    FontWeight
-                                        .bold,
-
-                                fontSize:
-                                    20,
                               ),
-                            ),
+
+                              const SizedBox(width: 18),
+
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment:
+                                      CrossAxisAlignment.start,
+                                  children: [
+                                    const Text(
+                                      "Manage your addresses",
+                                      style: TextStyle(
+                                        color: mainText,
+                                        fontSize: 22,
+                                        fontWeight:
+                                            FontWeight.bold,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 6),
+                                    const Text(
+                                      "You can add up to 3 addresses",
+                                      style: TextStyle(
+                                        color: subText,
+                                        fontSize: 15,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+
+                              Container(
+                                padding:
+                                    const EdgeInsets.symmetric(
+                                  horizontal: 16,
+                                  vertical: 12,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: blue.withValues(
+                                    alpha: .15,
+                                  ),
+                                  borderRadius:
+                                      BorderRadius.circular(18),
+                                ),
+                                child: Text(
+                                  "${addresses.length}/3",
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontWeight:
+                                        FontWeight.bold,
+                                    fontSize: 20,
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
+
+                          if (isAdmin) ...[
+                            const SizedBox(height: 24),
+
+                            Divider(
+                              color: Colors.white
+                                  .withValues(alpha: .08),
+                              height: 1,
+                            ),
+
+                            const SizedBox(height: 22),
+
+                            _buildDeliveryFeesContent(),
+                          ],
                         ],
                       ),
                     ),
@@ -1021,21 +1679,24 @@ class _MyAddressesScreenState
                                       ),
 
                                       Text(
+  item['governorate'] ?? '',
+  style: const TextStyle(
+    color: blue,
+    fontSize: 15,
+    fontWeight: FontWeight.w600,
+  ),
+),
 
-                                        item['address'],
+const SizedBox(height: 4),
 
-                                        style:
-                                            const TextStyle(
-                                          color:
-                                              subText,
-
-                                          fontSize:
-                                              16,
-
-                                          height:
-                                              1.5,
-                                        ),
-                                      ),
+Text(
+  item['address'] ?? '',
+  style: const TextStyle(
+    color: subText,
+    fontSize: 16,
+    height: 1.5,
+  ),
+),
                                     ],
                                   ),
                                 ),
@@ -1177,4 +1838,168 @@ class _MyAddressesScreenState
               ),
     );
   }
+}
+
+class _GovernoratePicker extends StatefulWidget {
+final List<String> governorates;
+final String? selectedGovernorate;
+
+const _GovernoratePicker({
+  required this.governorates,
+  required this.selectedGovernorate,
+});
+
+@override
+State<_GovernoratePicker> createState() =>
+    _GovernoratePickerState();
+}
+
+class _GovernoratePickerState
+  extends State<_GovernoratePicker> {
+final TextEditingController searchController =
+    TextEditingController();
+
+late List<String> filteredGovernorates;
+
+@override
+void initState() {
+  super.initState();
+
+  filteredGovernorates =
+      List.from(widget.governorates);
+
+  searchController.addListener(_filter);
+}
+
+void _filter() {
+  final query =
+      searchController.text.trim().toLowerCase();
+
+  setState(() {
+    filteredGovernorates =
+        widget.governorates.where((governorate) {
+      return governorate
+          .toLowerCase()
+          .contains(query);
+    }).toList();
+  });
+}
+
+@override
+void dispose() {
+  searchController.removeListener(_filter);
+  searchController.dispose();
+  super.dispose();
+}
+
+@override
+Widget build(BuildContext context) {
+  return SafeArea(
+    child: Padding(
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 70,
+            height: 5,
+            decoration: BoxDecoration(
+              color: Colors.white24,
+              borderRadius:
+                  BorderRadius.circular(20),
+            ),
+          ),
+
+          const SizedBox(height: 20),
+
+          const Text(
+            "Select Governorate",
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 22,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+
+          const SizedBox(height: 18),
+
+          TextField(
+            controller: searchController,
+            style: const TextStyle(
+              color: Colors.white,
+            ),
+            decoration: InputDecoration(
+              hintText:
+                  "Search governorate",
+              hintStyle: const TextStyle(
+                color: Colors.white54,
+              ),
+              prefixIcon: const Icon(
+                Icons.search,
+                color: Colors.white54,
+              ),
+              filled: true,
+              fillColor:
+                  Colors.white.withOpacity(.05),
+              border: OutlineInputBorder(
+                borderRadius:
+                    BorderRadius.circular(16),
+                borderSide: BorderSide.none,
+              ),
+            ),
+          ),
+
+          const SizedBox(height: 12),
+
+          Flexible(
+            child: ListView.builder(
+              shrinkWrap: true,
+              itemCount:
+                  filteredGovernorates.length,
+              itemBuilder: (context, index) {
+                final governorate =
+                    filteredGovernorates[index];
+
+                final isSelected =
+                    governorate ==
+                        widget.selectedGovernorate;
+
+                return ListTile(
+                  leading: const Icon(
+                    Icons.account_balance,
+                    color: Color(0xFF6EA6C1),
+                  ),
+
+                  title: Text(
+                    governorate,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                    ),
+                  ),
+
+                  trailing: Icon(
+                    isSelected
+                        ? Icons.radio_button_checked
+                        : Icons.radio_button_off,
+                    color: isSelected
+                        ? const Color(0xFF6EA6C1)
+                        : Colors.white54,
+                  ),
+
+                  onTap: () {
+                    Navigator.pop(
+                      context,
+                      governorate,
+                    );
+                  },
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+    ),
+  );
+}
 }

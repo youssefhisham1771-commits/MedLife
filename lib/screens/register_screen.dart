@@ -81,7 +81,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
-        content: Text("Account Created Successfully 🎉"),
+        content: Text("Welcome to MedLife!"),
       ),
     );
 

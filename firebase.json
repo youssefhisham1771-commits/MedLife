@@ -25,6 +25,11 @@
       }
     ]
   },
+
+  "firestore": {
+    "rules": "firestore.rules"
+  },
+
   "flutter": {
     "platforms": {
       "android": {
@@ -48,6 +53,7 @@
       }
     }
   },
+
   "functions": [
     {
       "source": "functions",

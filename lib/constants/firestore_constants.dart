@@ -8,6 +8,7 @@ class FirestoreConstants {
   static const String orders = 'orders';
   static const String promoCodes = 'promoCodes';
   static const String notifications = 'notifications';
+  static const String deliveryFees = 'deliveryFees';
 
   // User Fields
   static const String userId = 'userId';

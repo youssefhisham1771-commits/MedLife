@@ -16,6 +16,25 @@ class MyOrderDetailsScreen extends StatelessWidget {
 
     List items = data['items'] ?? [];
 
+    double subtotal = 0;
+
+    for (final item in items) {
+      final quantity =
+          int.tryParse(item['quantity']?.toString() ?? '1') ?? 1;
+
+      final price =
+          double.tryParse(item['price']?.toString() ?? '0') ?? 0;
+
+      subtotal += price * quantity;
+    }
+
+    final shipping =
+        double.tryParse(data['shipping']?.toString() ?? '0') ?? 0;
+
+    final total =
+        double.tryParse(data['total']?.toString() ?? '0') ??
+            (subtotal + shipping);
+
     return Scaffold(
       backgroundColor: const Color(0xFF070B1A),
 
@@ -180,34 +199,69 @@ class MyOrderDetailsScreen extends StatelessWidget {
                 height: 40,
               ),
 
-              Row(
-                mainAxisAlignment:
-                    MainAxisAlignment.spaceBetween,
+              _priceRow(
+                "Subtotal",
+                subtotal,
+              ),
 
-                children: [
-                  const Text(
-                    "Total Amount",
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
+              const SizedBox(height: 10),
 
-                  Text(
-                    "${data['total']} EGP",
-                    style: const TextStyle(
-                      color: Color(0xFF6EA6C1),
-                      fontSize: 28,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ],
+              _priceRow(
+                "Shipping",
+                shipping,
+              ),
+
+              const Divider(
+                color: Colors.white24,
+                height: 30,
+              ),
+
+              _priceRow(
+                "Total Amount",
+                total,
+                isTotal: true,
               ),
             ],
           ),
         ),
       ),
+    );
+  }
+
+  Widget _priceRow(
+    String title,
+    double value, {
+    bool isTotal = false,
+  }) {
+    return Row(
+      mainAxisAlignment:
+          MainAxisAlignment.spaceBetween,
+      children: [
+        Text(
+          title,
+          style: TextStyle(
+            color: isTotal
+                ? Colors.white
+                : Colors.white70,
+            fontSize: isTotal ? 24 : 17,
+            fontWeight: isTotal
+                ? FontWeight.bold
+                : FontWeight.w500,
+          ),
+        ),
+        Text(
+          "${value.toStringAsFixed(2)} EGP",
+          style: TextStyle(
+            color: isTotal
+                ? const Color(0xFF6EA6C1)
+                : Colors.white70,
+            fontSize: isTotal ? 28 : 17,
+            fontWeight: isTotal
+                ? FontWeight.bold
+                : FontWeight.w500,
+          ),
+        ),
+      ],
     );
   }
 }
