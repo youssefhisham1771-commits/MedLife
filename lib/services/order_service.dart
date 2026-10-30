@@ -17,6 +17,7 @@ required String address,
     required List<Map<String, dynamic>> cart,
     required double total,
     required double shipping,
+    required double discount,
   }) async {
     final user = _auth.currentUser;
 
@@ -48,6 +49,8 @@ required String address,
       }).toList(),
 
       "shipping": shipping,
+
+      "discount": discount,
 
       "total": total,
 

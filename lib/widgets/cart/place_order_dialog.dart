@@ -10,12 +10,14 @@ import 'order_success_dialog.dart';
 class PlaceOrderDialog extends StatefulWidget {
   final List<Map<String, dynamic>> cart;
   final double total;
+  final double discount;
   final VoidCallback onOrderPlaced;
 
   const PlaceOrderDialog({
     super.key,
     required this.cart,
     required this.total,
+    required this.discount,
     required this.onOrderPlaced,
   });
 
@@ -264,6 +266,7 @@ class _PlaceOrderDialogState extends State<PlaceOrderDialog> {
         cart: widget.cart,
         total: widget.total + shipping,
         shipping: shipping,
+        discount: widget.discount,
       );
 
       if (!mounted) return;
@@ -584,7 +587,20 @@ class _PlaceOrderDialogState extends State<PlaceOrderDialog> {
   }
 
   Widget _buildOrderSummary() {
-    final grandTotal = widget.total + shipping;
+    double subtotal = 0;
+
+    for (final item in widget.cart) {
+      final price =
+          double.tryParse(item['price'].toString()) ?? 0;
+
+      final quantity =
+          int.tryParse(item['quantity'].toString()) ?? 1;
+
+      subtotal += price * quantity;
+    }
+
+    final grandTotal =
+        subtotal - widget.discount + shipping;
 
     return Container(
       width: double.infinity,
@@ -600,7 +616,7 @@ class _PlaceOrderDialogState extends State<PlaceOrderDialog> {
         children: [
           _buildPriceRow(
             "Subtotal",
-            widget.total,
+            subtotal,
           ),
 
           const SizedBox(height: 10),
@@ -635,6 +651,13 @@ class _PlaceOrderDialogState extends State<PlaceOrderDialog> {
                   ),
                 ),
             ],
+          ),
+
+          const SizedBox(height: 10),
+
+          _buildPriceRow(
+            "Discount",
+            -widget.discount,
           ),
 
           const Divider(

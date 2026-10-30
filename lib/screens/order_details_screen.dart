@@ -167,6 +167,19 @@ Future<void> chatCustomer(String phone) async {
           (price * quantity);
     }
 
+    // Older orders created before the discount field was saved
+    // can still recover the original discount from:
+    // subtotal + shipping - total.
+    if (!data.containsKey('discount')) {
+      final inferredDiscount =
+          subtotal + shipping - total;
+
+      discount =
+          inferredDiscount > 0
+              ? inferredDiscount
+              : 0;
+    }
+
     return Scaffold(
 
       backgroundColor:
@@ -216,6 +229,21 @@ Future<void> chatCustomer(String phone) async {
 
       final pdf = pw.Document();
 
+      // Use a Latin font as the primary font and Noto Sans Arabic
+      // as a fallback. This keeps English/Latin characters working
+      // while also supporting Arabic characters in the same PDF.
+      final latinFont =
+          await PdfGoogleFonts.robotoRegular();
+
+      final latinBoldFont =
+          await PdfGoogleFonts.robotoBold();
+
+      final arabicFont =
+          await PdfGoogleFonts.notoSansArabicRegular();
+
+      final arabicBoldFont =
+          await PdfGoogleFonts.notoSansArabicBold();
+
       final image = await imageFromAssetBundle(
         'assets/1.png',
       );
@@ -225,6 +253,15 @@ Future<void> chatCustomer(String phone) async {
         pw.MultiPage(
 
           pageFormat: PdfPageFormat.a4,
+
+          theme: pw.ThemeData.withFont(
+            base: latinFont,
+            bold: latinBoldFont,
+            fontFallback: [
+              arabicFont,
+              arabicBoldFont,
+            ],
+          ),
 
           build: (context) => [
 
@@ -519,7 +556,13 @@ Future<void> chatCustomer(String phone) async {
 
             pw.SizedBox(height: 10),
 
-            pw.Text(address),
+            pw.Directionality(
+              textDirection: pw.TextDirection.rtl,
+              child: pw.Text(
+                address,
+                textAlign: pw.TextAlign.right,
+              ),
+            ),
           ],
         ),
       );

@@ -391,6 +391,7 @@ CartHeader(
   builder: (_) => PlaceOrderDialog(
     cart: cart,
     total: total(),
+    discount: discount,
     onOrderPlaced: () {
       setState(() {
         cart.clear();
