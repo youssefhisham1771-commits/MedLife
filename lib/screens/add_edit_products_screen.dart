@@ -32,6 +32,16 @@ class _AddEditProductScreenState
 
   List<String> imageUrls = [];
 
+  String selectedCategory = 'Scrubs';
+
+  static const List<String> categories = [
+    'Scrubs',
+    'Lab Coats',
+    'Tools',
+    'Accessories',
+    'Teeth',
+  ];
+
   bool isLoading = false;
 
   final Color primaryColor = const Color(0xFF6EA6C1);
@@ -41,6 +51,11 @@ class _AddEditProductScreenState
     super.initState();
 
     if (widget.oldData != null) {
+
+      selectedCategory =
+          categories.contains(widget.oldData['category'])
+              ? widget.oldData['category']
+              : 'Scrubs';
 
       name.text =
           widget.oldData['name']?.toString() ?? "";
@@ -178,16 +193,18 @@ deliveryText.text.isEmpty) {
       "description":
           description.text.trim(),
 
+      "category":
+          selectedCategory,
+
       "deliveryText":
     deliveryText.text.trim(),
 
       "images":
           imageUrls,
-
-      "createdAt": Timestamp.now(),
     };
 
     if (widget.docId == null) {
+      data["createdAt"] = Timestamp.now();
 
       await FirebaseFirestore.instance
           .collection('Products')
@@ -300,6 +317,50 @@ deliveryText.text.isEmpty) {
                   Icons.local_offer_outlined,
               keyboard:
                   TextInputType.number,
+            ),
+
+            SizedBox(height: 22),
+
+            ////////////////// CATEGORY //////////////////
+
+            buildLabel("Product Category"),
+
+            SizedBox(height: 10),
+
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.03),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: Colors.white10),
+              ),
+              child: DropdownButtonHideUnderline(
+                child: DropdownButton<String>(
+                  value: selectedCategory,
+                  isExpanded: true,
+                  dropdownColor: const Color(0xFF1D1B20),
+                  icon: Icon(
+                    Icons.keyboard_arrow_down_rounded,
+                    color: primaryColor,
+                  ),
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 16,
+                  ),
+                  items: categories.map((category) {
+                    return DropdownMenuItem<String>(
+                      value: category,
+                      child: Text(category),
+                    );
+                  }).toList(),
+                  onChanged: (value) {
+                    if (value == null) return;
+                    setState(() {
+                      selectedCategory = value;
+                    });
+                  },
+                ),
+              ),
             ),
 
             SizedBox(height: 25),
