@@ -147,7 +147,11 @@ class _AddEditCategoryScreenState extends State<AddEditCategoryScreen> {
             child: Wrap(spacing: 10, runSpacing: 10, children: _availableIcons.map((icon) {
               final selected = icon.codePoint == _iconCodePoint;
               return InkWell(
-                onTap: () => setState(() => _iconCodePoint = icon.codePoint),
+                onTap: () => setState(() {
+                  _iconCodePoint = icon.codePoint;
+                  // Selecting an icon switches the category away from an uploaded image.
+                  _imageUrl = null;
+                }),
                 borderRadius: BorderRadius.circular(12),
                 child: Container(width: 48, height: 48,
                   decoration: BoxDecoration(
