@@ -176,6 +176,21 @@ deliveryText.text.isEmpty ||
       return;
     }
 
+    if (selectedCategoryId != null) {
+      final categoryDoc = await FirebaseFirestore.instance
+          .collection('categories')
+          .doc(selectedCategoryId)
+          .get();
+      if (!categoryDoc.exists) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('This category no longer exists. Please choose another.')),
+        );
+        return;
+      }
+      selectedCategoryName = categoryDoc.data()?['name']?.toString();
+    }
+
     var data = {
 
       "name":
