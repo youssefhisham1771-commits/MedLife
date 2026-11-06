@@ -340,9 +340,15 @@ deliveryText.text.isEmpty ||
             SizedBox(height: 10),
 
             StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-              stream: FirebaseFirestore.instance.collection('categories').orderBy('name').snapshots(),
+              stream: FirebaseFirestore.instance.collection('categories').snapshots(),
               builder: (context, snapshot) {
-                final docs = snapshot.data?.docs ?? [];
+                final docs = snapshot.data?.docs.toList() ?? <QueryDocumentSnapshot<Map<String, dynamic>>>[];
+                docs.sort((a, b) {
+                  final orderA = (a.data()['sortOrder'] as num?)?.toInt() ?? 1 << 30;
+                  final orderB = (b.data()['sortOrder'] as num?)?.toInt() ?? 1 << 30;
+                  final byOrder = orderA.compareTo(orderB);
+                  return byOrder != 0 ? byOrder : (a.data()['name']?.toString().toLowerCase() ?? '').compareTo(b.data()['name']?.toString().toLowerCase() ?? '');
+                });
                 final hasSelected = docs.any((doc) => doc.id == selectedCategoryId);
                 return Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
