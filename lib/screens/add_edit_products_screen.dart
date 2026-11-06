@@ -32,6 +32,9 @@ class _AddEditProductScreenState
 
   List<String> imageUrls = [];
 
+  String? selectedCategoryId;
+  String? selectedCategoryName;
+
   bool isLoading = false;
 
   final Color primaryColor = const Color(0xFF6EA6C1);
@@ -41,6 +44,9 @@ class _AddEditProductScreenState
     super.initState();
 
     if (widget.oldData != null) {
+
+      selectedCategoryId = widget.oldData['categoryId']?.toString();
+      selectedCategoryName = widget.oldData['category']?.toString();
 
       name.text =
           widget.oldData['name']?.toString() ?? "";
@@ -153,13 +159,16 @@ class _AddEditProductScreenState
         price.text.isEmpty ||
         description.text.isEmpty ||
         imageUrls.isEmpty ||
-deliveryText.text.isEmpty) {
+deliveryText.text.isEmpty ||
+        (selectedCategoryId == null &&
+            widget.oldData?['categoryId'] == null &&
+            widget.oldData?['category'] == null)) {
 
       ScaffoldMessenger.of(context)
           .showSnackBar(
         SnackBar(
           content: Text(
-            "Please complete all fields",
+            "Please complete all fields and select a category",
           ),
         ),
       );
@@ -178,16 +187,21 @@ deliveryText.text.isEmpty) {
       "description":
           description.text.trim(),
 
+      "category":
+          selectedCategoryName ?? widget.oldData?['category'],
+
+      "categoryId":
+          selectedCategoryId ?? widget.oldData?['categoryId'],
+
       "deliveryText":
     deliveryText.text.trim(),
 
       "images":
           imageUrls,
-
-      "createdAt": Timestamp.now(),
     };
 
     if (widget.docId == null) {
+      data["createdAt"] = Timestamp.now();
 
       await FirebaseFirestore.instance
           .collection('Products')
@@ -300,6 +314,64 @@ deliveryText.text.isEmpty) {
                   Icons.local_offer_outlined,
               keyboard:
                   TextInputType.number,
+            ),
+
+            SizedBox(height: 22),
+
+            ////////////////// CATEGORY //////////////////
+
+            buildLabel("Product Category"),
+
+            SizedBox(height: 10),
+
+            StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+              stream: FirebaseFirestore.instance.collection('categories').orderBy('name').snapshots(),
+              builder: (context, snapshot) {
+                final docs = snapshot.data?.docs ?? [];
+                final hasSelected = docs.any((doc) => doc.id == selectedCategoryId);
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.03),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: Colors.white10),
+                      ),
+                      child: DropdownButtonHideUnderline(
+                        child: DropdownButton<String>(
+                          value: hasSelected ? selectedCategoryId : null,
+                          hint: Text(docs.isEmpty ? 'No categories yet' : 'Choose a category',
+                              style: const TextStyle(color: Colors.white54)),
+                          isExpanded: true,
+                          dropdownColor: const Color(0xFF1D1B20),
+                          icon: Icon(Icons.keyboard_arrow_down_rounded, color: primaryColor),
+                          style: const TextStyle(color: Colors.white, fontSize: 16),
+                          items: docs.map((doc) => DropdownMenuItem<String>(
+                            value: doc.id,
+                            child: Text(doc.data()['name']?.toString() ?? ''),
+                          )).toList(),
+                          onChanged: (value) {
+                            if (value == null) return;
+                            final selected = docs.firstWhere((doc) => doc.id == value);
+                            setState(() {
+                              selectedCategoryId = value;
+                              selectedCategoryName = selected.data()['name']?.toString();
+                            });
+                          },
+                        ),
+                      ),
+                    ),
+                    if (docs.isEmpty)
+                      const Padding(
+                        padding: EdgeInsets.only(top: 8),
+                        child: Text('Ask the admin to add a category before adding products.',
+                            style: TextStyle(color: Colors.white54, fontSize: 12)),
+                      ),
+                  ],
+                );
+              },
             ),
 
             SizedBox(height: 25),
