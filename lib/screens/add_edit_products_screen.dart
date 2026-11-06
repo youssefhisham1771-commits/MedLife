@@ -31,6 +31,14 @@ class _AddEditProductScreenState
 
 
   List<String> imageUrls = [];
+  static const List<String> categories = [
+    'Scrubs',
+    'Lab Coats',
+    'Tools',
+    'Accessories',
+    'Offers',
+  ];
+  String selectedCategory = 'Scrubs';
 
   bool isLoading = false;
 
@@ -41,6 +49,10 @@ class _AddEditProductScreenState
     super.initState();
 
     if (widget.oldData != null) {
+      final oldCategory = widget.oldData['category']?.toString();
+      if (oldCategory != null && categories.contains(oldCategory)) {
+        selectedCategory = oldCategory;
+      }
 
       name.text =
           widget.oldData['name']?.toString() ?? "";
@@ -181,6 +193,8 @@ deliveryText.text.isEmpty) {
       "deliveryText":
     deliveryText.text.trim(),
 
+      "category": selectedCategory,
+
       "images":
           imageUrls,
 
@@ -300,6 +314,37 @@ deliveryText.text.isEmpty) {
                   Icons.local_offer_outlined,
               keyboard:
                   TextInputType.number,
+            ),
+
+            SizedBox(height: 18),
+
+            ////////////////// CATEGORY //////////////////
+
+            buildLabel("Category"),
+
+            SizedBox(height: 10),
+
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.03),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: primaryColor.withValues(alpha: 0.55)),
+              ),
+              child: DropdownButtonFormField<String>(
+                value: selectedCategory,
+                dropdownColor: const Color(0xFF101B30),
+                icon: const Icon(Icons.keyboard_arrow_down, color: Color(0xFF6EA6C1)),
+                decoration: const InputDecoration(border: InputBorder.none),
+                style: const TextStyle(color: Colors.white, fontSize: 16),
+                items: categories.map((category) => DropdownMenuItem<String>(
+                  value: category,
+                  child: Text(category, style: const TextStyle(color: Colors.white)),
+                )).toList(),
+                onChanged: (value) {
+                  if (value != null) setState(() => selectedCategory = value);
+                },
+              ),
             ),
 
             SizedBox(height: 25),
