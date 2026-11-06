@@ -12,6 +12,7 @@ import 'custom_drawer_screen.dart';
 import 'product_details_screen.dart';
 import 'profile_screen.dart';
 import 'sales_screen.dart';
+import 'categories_screen.dart';
 
 ///////////////////// 🛍 PRODUCTS /////////////////////
 
@@ -32,6 +33,296 @@ class _ProductsScreenState extends State<ProductsScreen> {
  bool isAdmin = false;
 
  bool salesSeen = false;
+
+  // Product search and filters
+  final TextEditingController searchController = TextEditingController();
+  String searchQuery = '';
+  String? selectedCategory;
+  String sortBy = 'newest';
+  double minPrice = 0;
+  double maxPrice = double.infinity;
+
+  String? selectedCategoryName;
+
+  double _productPrice(dynamic value) {
+    if (value is num) return value.toDouble();
+    return double.tryParse(value?.toString().replaceAll(',', '').trim() ?? '') ?? 0;
+  }
+
+  String _normalized(dynamic value) =>
+      value?.toString().trim().toLowerCase() ?? '';
+
+  Widget buildSearchBar(double availableMaxPrice) {
+    return Container(
+      height: 45,
+      margin: const EdgeInsets.symmetric(horizontal: 28, vertical: 8),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(40),
+        gradient: const LinearGradient(
+          colors: [Color(0xFF101D35), Color(0xFF091428)],
+        ),
+        border: Border.all(color: const Color(0xFF59C7FF), width: 1.5),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF59C7FF).withValues(alpha: 0.22),
+            blurRadius: 20,
+            spreadRadius: 1,
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          const SizedBox(width: 10),
+          const Icon(Icons.search, color: Colors.white, size: 29),
+          const SizedBox(width: 7),
+          Expanded(
+            child: TextField(
+              controller: searchController,
+              onChanged: (value) {
+                setState(() => searchQuery = value.trim().toLowerCase());
+              },
+              style: const TextStyle(color: Colors.white, fontSize: 16),
+              cursorColor: const Color(0xFF59C7FF),
+              textInputAction: TextInputAction.search,
+              decoration: const InputDecoration(
+                hintText: 'Search for products...',
+                hintStyle: TextStyle(color: Colors.white54, fontSize: 15),
+                border: InputBorder.none,
+                isDense: true,
+                contentPadding: EdgeInsets.symmetric(vertical: 12),
+              ),
+            ),
+          ),
+          Container(height: 34, width: 1, color: Colors.white24),
+          IconButton(
+            tooltip: 'Filter products',
+            onPressed: () => showProductFilters(availableMaxPrice),
+            icon: const Icon(Icons.tune, color: Colors.white, size: 24),
+          ),
+          const SizedBox(width: 4),
+        ],
+      ),
+    );
+  }
+
+  Future<void> showProductFilters(double availableMaxPrice) async {
+    final safeMax = availableMaxPrice > 0 ? availableMaxPrice : 5000.0;
+    final currentMin = minPrice.clamp(0.0, safeMax).toDouble();
+    final currentMax = (maxPrice.isFinite ? maxPrice : safeMax)
+        .clamp(currentMin, safeMax)
+        .toDouble();
+
+    String tempCategory = selectedCategory ?? 'All';
+    String? tempCategoryName = selectedCategoryName;
+    String tempSort = sortBy;
+    RangeValues tempRange = RangeValues(currentMin, currentMax);
+
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: const Color(0xFF111827),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
+      ),
+      builder: (sheetContext) {
+        return StatefulBuilder(
+          builder: (context, updateSheet) {
+            final bottomInset = MediaQuery.of(context).viewInsets.bottom;
+            return SafeArea(
+              child: Padding(
+                padding: EdgeInsets.fromLTRB(22, 18, 22, 22 + bottomInset),
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Center(
+                        child: Container(
+                          width: 44,
+                          height: 5,
+                          decoration: BoxDecoration(
+                            color: Colors.white30,
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 22),
+                      const Text(
+                        'Filter Products',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 23,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+                      _filterSectionTitle('Category'),
+                      const SizedBox(height: 10),
+                      StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+                        stream: FirebaseFirestore.instance.collection('categories').orderBy('name').snapshots(),
+                        builder: (context, categorySnapshot) {
+                          final categoryDocs = categorySnapshot.data?.docs ?? [];
+                          final validValue = tempCategory == 'All' ||
+                                  categoryDocs.any((doc) => doc.id == tempCategory)
+                              ? tempCategory : 'All';
+                          return DropdownButtonFormField<String>(
+                            value: validValue,
+                            dropdownColor: const Color(0xFF1A263B),
+                            style: const TextStyle(color: Colors.white),
+                            decoration: _filterInputDecoration(),
+                            items: [
+                              const DropdownMenuItem(value: 'All', child: Text('All categories')),
+                              ...categoryDocs.map((doc) => DropdownMenuItem(
+                                value: doc.id,
+                                child: Text(doc.data()['name']?.toString() ?? ''),
+                              )),
+                            ],
+                            onChanged: (value) {
+                              updateSheet(() {
+                                tempCategory = value ?? 'All';
+                                final match = categoryDocs.where((doc) => doc.id == tempCategory);
+                                tempCategoryName = match.isEmpty ? null : match.first.data()['name']?.toString();
+                              });
+                            },
+                          );
+                        },
+                      ),
+                      const SizedBox(height: 24),
+                      _filterSectionTitle('Price Range'),
+                      RangeSlider(
+                        values: tempRange,
+                        min: 0,
+                        max: safeMax,
+                        divisions: safeMax >= 2 ? safeMax.round() : null,
+                        activeColor: const Color(0xFF59C7FF),
+                        inactiveColor: Colors.white24,
+                        labels: RangeLabels(
+                          '${tempRange.start.round()} EGP',
+                          '${tempRange.end.round()} EGP',
+                        ),
+                        onChanged: (value) {
+                          updateSheet(() => tempRange = value);
+                        },
+                      ),
+                      Text(
+                        '${tempRange.start.round()} EGP  –  ${tempRange.end.round()} EGP',
+                        style: const TextStyle(color: Colors.white70),
+                      ),
+                      const SizedBox(height: 24),
+                      _filterSectionTitle('Sort By'),
+                      const SizedBox(height: 10),
+                      DropdownButtonFormField<String>(
+                        value: tempSort,
+                        dropdownColor: const Color(0xFF1A263B),
+                        style: const TextStyle(color: Colors.white),
+                        decoration: _filterInputDecoration(),
+                        items: const [
+                          DropdownMenuItem(value: 'newest', child: Text('Newest First')),
+                          DropdownMenuItem(value: 'price_low', child: Text('Price: Low to High')),
+                          DropdownMenuItem(value: 'price_high', child: Text('Price: High to Low')),
+                          DropdownMenuItem(value: 'name', child: Text('Name: A to Z')),
+                        ],
+                        onChanged: (value) {
+                          updateSheet(() => tempSort = value ?? 'newest');
+                        },
+                      ),
+                      const SizedBox(height: 28),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: OutlinedButton(
+                              onPressed: () {
+                                setState(() {
+                                  selectedCategory = null;
+                                  selectedCategoryName = null;
+                                  sortBy = 'newest';
+                                  minPrice = 0;
+                                  maxPrice = double.infinity;
+                                  searchController.clear();
+                                  searchQuery = '';
+                                });
+                                Navigator.pop(sheetContext);
+                              },
+                              style: OutlinedButton.styleFrom(
+                                foregroundColor: Colors.white,
+                                side: const BorderSide(color: Colors.white30),
+                                padding: const EdgeInsets.symmetric(vertical: 15),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(16),
+                                ),
+                              ),
+                              child: const Text('Clear All'),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: ElevatedButton(
+                              onPressed: () {
+                                setState(() {
+                                  selectedCategory =
+                                      tempCategory == 'All' ? null : tempCategory;
+                                  selectedCategoryName =
+                                      tempCategory == 'All' ? null : tempCategoryName;
+                                  sortBy = tempSort;
+                                  minPrice = tempRange.start;
+                                  maxPrice = tempRange.end;
+                                });
+                                Navigator.pop(sheetContext);
+                              },
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFF59C7FF),
+                                foregroundColor: const Color(0xFF081426),
+                                padding: const EdgeInsets.symmetric(vertical: 15),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(16),
+                                ),
+                              ),
+                              child: const Text(
+                                'Apply Filters',
+                                style: TextStyle(fontWeight: FontWeight.bold),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _filterSectionTitle(String title) {
+    return Text(
+      title,
+      style: const TextStyle(
+        color: Color(0xFF59C7FF),
+        fontSize: 17,
+        fontWeight: FontWeight.bold,
+      ),
+    );
+  }
+
+  InputDecoration _filterInputDecoration() {
+    return InputDecoration(
+      filled: true,
+      fillColor: Colors.white.withValues(alpha: 0.05),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(15),
+        borderSide: const BorderSide(color: Colors.white24),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(15),
+        borderSide: const BorderSide(color: Color(0xFF59C7FF)),
+      ),
+    );
+  }
+
 
 @override
 void initState() {
@@ -169,6 +460,12 @@ Future<void> loadCart() async {
   });
 }
 
+@override
+void dispose() {
+  searchController.dispose();
+  super.dispose();
+}
+
 Widget buildProducts() {
   return StreamBuilder(
     stream: FirebaseFirestore.instance.collection('Products')
@@ -179,7 +476,61 @@ Widget buildProducts() {
         return Center(child: CircularProgressIndicator());
       }
 
-      var products = snapshot.data!.docs;
+      final allProducts = snapshot.data!.docs;
+
+      final availableMaxPrice = allProducts.fold<double>(
+        0,
+        (highest, product) {
+          final price = _productPrice(product.data()['price']);
+          return price > highest ? price : highest;
+        },
+      );
+
+      var products = allProducts.where((product) {
+        final data = product.data();
+        final name = _normalized(data['name']);
+        final description = _normalized(data['description']);
+        final category = _normalized(data['category']);
+        final price = _productPrice(data['price']);
+
+        final matchesSearch = searchQuery.isEmpty ||
+            name.contains(searchQuery) ||
+            description.contains(searchQuery) ||
+            category.contains(searchQuery);
+        final categoryId = (data['categoryId'] ?? '').toString();
+        final matchesCategory = selectedCategory == null ||
+            categoryId == selectedCategory ||
+            category == _normalized(selectedCategoryName);
+        final matchesPrice = price >= minPrice &&
+            price <= (maxPrice.isFinite ? maxPrice : double.infinity);
+
+        return matchesSearch && matchesCategory && matchesPrice;
+      }).toList();
+
+      products.sort((a, b) {
+        final dataA = a.data();
+        final dataB = b.data();
+        final priceA = _productPrice(dataA['price']);
+        final priceB = _productPrice(dataB['price']);
+
+        switch (sortBy) {
+          case 'price_low':
+            return priceA.compareTo(priceB);
+          case 'price_high':
+            return priceB.compareTo(priceA);
+          case 'name':
+            return _normalized(dataA['name'])
+                .compareTo(_normalized(dataB['name']));
+          default:
+            final dateA = dataA['createdAt'] is Timestamp
+                ? (dataA['createdAt'] as Timestamp).toDate()
+                : DateTime(2000);
+            final dateB = dataB['createdAt'] is Timestamp
+                ? (dataB['createdAt'] as Timestamp).toDate()
+                : DateTime(2000);
+            return dateB.compareTo(dateA);
+        }
+      });
 
 return Column(
   children: [
@@ -273,9 +624,64 @@ Padding(
   ),
 ),
 
+    buildSearchBar(
+      availableMaxPrice > 0 ? availableMaxPrice : 5000,
+    ),
+
+    _buildCategoriesSection(),
+
     /// 🔥 المنتجات تحت
     Expanded(
-      child: GridView.builder(
+      child: products.isEmpty
+          ? Center(
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(
+                      Icons.search_off_rounded,
+                      color: Color(0xFF6EA6C1),
+                      size: 52,
+                    ),
+                    const SizedBox(height: 12),
+                    const Text(
+                      'No products found',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    const Text(
+                      'Try another search or adjust your filters.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(color: Colors.white60),
+                    ),
+                    const SizedBox(height: 14),
+                    TextButton(
+                      onPressed: () {
+                        setState(() {
+                          searchController.clear();
+                          searchQuery = '';
+                          selectedCategory = null;
+                          selectedCategoryName = null;
+                          minPrice = 0;
+                          maxPrice = double.infinity;
+                          sortBy = 'newest';
+                        });
+                      },
+                      child: const Text(
+                        'Clear Search & Filters',
+                        style: TextStyle(color: Color(0xFF59C7FF)),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            )
+          : GridView.builder(
         padding: EdgeInsets.all(10),
         gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
           crossAxisCount: 2,
@@ -685,6 +1091,112 @@ Spacer(),
     ),
   ],
 );
+    },
+  );
+}
+
+Widget _buildCategoriesSection() {
+  return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+    stream: FirebaseFirestore.instance.collection('categories').orderBy('name').snapshots(),
+    builder: (context, snapshot) {
+      final docs = snapshot.data?.docs ?? [];
+      return Padding(
+        padding: const EdgeInsets.only(top: 7, bottom: 10),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: Row(
+                children: [
+                  const Icon(Icons.grid_view_rounded, color: Color(0xFF39BFFF), size: 25),
+                  const SizedBox(width: 10),
+                  const Text('Categories', style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
+                  const Spacer(),
+                  TextButton(
+                    onPressed: () async {
+                      await Navigator.push(context, MaterialPageRoute(
+                        builder: (_) => CategoriesScreen(isAdmin: isAdmin),
+                      ));
+                      if (mounted) setState(() {});
+                    },
+                    style: TextButton.styleFrom(foregroundColor: const Color(0xFF39BFFF), padding: EdgeInsets.zero),
+                    child: const Row(children: [
+                      Text('See All', style: TextStyle(fontWeight: FontWeight.w600)),
+                      Icon(Icons.chevron_right_rounded, size: 22),
+                    ]),
+                  ),
+                ],
+              ),
+            ),
+            if (docs.isNotEmpty) ...[
+              const SizedBox(height: 9),
+              SizedBox(
+                height: 118,
+                child: ListView.separated(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  scrollDirection: Axis.horizontal,
+                  itemCount: docs.length,
+                  separatorBuilder: (_, __) => const SizedBox(width: 12),
+                  itemBuilder: (context, index) {
+                    final doc = docs[index];
+                    final data = doc.data();
+                    final name = data['name']?.toString() ?? '';
+                    final isSelected = selectedCategory == doc.id;
+                    final imageUrl = data['imageUrl']?.toString() ?? '';
+                    final icon = IconData(
+                      data['iconCodePoint'] is int ? data['iconCodePoint'] as int : Icons.category_outlined.codePoint,
+                      fontFamily: data['iconFontFamily']?.toString() ?? 'MaterialIcons',
+                    );
+                    return InkWell(
+                      borderRadius: BorderRadius.circular(24),
+                      onTap: () => setState(() {
+                        selectedCategory = isSelected ? null : doc.id;
+                        selectedCategoryName = isSelected ? null : name;
+                      }),
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 180),
+                        width: 112,
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(24),
+                          gradient: const LinearGradient(
+                            begin: Alignment.topLeft, end: Alignment.bottomRight,
+                            colors: [Color(0xFF102B50), Color(0xFF07172F)],
+                          ),
+                          border: Border.all(
+                            color: isSelected ? const Color(0xFF69D0FF) : const Color(0xFF367EBA),
+                            width: isSelected ? 1.8 : 1.2,
+                          ),
+                          boxShadow: [BoxShadow(
+                            color: const Color(0xFF29AFFF).withValues(alpha: isSelected ? .28 : .14),
+                            blurRadius: 13, spreadRadius: 1,
+                          )],
+                        ),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Expanded(
+                              child: imageUrl.isNotEmpty
+                                  ? Image.network(imageUrl, fit: BoxFit.contain,
+                                      errorBuilder: (_, __, ___) => Icon(icon, color: const Color(0xFF62C9FF), size: 42))
+                                  : Icon(icon, color: const Color(0xFF62C9FF), size: 42),
+                            ),
+                            const SizedBox(height: 5),
+                            Text(name, maxLines: 1, overflow: TextOverflow.ellipsis,
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w500)),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ],
+          ],
+        ),
+      );
     },
   );
 }
