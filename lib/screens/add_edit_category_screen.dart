@@ -93,12 +93,18 @@ class _AddEditCategoryScreenState extends State<AddEditCategoryScreen> {
         await collection.doc(widget.docId).update(payload);
         if (oldName != null && oldName != name) {
           final linked = await FirebaseFirestore.instance.collection('Products')
-            .where('category', isEqualTo: oldName).get();
-          final batch = FirebaseFirestore.instance.batch();
-          for (final product in linked.docs) {
-            batch.update(product.reference, {'category': name, 'categoryId': widget.docId});
+              .where('category', isEqualTo: oldName).get();
+          for (var start = 0; start < linked.docs.length; start += 450) {
+            final batch = FirebaseFirestore.instance.batch();
+            final end = (start + 450 < linked.docs.length) ? start + 450 : linked.docs.length;
+            for (final product in linked.docs.sublist(start, end)) {
+              batch.update(product.reference, {
+                'category': name,
+                'categoryId': widget.docId,
+              });
+            }
+            await batch.commit();
           }
-          if (linked.docs.isNotEmpty) await batch.commit();
         }
       }
       if (!mounted) return;
@@ -113,7 +119,6 @@ class _AddEditCategoryScreenState extends State<AddEditCategoryScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final selectedIcon = IconData(_iconCodePoint, fontFamily: 'MaterialIcons');
     return Scaffold(
       backgroundColor: const Color(0xFF080F1D),
       appBar: AppBar(backgroundColor: Colors.transparent, elevation: 0,
