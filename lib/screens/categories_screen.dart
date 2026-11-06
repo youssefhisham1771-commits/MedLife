@@ -44,6 +44,39 @@ class CategoriesScreen extends StatelessWidget {
     await category.reference.delete();
   }
 
+  Future<void> _moveCategory(
+    BuildContext context,
+    List<QueryDocumentSnapshot<Map<String, dynamic>>> docs,
+    int index,
+    int direction,
+  ) async {
+    final targetIndex = index + direction;
+    if (targetIndex < 0 || targetIndex >= docs.length) return;
+
+    final reordered = List<QueryDocumentSnapshot<Map<String, dynamic>>>.from(docs);
+    final moved = reordered.removeAt(index);
+    reordered.insert(targetIndex, moved);
+
+    try {
+      final batch = FirebaseFirestore.instance.batch();
+      for (var i = 0; i < reordered.length; i++) {
+        batch.update(reordered[i].reference, {'sortOrder': i});
+      }
+      await batch.commit();
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Category order updated')),
+        );
+      }
+    } catch (error) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Could not change category order: $error')),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -59,11 +92,17 @@ class CategoriesScreen extends StatelessWidget {
         child: const Icon(Icons.add_rounded, size: 30),
       ) : null,
       body: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-        stream: FirebaseFirestore.instance.collection('categories').orderBy('name').snapshots(),
+        stream: FirebaseFirestore.instance.collection('categories').snapshots(),
         builder: (context, snapshot) {
           if (snapshot.hasError) return const Center(child: Text('Could not load categories', style: TextStyle(color: Colors.white70)));
           if (!snapshot.hasData) return const Center(child: CircularProgressIndicator(color: _blue));
-          final docs = snapshot.data!.docs;
+          final docs = snapshot.data!.docs.toList();
+          docs.sort((a, b) {
+            final orderA = (a.data()['sortOrder'] as num?)?.toInt() ?? 1 << 30;
+            final orderB = (b.data()['sortOrder'] as num?)?.toInt() ?? 1 << 30;
+            final byOrder = orderA.compareTo(orderB);
+            return byOrder != 0 ? byOrder : (a.data()['name']?.toString().toLowerCase() ?? '').compareTo(b.data()['name']?.toString().toLowerCase() ?? '');
+          });
           if (docs.isEmpty) {
             return Center(
               child: Padding(
@@ -141,11 +180,19 @@ class CategoriesScreen extends StatelessWidget {
                               builder: (_) => AddEditCategoryScreen(docId: doc.id, oldData: data)));
                           } else if (value == 'delete') {
                             await _deleteCategory(context, doc);
+                          } else if (value == 'move_up') {
+                            await _moveCategory(context, docs, index, -1);
+                          } else if (value == 'move_down') {
+                            await _moveCategory(context, docs, index, 1);
                           }
                         },
-                        itemBuilder: (_) => const [
-                          PopupMenuItem(value: 'edit', child: Text('Edit', style: TextStyle(color: Colors.white))),
-                          PopupMenuItem(value: 'delete', child: Text('Delete', style: TextStyle(color: Colors.redAccent))),
+                        itemBuilder: (_) => [
+                          if (index > 0)
+                            const PopupMenuItem(value: 'move_up', child: Text('Move up', style: TextStyle(color: Colors.white))),
+                          if (index < docs.length - 1)
+                            const PopupMenuItem(value: 'move_down', child: Text('Move down', style: TextStyle(color: Colors.white))),
+                          const PopupMenuItem(value: 'edit', child: Text('Edit', style: TextStyle(color: Colors.white))),
+                          const PopupMenuItem(value: 'delete', child: Text('Delete', style: TextStyle(color: Colors.redAccent))),
                         ],
                       ),
                     ),
