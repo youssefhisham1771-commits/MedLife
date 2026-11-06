@@ -33,6 +33,10 @@ class _ProductsScreenState extends State<ProductsScreen> {
 
  bool salesSeen = false;
 
+  String searchQuery = '';
+  String selectedCategory = '';
+  String selectedSort = 'newest';
+
 @override
 void initState() {
   super.initState();
@@ -179,7 +183,28 @@ Widget buildProducts() {
         return Center(child: CircularProgressIndicator());
       }
 
-      var products = snapshot.data!.docs;
+      final products = snapshot.data!.docs;
+
+      final filteredProducts = products.where((product) {
+        final data = product.data();
+        final category = (data['category'] ?? '').toString();
+        final name = (data['name'] ?? '').toString();
+        final matchesCategory = selectedCategory.isEmpty ||
+            category.toLowerCase() == selectedCategory.toLowerCase();
+        final matchesSearch = searchQuery.isEmpty ||
+            name.toLowerCase().contains(searchQuery.toLowerCase());
+        return matchesCategory && matchesSearch;
+      }).toList();
+
+      if (selectedSort == 'price_low') {
+        filteredProducts.sort((a, b) =>
+            (double.tryParse(a.data()['price'].toString()) ?? 0)
+                .compareTo(double.tryParse(b.data()['price'].toString()) ?? 0));
+      } else if (selectedSort == 'price_high') {
+        filteredProducts.sort((a, b) =>
+            (double.tryParse(b.data()['price'].toString()) ?? 0)
+                .compareTo(double.tryParse(a.data()['price'].toString()) ?? 0));
+      }
 
 return Column(
   children: [
@@ -273,7 +298,13 @@ Padding(
   ),
 ),
 
-    /// 🔥 المنتجات تحت
+    /// SEARCH + FILTER
+    _buildSearchBar(),
+
+    /// CATEGORIES
+    _buildCategories(),
+
+    /// PRODUCTS
     Expanded(
       child: GridView.builder(
         padding: EdgeInsets.all(10),
@@ -286,9 +317,9 @@ Padding(
           crossAxisSpacing: 10,
           mainAxisSpacing: 10,
         ),
-        itemCount: products.length,
+        itemCount: filteredProducts.length,
         itemBuilder: (context, index) {
-          var product = products[index];
+          var product = filteredProducts[index];
           var data = product.data();
 
           List<String> images =
@@ -686,6 +717,198 @@ Spacer(),
   ],
 );
     },
+  );
+}
+
+Widget _buildSearchBar() {
+  return Padding(
+    padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 2),
+    child: Container(
+      height: 58,
+      decoration: BoxDecoration(
+        color: const Color(0xFF07152D),
+        borderRadius: BorderRadius.circular(32),
+        border: Border.all(color: const Color(0xFF4CBFFF), width: 1.2),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF26AFFF).withValues(alpha: .22),
+            blurRadius: 18,
+            spreadRadius: 1,
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          const SizedBox(width: 18),
+          const Icon(Icons.search, color: Colors.white, size: 29),
+          const SizedBox(width: 12),
+          Expanded(
+            child: TextField(
+              onChanged: (value) => setState(() => searchQuery = value.trim()),
+              style: const TextStyle(color: Colors.white, fontSize: 16),
+              cursorColor: const Color(0xFF59C7FF),
+              decoration: const InputDecoration(
+                hintText: 'Search for products...',
+                hintStyle: TextStyle(color: Colors.white60, fontSize: 15),
+                border: InputBorder.none,
+                isDense: true,
+              ),
+            ),
+          ),
+          Container(width: 1, height: 30, color: Colors.white24),
+          InkWell(
+            borderRadius: BorderRadius.circular(28),
+            onTap: _showProductFilters,
+            child: const SizedBox(
+              width: 68,
+              height: 56,
+              child: Icon(Icons.tune_rounded, color: Colors.white, size: 29),
+            ),
+          ),
+        ],
+      ),
+    ),
+  );
+}
+
+void _showProductFilters() {
+  showModalBottomSheet(
+    context: context,
+    backgroundColor: const Color(0xFF101B30),
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(top: Radius.circular(26)),
+    ),
+    builder: (sheetContext) {
+      return SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 18, 20, 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('Sort Products', style: TextStyle(
+                color: Colors.white, fontSize: 19, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 12),
+              _buildSortOption(sheetContext, 'newest', 'Newest first'),
+              _buildSortOption(sheetContext, 'price_low', 'Price: Low to high'),
+              _buildSortOption(sheetContext, 'price_high', 'Price: High to low'),
+            ],
+          ),
+        ),
+      );
+    },
+  );
+}
+
+Widget _buildSortOption(BuildContext sheetContext, String value, String label) {
+  return RadioListTile<String>(
+    value: value,
+    groupValue: selectedSort,
+    activeColor: const Color(0xFF59C7FF),
+    contentPadding: EdgeInsets.zero,
+    title: Text(label, style: const TextStyle(color: Colors.white)),
+    onChanged: (next) {
+      if (next == null) return;
+      setState(() => selectedSort = next);
+      Navigator.pop(sheetContext);
+    },
+  );
+}
+
+Widget _buildCategories() {
+  const categories = <Map<String, dynamic>>[
+    {'name': 'Scrubs', 'icon': Icons.checkroom_rounded},
+    {'name': 'Lab Coats', 'icon': Icons.medical_services_outlined},
+    {'name': 'Tools', 'icon': Icons.medical_information_outlined},
+    {'name': 'Accessories', 'icon': Icons.brush_outlined},
+    {'name': 'Offers', 'icon': Icons.sell_outlined},
+  ];
+
+  return Padding(
+    padding: const EdgeInsets.only(top: 15, bottom: 12),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 22),
+          child: Row(
+            children: [
+              const Icon(Icons.grid_view_rounded, color: Color(0xFF39BFFF), size: 25),
+              const SizedBox(width: 12),
+              const Text('Categories', style: TextStyle(
+                color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
+              const Spacer(),
+              InkWell(
+                onTap: () => setState(() => selectedCategory = ''),
+                child: const Row(
+                  children: [
+                    Text('See All', style: TextStyle(
+                      color: Color(0xFF39BFFF), fontSize: 14, fontWeight: FontWeight.w600)),
+                    SizedBox(width: 4),
+                    Icon(Icons.chevron_right, color: Color(0xFF39BFFF), size: 24),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 12),
+        SizedBox(
+          height: 119,
+          child: ListView.separated(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            scrollDirection: Axis.horizontal,
+            itemCount: categories.length,
+            separatorBuilder: (_, __) => const SizedBox(width: 12),
+            itemBuilder: (context, index) {
+              final category = categories[index];
+              final name = category['name'] as String;
+              final isSelected = selectedCategory == name;
+              return InkWell(
+                borderRadius: BorderRadius.circular(25),
+                onTap: () => setState(() {
+                  selectedCategory = isSelected ? '' : name;
+                }),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 180),
+                  width: 112,
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 9),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(25),
+                    gradient: const LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [Color(0xFF102B50), Color(0xFF07172F)],
+                    ),
+                    border: Border.all(
+                      color: isSelected ? const Color(0xFF69D0FF) : const Color(0xFF367EBA),
+                      width: isSelected ? 1.8 : 1.2,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: const Color(0xFF29AFFF).withValues(alpha: isSelected ? .30 : .16),
+                        blurRadius: isSelected ? 17 : 12,
+                        spreadRadius: 1,
+                      ),
+                    ],
+                  ),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(category['icon'] as IconData, color: const Color(0xFF62C9FF), size: 43),
+                      const SizedBox(height: 7),
+                      Text(name, maxLines: 1, overflow: TextOverflow.ellipsis,
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w500)),
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+      ],
+    ),
   );
 }
 
