@@ -29,12 +29,19 @@ class CategoriesScreen extends StatelessWidget {
     final byName = await db.collection('Products').where('category', isEqualTo: data['name']).get();
     final linked = <String, QueryDocumentSnapshot<Map<String, dynamic>>>{};
     for (final doc in [...byId.docs, ...byName.docs]) { linked[doc.id] = doc; }
-    final batch = db.batch();
-    for (final doc in linked.values) {
-      batch.update(doc.reference, {'categoryId': FieldValue.delete(), 'category': FieldValue.delete()});
+    final linkedDocs = linked.values.toList();
+    for (var start = 0; start < linkedDocs.length; start += 450) {
+      final batch = db.batch();
+      final end = (start + 450 < linkedDocs.length) ? start + 450 : linkedDocs.length;
+      for (final doc in linkedDocs.sublist(start, end)) {
+        batch.update(doc.reference, {
+          'categoryId': FieldValue.delete(),
+          'category': FieldValue.delete(),
+        });
+      }
+      await batch.commit();
     }
-    batch.delete(category.reference);
-    await batch.commit();
+    await category.reference.delete();
   }
 
   @override
