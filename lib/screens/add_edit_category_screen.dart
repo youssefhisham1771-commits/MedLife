@@ -86,6 +86,16 @@ class _AddEditCategoryScreenState extends State<AddEditCategoryScreen> {
         'updatedAt': FieldValue.serverTimestamp(),
       };
       if (widget.docId == null) {
+        final existingCategories = await collection.get();
+        final highestOrder = existingCategories.docs.fold<int>(
+          -1,
+          (highest, doc) {
+            final value = doc.data()['sortOrder'];
+            final order = value is num ? value.toInt() : -1;
+            return order > highest ? order : highest;
+          },
+        );
+        payload['sortOrder'] = highestOrder + 1;
         payload['createdAt'] = FieldValue.serverTimestamp();
         await collection.add(payload);
       } else {

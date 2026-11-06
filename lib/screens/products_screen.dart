@@ -159,9 +159,15 @@ class _ProductsScreenState extends State<ProductsScreen> {
                       _filterSectionTitle('Category'),
                       const SizedBox(height: 10),
                       StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-                        stream: FirebaseFirestore.instance.collection('categories').orderBy('name').snapshots(),
+                        stream: FirebaseFirestore.instance.collection('categories').snapshots(),
                         builder: (context, categorySnapshot) {
-                          final categoryDocs = categorySnapshot.data?.docs ?? [];
+                          final categoryDocs = categorySnapshot.data?.docs.toList() ?? <QueryDocumentSnapshot<Map<String, dynamic>>>[];
+                          categoryDocs.sort((a, b) {
+                            final orderA = (a.data()['sortOrder'] as num?)?.toInt() ?? 1 << 30;
+                            final orderB = (b.data()['sortOrder'] as num?)?.toInt() ?? 1 << 30;
+                            final byOrder = orderA.compareTo(orderB);
+                            return byOrder != 0 ? byOrder : _normalized(a.data()['name']).compareTo(_normalized(b.data()['name']));
+                          });
                           final validValue = tempCategory == 'All' ||
                                   categoryDocs.any((doc) => doc.id == tempCategory)
                               ? tempCategory : 'All';
@@ -532,7 +538,8 @@ Widget buildProducts() {
         }
       });
 
-return Column(
+return SingleChildScrollView(
+  child: Column(
   children: [
 
     /// 🔥 البانر فوق
@@ -631,8 +638,7 @@ Padding(
     _buildCategoriesSection(),
 
     /// 🔥 المنتجات تحت
-    Expanded(
-      child: products.isEmpty
+    products.isEmpty
           ? Center(
               child: Padding(
                 padding: const EdgeInsets.all(24),
@@ -682,6 +688,8 @@ Padding(
               ),
             )
           : GridView.builder(
+        shrinkWrap: true,
+        physics: const NeverScrollableScrollPhysics(),
         padding: EdgeInsets.all(10),
         gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
           crossAxisCount: 2,
@@ -1088,8 +1096,8 @@ Spacer(),
           );
         },
       ),
-    ),
   ],
+  ),
 );
     },
   );
@@ -1097,9 +1105,15 @@ Spacer(),
 
 Widget _buildCategoriesSection() {
   return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-    stream: FirebaseFirestore.instance.collection('categories').orderBy('name').snapshots(),
+    stream: FirebaseFirestore.instance.collection('categories').snapshots(),
     builder: (context, snapshot) {
-      final docs = snapshot.data?.docs ?? [];
+      final docs = snapshot.data?.docs.toList() ?? <QueryDocumentSnapshot<Map<String, dynamic>>>[];
+      docs.sort((a, b) {
+        final orderA = (a.data()['sortOrder'] as num?)?.toInt() ?? 1 << 30;
+        final orderB = (b.data()['sortOrder'] as num?)?.toInt() ?? 1 << 30;
+        final byOrder = orderA.compareTo(orderB);
+        return byOrder != 0 ? byOrder : _normalized(a.data()['name']).compareTo(_normalized(b.data()['name']));
+      });
       return Padding(
         padding: const EdgeInsets.only(top: 7, bottom: 10),
         child: Column(
