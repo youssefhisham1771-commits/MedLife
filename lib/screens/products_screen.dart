@@ -12,6 +12,7 @@ import 'custom_drawer_screen.dart';
 import 'product_details_screen.dart';
 import 'profile_screen.dart';
 import 'sales_screen.dart';
+import 'categories_screen.dart';
 
 ///////////////////// 🛍 PRODUCTS /////////////////////
 
@@ -41,13 +42,7 @@ class _ProductsScreenState extends State<ProductsScreen> {
   double minPrice = 0;
   double maxPrice = double.infinity;
 
-  static const List<String> productCategories = [
-    'Scrubs',
-    'Lab Coats',
-    'Tools',
-    'Accessories',
-    'Teeth',
-  ];
+  String? selectedCategoryName;
 
   double _productPrice(dynamic value) {
     if (value is num) return value.toDouble();
@@ -118,6 +113,7 @@ class _ProductsScreenState extends State<ProductsScreen> {
         .toDouble();
 
     String tempCategory = selectedCategory ?? 'All';
+    String? tempCategoryName = selectedCategoryName;
     String tempSort = sortBy;
     RangeValues tempRange = RangeValues(currentMin, currentMax);
 
@@ -162,19 +158,33 @@ class _ProductsScreenState extends State<ProductsScreen> {
                       const SizedBox(height: 24),
                       _filterSectionTitle('Category'),
                       const SizedBox(height: 10),
-                      DropdownButtonFormField<String>(
-                        value: tempCategory,
-                        dropdownColor: const Color(0xFF1A263B),
-                        style: const TextStyle(color: Colors.white),
-                        decoration: _filterInputDecoration(),
-                        items: ['All', ...productCategories].map((category) {
-                          return DropdownMenuItem<String>(
-                            value: category,
-                            child: Text(category),
+                      StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+                        stream: FirebaseFirestore.instance.collection('categories').orderBy('name').snapshots(),
+                        builder: (context, categorySnapshot) {
+                          final categoryDocs = categorySnapshot.data?.docs ?? [];
+                          final validValue = tempCategory == 'All' ||
+                                  categoryDocs.any((doc) => doc.id == tempCategory)
+                              ? tempCategory : 'All';
+                          return DropdownButtonFormField<String>(
+                            value: validValue,
+                            dropdownColor: const Color(0xFF1A263B),
+                            style: const TextStyle(color: Colors.white),
+                            decoration: _filterInputDecoration(),
+                            items: [
+                              const DropdownMenuItem(value: 'All', child: Text('All categories')),
+                              ...categoryDocs.map((doc) => DropdownMenuItem(
+                                value: doc.id,
+                                child: Text(doc.data()['name']?.toString() ?? ''),
+                              )),
+                            ],
+                            onChanged: (value) {
+                              updateSheet(() {
+                                tempCategory = value ?? 'All';
+                                final match = categoryDocs.where((doc) => doc.id == tempCategory);
+                                tempCategoryName = match.isEmpty ? null : match.first.data()['name']?.toString();
+                              });
+                            },
                           );
-                        }).toList(),
-                        onChanged: (value) {
-                          updateSheet(() => tempCategory = value ?? 'All');
                         },
                       ),
                       const SizedBox(height: 24),
@@ -224,6 +234,7 @@ class _ProductsScreenState extends State<ProductsScreen> {
                               onPressed: () {
                                 setState(() {
                                   selectedCategory = null;
+                                  selectedCategoryName = null;
                                   sortBy = 'newest';
                                   minPrice = 0;
                                   maxPrice = double.infinity;
@@ -250,6 +261,8 @@ class _ProductsScreenState extends State<ProductsScreen> {
                                 setState(() {
                                   selectedCategory =
                                       tempCategory == 'All' ? null : tempCategory;
+                                  selectedCategoryName =
+                                      tempCategory == 'All' ? null : tempCategoryName;
                                   sortBy = tempSort;
                                   minPrice = tempRange.start;
                                   maxPrice = tempRange.end;
@@ -484,8 +497,10 @@ Widget buildProducts() {
             name.contains(searchQuery) ||
             description.contains(searchQuery) ||
             category.contains(searchQuery);
+        final categoryId = (data['categoryId'] ?? '').toString();
         final matchesCategory = selectedCategory == null ||
-            category == _normalized(selectedCategory);
+            categoryId == selectedCategory ||
+            category == _normalized(selectedCategoryName);
         final matchesPrice = price >= minPrice &&
             price <= (maxPrice.isFinite ? maxPrice : double.infinity);
 
@@ -613,6 +628,8 @@ Padding(
       availableMaxPrice > 0 ? availableMaxPrice : 5000,
     ),
 
+    _buildCategoriesSection(),
+
     /// 🔥 المنتجات تحت
     Expanded(
       child: products.isEmpty
@@ -649,6 +666,7 @@ Padding(
                           searchController.clear();
                           searchQuery = '';
                           selectedCategory = null;
+                          selectedCategoryName = null;
                           minPrice = 0;
                           maxPrice = double.infinity;
                           sortBy = 'newest';
@@ -1073,6 +1091,112 @@ Spacer(),
     ),
   ],
 );
+    },
+  );
+}
+
+Widget _buildCategoriesSection() {
+  return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+    stream: FirebaseFirestore.instance.collection('categories').orderBy('name').snapshots(),
+    builder: (context, snapshot) {
+      final docs = snapshot.data?.docs ?? [];
+      return Padding(
+        padding: const EdgeInsets.only(top: 7, bottom: 10),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: Row(
+                children: [
+                  const Icon(Icons.grid_view_rounded, color: Color(0xFF39BFFF), size: 25),
+                  const SizedBox(width: 10),
+                  const Text('Categories', style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
+                  const Spacer(),
+                  TextButton(
+                    onPressed: () async {
+                      await Navigator.push(context, MaterialPageRoute(
+                        builder: (_) => CategoriesScreen(isAdmin: isAdmin),
+                      ));
+                      if (mounted) setState(() {});
+                    },
+                    style: TextButton.styleFrom(foregroundColor: const Color(0xFF39BFFF), padding: EdgeInsets.zero),
+                    child: const Row(children: [
+                      Text('See All', style: TextStyle(fontWeight: FontWeight.w600)),
+                      Icon(Icons.chevron_right_rounded, size: 22),
+                    ]),
+                  ),
+                ],
+              ),
+            ),
+            if (docs.isNotEmpty) ...[
+              const SizedBox(height: 9),
+              SizedBox(
+                height: 118,
+                child: ListView.separated(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  scrollDirection: Axis.horizontal,
+                  itemCount: docs.length,
+                  separatorBuilder: (_, __) => const SizedBox(width: 12),
+                  itemBuilder: (context, index) {
+                    final doc = docs[index];
+                    final data = doc.data();
+                    final name = data['name']?.toString() ?? '';
+                    final isSelected = selectedCategory == doc.id;
+                    final imageUrl = data['imageUrl']?.toString() ?? '';
+                    final icon = IconData(
+                      data['iconCodePoint'] is int ? data['iconCodePoint'] as int : Icons.category_outlined.codePoint,
+                      fontFamily: data['iconFontFamily']?.toString() ?? 'MaterialIcons',
+                    );
+                    return InkWell(
+                      borderRadius: BorderRadius.circular(24),
+                      onTap: () => setState(() {
+                        selectedCategory = isSelected ? null : doc.id;
+                        selectedCategoryName = isSelected ? null : name;
+                      }),
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 180),
+                        width: 112,
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(24),
+                          gradient: const LinearGradient(
+                            begin: Alignment.topLeft, end: Alignment.bottomRight,
+                            colors: [Color(0xFF102B50), Color(0xFF07172F)],
+                          ),
+                          border: Border.all(
+                            color: isSelected ? const Color(0xFF69D0FF) : const Color(0xFF367EBA),
+                            width: isSelected ? 1.8 : 1.2,
+                          ),
+                          boxShadow: [BoxShadow(
+                            color: const Color(0xFF29AFFF).withValues(alpha: isSelected ? .28 : .14),
+                            blurRadius: 13, spreadRadius: 1,
+                          )],
+                        ),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Expanded(
+                              child: imageUrl.isNotEmpty
+                                  ? Image.network(imageUrl, fit: BoxFit.contain,
+                                      errorBuilder: (_, __, ___) => Icon(icon, color: const Color(0xFF62C9FF), size: 42))
+                                  : Icon(icon, color: const Color(0xFF62C9FF), size: 42),
+                            ),
+                            const SizedBox(height: 5),
+                            Text(name, maxLines: 1, overflow: TextOverflow.ellipsis,
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w500)),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ],
+          ],
+        ),
+      );
     },
   );
 }

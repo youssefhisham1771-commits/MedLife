@@ -32,15 +32,8 @@ class _AddEditProductScreenState
 
   List<String> imageUrls = [];
 
-  String selectedCategory = 'Scrubs';
-
-  static const List<String> categories = [
-    'Scrubs',
-    'Lab Coats',
-    'Tools',
-    'Accessories',
-    'Teeth',
-  ];
+  String? selectedCategoryId;
+  String? selectedCategoryName;
 
   bool isLoading = false;
 
@@ -52,10 +45,8 @@ class _AddEditProductScreenState
 
     if (widget.oldData != null) {
 
-      selectedCategory =
-          categories.contains(widget.oldData['category'])
-              ? widget.oldData['category']
-              : 'Scrubs';
+      selectedCategoryId = widget.oldData['categoryId']?.toString();
+      selectedCategoryName = widget.oldData['category']?.toString();
 
       name.text =
           widget.oldData['name']?.toString() ?? "";
@@ -168,18 +159,36 @@ class _AddEditProductScreenState
         price.text.isEmpty ||
         description.text.isEmpty ||
         imageUrls.isEmpty ||
-deliveryText.text.isEmpty) {
+deliveryText.text.isEmpty ||
+        (selectedCategoryId == null &&
+            widget.oldData?['categoryId'] == null &&
+            widget.oldData?['category'] == null)) {
 
       ScaffoldMessenger.of(context)
           .showSnackBar(
         SnackBar(
           content: Text(
-            "Please complete all fields",
+            "Please complete all fields and select a category",
           ),
         ),
       );
 
       return;
+    }
+
+    if (selectedCategoryId != null) {
+      final categoryDoc = await FirebaseFirestore.instance
+          .collection('categories')
+          .doc(selectedCategoryId)
+          .get();
+      if (!categoryDoc.exists) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('This category no longer exists. Please choose another.')),
+        );
+        return;
+      }
+      selectedCategoryName = categoryDoc.data()?['name']?.toString();
     }
 
     var data = {
@@ -194,7 +203,10 @@ deliveryText.text.isEmpty) {
           description.text.trim(),
 
       "category":
-          selectedCategory,
+          selectedCategoryName ?? widget.oldData?['category'],
+
+      "categoryId":
+          selectedCategoryId ?? widget.oldData?['categoryId'],
 
       "deliveryText":
     deliveryText.text.trim(),
@@ -327,40 +339,54 @@ deliveryText.text.isEmpty) {
 
             SizedBox(height: 10),
 
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.03),
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: Colors.white10),
-              ),
-              child: DropdownButtonHideUnderline(
-                child: DropdownButton<String>(
-                  value: selectedCategory,
-                  isExpanded: true,
-                  dropdownColor: const Color(0xFF1D1B20),
-                  icon: Icon(
-                    Icons.keyboard_arrow_down_rounded,
-                    color: primaryColor,
-                  ),
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 16,
-                  ),
-                  items: categories.map((category) {
-                    return DropdownMenuItem<String>(
-                      value: category,
-                      child: Text(category),
-                    );
-                  }).toList(),
-                  onChanged: (value) {
-                    if (value == null) return;
-                    setState(() {
-                      selectedCategory = value;
-                    });
-                  },
-                ),
-              ),
+            StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+              stream: FirebaseFirestore.instance.collection('categories').orderBy('name').snapshots(),
+              builder: (context, snapshot) {
+                final docs = snapshot.data?.docs ?? [];
+                final hasSelected = docs.any((doc) => doc.id == selectedCategoryId);
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.03),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: Colors.white10),
+                      ),
+                      child: DropdownButtonHideUnderline(
+                        child: DropdownButton<String>(
+                          value: hasSelected ? selectedCategoryId : null,
+                          hint: Text(docs.isEmpty ? 'No categories yet' : 'Choose a category',
+                              style: const TextStyle(color: Colors.white54)),
+                          isExpanded: true,
+                          dropdownColor: const Color(0xFF1D1B20),
+                          icon: Icon(Icons.keyboard_arrow_down_rounded, color: primaryColor),
+                          style: const TextStyle(color: Colors.white, fontSize: 16),
+                          items: docs.map((doc) => DropdownMenuItem<String>(
+                            value: doc.id,
+                            child: Text(doc.data()['name']?.toString() ?? ''),
+                          )).toList(),
+                          onChanged: (value) {
+                            if (value == null) return;
+                            final selected = docs.firstWhere((doc) => doc.id == value);
+                            setState(() {
+                              selectedCategoryId = value;
+                              selectedCategoryName = selected.data()['name']?.toString();
+                            });
+                          },
+                        ),
+                      ),
+                    ),
+                    if (docs.isEmpty)
+                      const Padding(
+                        padding: EdgeInsets.only(top: 8),
+                        child: Text('Ask the admin to add a category before adding products.',
+                            style: TextStyle(color: Colors.white54, fontSize: 12)),
+                      ),
+                  ],
+                );
+              },
             ),
 
             SizedBox(height: 25),

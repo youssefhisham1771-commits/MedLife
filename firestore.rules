@@ -74,6 +74,17 @@ service cloud.firestore {
     }
 
     // ============================================================
+    // CATEGORIES
+    // Categories are readable by signed-in customers; only admins
+    // can create, edit, or delete them.
+    // ============================================================
+
+    match /categories/{categoryId} {
+      allow read: if signedIn();
+      allow create, update, delete: if isAdmin();
+    }
+
+    // ============================================================
     // ORDERS
     // ============================================================
 
