@@ -21,6 +21,7 @@ class FirestoreConstants {
   static const String price = 'price';
   static const String size = 'size';
   static const String quantity = 'quantity';
+  static const String category = 'category';
 
   // Order Fields
   static const String status = 'status';
