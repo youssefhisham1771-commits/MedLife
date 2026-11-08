@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../offline_image_placeholder.dart';
 
 class CartItemCard extends StatelessWidget {
   final Map<String, dynamic> item;
@@ -42,7 +41,6 @@ class CartItemCard extends StatelessWidget {
               width: 110,
               height: 110,
               fit: BoxFit.cover,
-              errorBuilder: (_, __, ___) => const OfflineImagePlaceholder(),
             ),
           ),
           const SizedBox(width: 14),

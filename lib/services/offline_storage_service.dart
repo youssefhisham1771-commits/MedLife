@@ -3,6 +3,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 class OfflineStorageService {
   String _cartKey(String uid) => 'medlife_offline_cart_$uid';
+  String _cartDirtyKey(String uid) => 'medlife_offline_cart_dirty_$uid';
   String _ordersKey(String uid) => 'medlife_pending_orders_$uid';
 
   Future<List<Map<String, dynamic>>> loadCart(String uid) async {
@@ -18,6 +19,16 @@ class OfflineStorageService {
   Future<void> saveCart(String uid, List<Map<String, dynamic>> items) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_cartKey(uid), jsonEncode(items));
+  }
+
+  Future<bool> isCartDirty(String uid) async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool(_cartDirtyKey(uid)) ?? false;
+  }
+
+  Future<void> setCartDirty(String uid, bool value) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_cartDirtyKey(uid), value);
   }
 
   Future<List<Map<String, dynamic>>> loadPendingOrders(String uid) async {

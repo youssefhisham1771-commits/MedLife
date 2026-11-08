@@ -280,6 +280,8 @@ void initState() {
                   height: double.infinity,
 
                   fit: BoxFit.contain,
+                  errorBuilder: (_, __, ___) =>
+                      const OfflineImagePlaceholder(iconSize: 48),
                 ),
               ),
 

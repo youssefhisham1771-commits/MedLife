@@ -9,7 +9,6 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'services/notification_service.dart';
 import 'screens/splash_screen.dart';
 import 'services/firebase_service.dart';
-import 'services/offline_sync_service.dart';
 
 
 
@@ -52,7 +51,6 @@ void main() async {
     );
 
     await NotificationService.init();
-    await OfflineSyncService.instance.start();
 
     await FirebaseMessaging.instance.requestPermission(
   alert: true,

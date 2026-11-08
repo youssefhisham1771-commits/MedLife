@@ -271,6 +271,7 @@ class _PlaceOrderDialogState extends State<PlaceOrderDialog> {
 
       if (!mounted) return;
 
+      final messenger = ScaffoldMessenger.of(context);
       widget.onOrderPlaced();
       Navigator.pop(context);
       if (synced) {
@@ -280,7 +281,7 @@ class _PlaceOrderDialogState extends State<PlaceOrderDialog> {
           builder: (_) => const OrderSuccessDialog(),
         );
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
+        messenger.showSnackBar(
           const SnackBar(
             content: Text('Order saved on this device. It will be sent automatically when internet returns.'),
             duration: Duration(seconds: 5),
