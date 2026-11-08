@@ -31,6 +31,7 @@ class OfflineStorageService {
     await prefs.setBool(_cartDirtyKey(uid), value);
   }
 
+  String _profileKey(String uid) => 'medlife_saved_profile_$uid';
   String _addressesKey(String uid) => 'medlife_saved_addresses_$uid';
   String _feesKey(String uid) => 'medlife_delivery_fees_$uid';
 
