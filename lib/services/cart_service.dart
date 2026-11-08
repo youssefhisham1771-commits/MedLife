@@ -88,7 +88,7 @@ class CartService {
       ).timeout(const Duration(seconds: 8));
       final batch = _firestore.batch();
       final clearAll = await _storage.shouldClearRemoteCart(user.uid);
-      final removedIds = await _storage.loadRemovedCartIds(user.uid).toSet();
+      final removedIds = (await _storage.loadRemovedCartIds(user.uid)).toSet();
       for (final doc in remote.docs) {
         if (clearAll || removedIds.contains(doc.id)) {
           batch.delete(doc.reference);

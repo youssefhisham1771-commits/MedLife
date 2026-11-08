@@ -61,6 +61,20 @@ class OfflineStorageService {
   }
 
   String _profileKey(String uid) => 'medlife_saved_profile_$uid';
+
+  Future<void> saveUserDetails(String uid, String name, String phone) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_profileKey(uid), jsonEncode({'name': name, 'phone': phone}));
+  }
+
+  Future<Map<String, dynamic>> loadUserDetails(String uid) async {
+    final prefs = await SharedPreferences.getInstance();
+    try {
+      return Map<String, dynamic>.from(
+        jsonDecode(prefs.getString(_profileKey(uid)) ?? '{}') as Map,
+      );
+    } catch (_) { return {}; }
+  }
   String _addressesKey(String uid) => 'medlife_saved_addresses_$uid';
   String _feesKey(String uid) => 'medlife_delivery_fees_$uid';
 
