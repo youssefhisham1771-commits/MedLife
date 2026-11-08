@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'cart_screen.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import '../services/cart_service.dart';
+import '../widgets/offline_image_placeholder.dart';
 
 
 
@@ -237,8 +239,9 @@ void initState() {
                                         return Image.network(
                                           images[index],
                                           fit: BoxFit.cover,
-                                          width:
-                                              double.infinity,
+                                          width: double.infinity,
+                                          errorBuilder: (_, __, ___) =>
+                                              const OfflineImagePlaceholder(iconSize: 48),
                                         );
                                       },
                                     ),
@@ -847,122 +850,26 @@ Container(
 
                       child: ElevatedButton(
                         onPressed: () async {
-  final messenger = ScaffoldMessenger.of(context);
-
-                          var index =
-                              widget.cart.indexWhere(
-                            (i) =>
-                                i['name'] ==
-                                    product['name'] &&
-                                i['size'] ==
-                                    selectedSize,
-                          );
-
-                          if (index != -1) {
-                            widget.cart[index]
-                                    ['quantity'] =
-                                (widget.cart[index]
-                                            ['quantity'] ??
-                                        1) +
-                                    quantity;
-                          } else {
-                            widget.cart.add({
-                              "name": data['name'],
-                              "price":
-                                  data['price'],
-                              "image": images
-                                      .isNotEmpty
-                                  ? images[0]
-                                  : "",
-                              "size":
-                                  selectedSize,
-                              "quantity":
-                                  quantity,
+                          final messenger = ScaffoldMessenger.of(context);
+                          try {
+                            await CartService().addOrUpdateItem({
+                              'name': data['name'],
+                              'price': data['price'],
+                              'image': images.isNotEmpty ? images[0] : '',
+                              'size': selectedSize,
+                              'quantity': quantity,
                             });
-
+                            if (!mounted) return;
                             widget.onAddToCart();
+                            messenger.showSnackBar(
+                              const SnackBar(content: Text('Added to cart 🛒')),
+                            );
+                          } catch (error) {
+                            if (!mounted) return;
+                            messenger.showSnackBar(
+                              SnackBar(content: Text('Could not save cart item: $error')),
+                            );
                           }
-
-                          var user =
-                              FirebaseAuth
-                                  .instance
-                                  .currentUser;
-
-                          if (user != null) {
-
-                            var cartRef =
-                                FirebaseFirestore
-                                    .instance
-                                    .collection(
-                                        'users')
-                                    .doc(user.uid)
-                                    .collection(
-                                        'cart');
-
-                            var existing =
-                                await cartRef
-                                    .where(
-                                      "name",
-                                      isEqualTo:
-                                          product[
-                                              'name'],
-                                    )
-                                    .where(
-                                      "size",
-                                      isEqualTo:
-                                          selectedSize,
-                                    )
-                                    .get();
-
-                            if (existing
-                                .docs
-                                .isNotEmpty) {
-
-                              var doc =
-                                  existing
-                                      .docs
-                                      .first;
-
-                              await cartRef
-                                  .doc(doc.id)
-                                  .update({
-                                "quantity":
-                                    (doc['quantity'] ??
-                                            1) +
-                                        quantity,
-                              });
-
-                            } else {
-
-                              await cartRef
-                                  .add({
-                                "name":
-                                    data['name'],
-
-                                "price":
-                                    data['price'],
-
-                                "image":
-                                    images.isNotEmpty
-                                        ? images[0]
-                                        : "",
-
-                                "size":
-                                    selectedSize,
-
-                                "quantity":
-                                    quantity,
-                              });
-                            }
-                          }
-
-                          if (!mounted) return;
-
-messenger.showSnackBar(
-  const SnackBar(
-    content: Text("Added to cart 🛒"),
-  ),
-);
                         },
 
                         style: ElevatedButton

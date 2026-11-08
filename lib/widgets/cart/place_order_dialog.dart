@@ -253,7 +253,7 @@ class _PlaceOrderDialogState extends State<PlaceOrderDialog> {
     });
 
     try {
-      await _orderService.placeOrder(
+      final synced = await _orderService.placeOrder(
         name: name,
         phone: phone,
         addressTitle:
@@ -272,15 +272,21 @@ class _PlaceOrderDialogState extends State<PlaceOrderDialog> {
       if (!mounted) return;
 
       widget.onOrderPlaced();
-
       Navigator.pop(context);
-
-      showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (_) =>
-            const OrderSuccessDialog(),
-      );
+      if (synced) {
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (_) => const OrderSuccessDialog(),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Order saved on this device. It will be sent automatically when internet returns.'),
+            duration: Duration(seconds: 5),
+          ),
+        );
+      }
     } catch (e) {
       if (!mounted) return;
 

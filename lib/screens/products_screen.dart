@@ -13,6 +13,7 @@ import 'product_details_screen.dart';
 import 'profile_screen.dart';
 import 'sales_screen.dart';
 import 'categories_screen.dart';
+import '../widgets/offline_image_placeholder.dart';
 
 ///////////////////// 🛍 PRODUCTS /////////////////////
 
@@ -79,7 +80,8 @@ class _ProductsScreenState extends State<ProductsScreen> {
             child: TextField(
               controller: searchController,
               onChanged: (value) {
-                setState(() => searchQuery = value.trim().toLowerCase());
+                // Apply local search from the first character, without a minimum-length gate.
+                setState(() => searchQuery = value.toLowerCase());
               },
               style: const TextStyle(color: Colors.white, fontSize: 16),
               cursorColor: const Color(0xFF59C7FF),
@@ -778,6 +780,7 @@ Padding(
                 images.isNotEmpty ? images[0] : "",
                 fit: BoxFit.cover,
                 width: double.infinity,
+                errorBuilder: (_, __, ___) => const OfflineImagePlaceholder(iconSize: 42),
               ),
             ),
 
@@ -1193,7 +1196,7 @@ Widget _buildCategoriesSection() {
                             Expanded(
                               child: imageUrl.isNotEmpty
                                   ? Image.network(imageUrl, fit: BoxFit.contain,
-                                      errorBuilder: (_, __, ___) => Icon(icon, color: const Color(0xFF62C9FF), size: 42))
+                                      errorBuilder: (_, __, ___) => const OfflineImagePlaceholder(iconSize: 34))
                                   : Icon(icon, color: const Color(0xFF62C9FF), size: 42),
                             ),
                             const SizedBox(height: 5),
