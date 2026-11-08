@@ -48,6 +48,7 @@ class _PlaceOrderDialogState extends State<PlaceOrderDialog> {
 
   double shipping = 0;
   bool isLoadingShipping = false;
+  bool isShippingFeeAvailable = false;
 
   @override
   void initState() {
@@ -184,6 +185,7 @@ class _PlaceOrderDialogState extends State<PlaceOrderDialog> {
       setState(() {
         shipping = fee;
         isLoadingShipping = false;
+        isShippingFeeAvailable = true;
       });
     } catch (_) {
       if (!mounted || selectedAddressId != addressId) {
@@ -198,6 +200,7 @@ class _PlaceOrderDialogState extends State<PlaceOrderDialog> {
       setState(() {
         shipping = cachedFee ?? 0;
         isLoadingShipping = false;
+        isShippingFeeAvailable = cachedFee != null;
       });
       if (cachedFee == null) {
         _showMessage("No saved delivery fee for this address. Connect to the internet before placing the order.");
@@ -254,6 +257,11 @@ class _PlaceOrderDialogState extends State<PlaceOrderDialog> {
 
     if (isLoadingShipping) {
       _showMessage("Please wait while the shipping fee is loading.");
+      return;
+    }
+
+    if (!isShippingFeeAvailable) {
+      _showMessage("The delivery fee is not saved on this device. Connect to the internet before placing this order.");
       return;
     }
 
@@ -485,6 +493,7 @@ class _PlaceOrderDialogState extends State<PlaceOrderDialog> {
                             setState(() {
                               selectedAddressId = value;
                               shipping = 0;
+                              isShippingFeeAvailable = false;
                               isLoadingShipping = true;
                             });
 
