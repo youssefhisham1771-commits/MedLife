@@ -14,6 +14,7 @@ import 'profile_screen.dart';
 import 'sales_screen.dart';
 import 'categories_screen.dart';
 import '../widgets/offline_image_placeholder.dart';
+import '../services/cart_service.dart';
 
 ///////////////////// 🛍 PRODUCTS /////////////////////
 
@@ -80,8 +81,8 @@ class _ProductsScreenState extends State<ProductsScreen> {
             child: TextField(
               controller: searchController,
               onChanged: (value) {
-                // Search is applied locally from the first typed character.
-                setState(() => searchQuery = value.toLowerCase());
+                // Local filtering updates immediately; there is no 3-character minimum.
+                setState(() => searchQuery = value.trim().toLowerCase());
               },
               style: const TextStyle(color: Colors.white, fontSize: 16),
               cursorColor: const Color(0xFF59C7FF),
@@ -454,17 +455,10 @@ Future<void> removeFromFavourites(int index) async {
 }
 
 Future<void> loadCart() async {
-  var user = FirebaseAuth.instance.currentUser;
-  if (user == null) return;
-
-  var snapshot = await FirebaseFirestore.instance
-      .collection('users')
-      .doc(user.uid)
-      .collection('cart')
-      .get();
-
+  final loadedCart = await CartService().loadCart();
+  if (!mounted) return;
   setState(() {
-    cart = snapshot.docs.map((doc) => doc.data()).toList();
+    cart = loadedCart;
   });
 }
 
