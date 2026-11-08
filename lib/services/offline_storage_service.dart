@@ -4,6 +4,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 class OfflineStorageService {
   String _cartKey(String uid) => 'medlife_offline_cart_$uid';
   String _cartDirtyKey(String uid) => 'medlife_offline_cart_dirty_$uid';
+  String _removedCartIdsKey(String uid) => 'medlife_removed_cart_ids_$uid';
+  String _clearRemoteCartKey(String uid) => 'medlife_clear_remote_cart_$uid';
   String _ordersKey(String uid) => 'medlife_pending_orders_$uid';
 
   Future<List<Map<String, dynamic>>> loadCart(String uid) async {
@@ -29,6 +31,33 @@ class OfflineStorageService {
   Future<void> setCartDirty(String uid, bool value) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(_cartDirtyKey(uid), value);
+  }
+
+  Future<List<String>> loadRemovedCartIds(String uid) async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getStringList(_removedCartIdsKey(uid)) ?? [];
+  }
+
+  Future<void> addRemovedCartId(String uid, String id) async {
+    final prefs = await SharedPreferences.getInstance();
+    final ids = prefs.getStringList(_removedCartIdsKey(uid)) ?? [];
+    if (!ids.contains(id)) ids.add(id);
+    await prefs.setStringList(_removedCartIdsKey(uid), ids);
+  }
+
+  Future<void> clearRemovedCartIds(String uid) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_removedCartIdsKey(uid));
+  }
+
+  Future<bool> shouldClearRemoteCart(String uid) async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool(_clearRemoteCartKey(uid)) ?? false;
+  }
+
+  Future<void> setClearRemoteCart(String uid, bool value) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_clearRemoteCartKey(uid), value);
   }
 
   String _profileKey(String uid) => 'medlife_saved_profile_$uid';

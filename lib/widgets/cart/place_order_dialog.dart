@@ -62,26 +62,25 @@ class _PlaceOrderDialogState extends State<PlaceOrderDialog> {
 
     if (user == null) return;
 
-    final cached = await OfflineStorageService().loadUserDetails(user.uid);
-    _nameController.text = cached['name']?.toString() ?? '';
-    _phoneController.text = cached['phone']?.toString() ?? '';
-
     try {
       final doc = await FirebaseFirestore.instance
           .collection('users')
           .doc(user.uid)
           .get();
+
       if (!mounted) return;
+
       if (doc.exists) {
-        final data = doc.data() ?? {};
-        final name = data['name']?.toString() ?? '';
-        final phone = data['phone']?.toString() ?? '';
-        await OfflineStorageService().saveUserDetails(user.uid, name, phone);
-        _nameController.text = name;
-        _phoneController.text = phone;
+        final data = doc.data();
+
+        _nameController.text =
+            data?['name']?.toString() ?? '';
+
+        _phoneController.text =
+            data?['phone']?.toString() ?? '';
       }
     } catch (_) {
-      // Previously saved details remain available while offline.
+      // لا نوقف عملية الطلب بسبب فشل تحميل البيانات.
     }
   }
 

@@ -24,9 +24,6 @@ class DeliveryFeeService {
     final doc = await _collection.doc(governorate).get();
 
     if (!doc.exists) {
-      if (doc.metadata.isFromCache) {
-        throw StateError('Delivery fee is not available in the offline cache.');
-      }
       return 0;
     }
 

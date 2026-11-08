@@ -62,6 +62,7 @@ class CartService {
     if (user == null) return;
     final items = await _storage.loadCart(user.uid);
     items.removeWhere((x) => x['docId'] == docId);
+    await _storage.addRemovedCartId(user.uid, docId);
     await _storage.saveCart(user.uid, items);
     await _storage.setCartDirty(user.uid, true);
     await syncCart();
@@ -71,6 +72,8 @@ class CartService {
     final user = _auth.currentUser;
     if (user == null) return;
     await _storage.saveCart(user.uid, []);
+    await _storage.setClearRemoteCart(user.uid, true);
+    await _storage.clearRemovedCartIds(user.uid);
     await _storage.setCartDirty(user.uid, true);
     await syncCart();
   }
@@ -83,10 +86,13 @@ class CartService {
       final remote = await _ref(user.uid).get(
         const GetOptions(source: Source.server),
       ).timeout(const Duration(seconds: 8));
-      final ids = items.map((x) => x['docId']?.toString()).whereType<String>().toSet();
       final batch = _firestore.batch();
+      final clearAll = await _storage.shouldClearRemoteCart(user.uid);
+      final removedIds = await _storage.loadRemovedCartIds(user.uid).toSet();
       for (final doc in remote.docs) {
-        if (!ids.contains(doc.id)) batch.delete(doc.reference);
+        if (clearAll || removedIds.contains(doc.id)) {
+          batch.delete(doc.reference);
+        }
       }
       for (final item in items) {
         final id = item['docId']?.toString();
@@ -96,6 +102,8 @@ class CartService {
       }
       await batch.commit().timeout(const Duration(seconds: 8));
       await _storage.setCartDirty(user.uid, false);
+      await _storage.setClearRemoteCart(user.uid, false);
+      await _storage.clearRemovedCartIds(user.uid);
     } catch (_) {
       // Local changes remain saved; retry when connectivity returns.
     }
