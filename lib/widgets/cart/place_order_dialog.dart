@@ -6,6 +6,7 @@ import '../../services/order_service.dart';
 import '../../services/delivery_fee_service.dart';
 import '../../screens/my_addresses_screen.dart';
 import 'order_success_dialog.dart';
+import '../../services/offline_storage_service.dart';
 
 class PlaceOrderDialog extends StatefulWidget {
   final List<Map<String, dynamic>> cart;
@@ -115,6 +116,9 @@ class _PlaceOrderDialogState extends State<PlaceOrderDialog> {
 };
       }).toList();
 
+      final userId = user.uid;
+      await OfflineStorageService().saveAddresses(userId, loadedAddresses);
+
       if (!mounted) return;
 
       setState(() {
@@ -122,9 +126,10 @@ class _PlaceOrderDialogState extends State<PlaceOrderDialog> {
         isLoadingAddresses = false;
       });
     } catch (_) {
+      final cached = await OfflineStorageService().loadAddresses(user.uid);
       if (!mounted) return;
-
       setState(() {
+        addresses = cached;
         isLoadingAddresses = false;
       });
     }
@@ -169,6 +174,12 @@ class _PlaceOrderDialogState extends State<PlaceOrderDialog> {
         return;
       }
 
+      await OfflineStorageService().saveDeliveryFee(
+        FirebaseAuth.instance.currentUser!.uid,
+        governorate,
+        fee,
+      );
+      if (!mounted) return;
       setState(() {
         shipping = fee;
         isLoadingShipping = false;
@@ -178,14 +189,18 @@ class _PlaceOrderDialogState extends State<PlaceOrderDialog> {
         return;
       }
 
+      final cachedFee = await OfflineStorageService().loadDeliveryFee(
+        FirebaseAuth.instance.currentUser!.uid,
+        governorate,
+      );
+      if (!mounted) return;
       setState(() {
-        shipping = 0;
+        shipping = cachedFee ?? 0;
         isLoadingShipping = false;
       });
-
-      _showMessage(
-        "Could not load the delivery fee. Please try again.",
-      );
+      if (cachedFee == null) {
+        _showMessage("No saved delivery fee for this address. Connect to the internet before placing the order.");
+      }
     }
   }
 

@@ -80,7 +80,9 @@ class CartService {
     if (user == null || !await _storage.isCartDirty(user.uid)) return;
     final items = await _storage.loadCart(user.uid);
     try {
-      final remote = await _ref(user.uid).get(const GetOptions(source: Source.server));
+      final remote = await _ref(user.uid).get(
+        const GetOptions(source: Source.server),
+      ).timeout(const Duration(seconds: 8));
       final ids = items.map((x) => x['docId']?.toString()).whereType<String>().toSet();
       final batch = _firestore.batch();
       for (final doc in remote.docs) {
@@ -92,7 +94,7 @@ class CartService {
         final data = Map<String, dynamic>.from(item)..remove('docId');
         batch.set(_ref(user.uid).doc(id), data);
       }
-      await batch.commit();
+      await batch.commit().timeout(const Duration(seconds: 8));
       await _storage.setCartDirty(user.uid, false);
     } catch (_) {
       // Local changes remain saved; retry when connectivity returns.

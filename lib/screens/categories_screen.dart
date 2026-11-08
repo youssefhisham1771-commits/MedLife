@@ -1,7 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'add_edit_category_screen.dart';
-import '../widgets/offline_image_placeholder.dart';
 
 class CategoriesScreen extends StatelessWidget {
   final bool isAdmin;
@@ -160,8 +159,7 @@ class CategoriesScreen extends StatelessWidget {
                           children: [
                             Expanded(child: imageUrl.isNotEmpty
                               ? Image.network(imageUrl, fit: BoxFit.contain,
-                                  errorBuilder: (_, __, ___) =>
-                                      const OfflineImagePlaceholder(iconSize: 42))
+                                  errorBuilder: (_, __, ___) => Icon(icon, color: _blue, size: 58))
                               : Icon(icon, color: _blue, size: 58)),
                             const SizedBox(height: 10),
                             Text(data['name']?.toString() ?? '', maxLines: 2, overflow: TextOverflow.ellipsis,

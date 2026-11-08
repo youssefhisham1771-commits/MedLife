@@ -31,6 +31,44 @@ class OfflineStorageService {
     await prefs.setBool(_cartDirtyKey(uid), value);
   }
 
+  String _addressesKey(String uid) => 'medlife_saved_addresses_$uid';
+  String _feesKey(String uid) => 'medlife_delivery_fees_$uid';
+
+  Future<void> saveAddresses(String uid, List<Map<String, dynamic>> addresses) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_addressesKey(uid), jsonEncode(addresses));
+  }
+
+  Future<List<Map<String, dynamic>>> loadAddresses(String uid) async {
+    final prefs = await SharedPreferences.getInstance();
+    final raw = prefs.getString(_addressesKey(uid));
+    if (raw == null || raw.isEmpty) return [];
+    try {
+      return (jsonDecode(raw) as List<dynamic>).whereType<Map>()
+          .map((item) => Map<String, dynamic>.from(item)).toList();
+    } catch (_) { return []; }
+  }
+
+  Future<void> saveDeliveryFee(String uid, String governorate, double fee) async {
+    final prefs = await SharedPreferences.getInstance();
+    final fees = Map<String, double>.from(
+      (jsonDecode(prefs.getString(_feesKey(uid)) ?? '{}') as Map).map(
+        (key, value) => MapEntry(key.toString(), (value as num).toDouble()),
+      ),
+    );
+    fees[governorate] = fee;
+    await prefs.setString(_feesKey(uid), jsonEncode(fees));
+  }
+
+  Future<double?> loadDeliveryFee(String uid, String governorate) async {
+    final prefs = await SharedPreferences.getInstance();
+    try {
+      final fees = jsonDecode(prefs.getString(_feesKey(uid)) ?? '{}') as Map;
+      final value = fees[governorate];
+      return value is num ? value.toDouble() : null;
+    } catch (_) { return null; }
+  }
+
   Future<List<Map<String, dynamic>>> loadPendingOrders(String uid) async {
     final prefs = await SharedPreferences.getInstance();
     final raw = prefs.getString(_ordersKey(uid));
