@@ -1675,19 +1675,19 @@ return Scaffold(
               text: "Life",
 
               style: GoogleFonts.poppins(
-                color: Colors.white,
+                color: Theme.of(context).colorScheme.onSurface,
                 fontSize: 21,
                 fontWeight: FontWeight.w900,
-
                 letterSpacing: 0.5,
-
-                shadows: [
-                  Shadow(
-                    color: Colors.black54,
-                    blurRadius: 8,
-                    offset: Offset(0, 3),
-                  ),
-                ],
+                shadows: Theme.of(context).brightness == Brightness.dark
+                    ? const [
+                        Shadow(
+                          color: Colors.black54,
+                          blurRadius: 8,
+                          offset: Offset(0, 3),
+                        ),
+                      ]
+                    : const [],
               ),
             ),
           ],
@@ -1770,6 +1770,24 @@ return Scaffold(
   ),
 ),
 */
+
+// Switch between the saved light and dark appearances.
+IconButton(
+  tooltip: Theme.of(context).brightness == Brightness.dark
+      ? 'Switch to light theme'
+      : 'Switch to dark theme',
+  onPressed: () => MyApp.of(context)?.toggleTheme(),
+  icon: AnimatedSwitcher(
+    duration: const Duration(milliseconds: 220),
+    child: Icon(
+      Theme.of(context).brightness == Brightness.dark
+          ? Icons.light_mode_rounded
+          : Icons.dark_mode_rounded,
+      key: ValueKey(Theme.of(context).brightness),
+      color: Theme.of(context).colorScheme.onSurface,
+    ),
+  ),
+),
 
 /// 🔥 SALES
 Padding(
@@ -1951,29 +1969,19 @@ bottomNavigationBar: Container(
   ),
 
   decoration: BoxDecoration(
+    color: Theme.of(context).brightness == Brightness.dark
+        ? const Color(0xFF0B1220)
+        : Theme.of(context).colorScheme.surface,
     borderRadius: BorderRadius.circular(20),
-
-    gradient: const LinearGradient(
-      begin: Alignment.topLeft,
-      end: Alignment.bottomRight,
-      colors: [
-        Color(0xFF111827),
-        Color(0xFF0B1220),
-        Color(0xFF091428),
-      ],
-    ),
-
-    border: Border.all(
-      color: Colors.white10,
-      width: 1,
-    ),
-
+    border: Border.all(color: Theme.of(context).dividerColor),
     boxShadow: [
       BoxShadow(
-        color: Colors.black.withValues(alpha: .35),
-        blurRadius: 25,
-        spreadRadius: 2,
-        offset: const Offset(0, 10),
+        color: Colors.black.withValues(
+          alpha: Theme.of(context).brightness == Brightness.dark ? .35 : .08,
+        ),
+        blurRadius: 22,
+        spreadRadius: 1,
+        offset: const Offset(0, 8),
       ),
     ],
   ),
@@ -1990,9 +1998,10 @@ bottomNavigationBar: Container(
 
       type: BottomNavigationBarType.fixed,
 
-      selectedItemColor: Colors.white,
-
-      unselectedItemColor: Colors.white70,
+      selectedItemColor: Theme.of(context).brightness == Brightness.dark
+          ? Colors.white
+          : Theme.of(context).colorScheme.primary,
+      unselectedItemColor: Theme.of(context).colorScheme.onSurfaceVariant,
 
       showUnselectedLabels: true,
 
