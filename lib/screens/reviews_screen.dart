@@ -157,7 +157,7 @@ void dispose() {
         Theme.of(context).brightness ==
             Brightness.dark;
 
-    const Color bgColor = Theme.of(context).colorScheme.surface;
+    final Color bgColor = Theme.of(context).colorScheme.surface;
 
     const Color cardColor = Color(0xFF1D1B20);
 

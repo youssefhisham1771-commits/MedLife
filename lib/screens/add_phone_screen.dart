@@ -51,7 +51,7 @@ class _AddPhoneScreenState extends State<AddPhoneScreen> {
                 height: 260,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: const Theme.of(context).colorScheme.primary
+                  color: Theme.of(context).colorScheme.primary
                       .withValues(alpha: .08),
                 ),
               ),
@@ -217,7 +217,7 @@ class _AddPhoneScreenState extends State<AddPhoneScreen> {
     filled: true,
     fillColor: isDark
         ? const Color(0xff2A2A2A)
-        : const Theme.of(context).scaffoldBackgroundColor,
+        : Theme.of(context).scaffoldBackgroundColor,
 
     border: OutlineInputBorder(
       borderRadius: BorderRadius.circular(18),
@@ -363,7 +363,7 @@ SizedBox(
       },
 
     style: ElevatedButton.styleFrom(
-      backgroundColor: const Theme.of(context).colorScheme.primary,
+      backgroundColor: Theme.of(context).colorScheme.primary,
 
       elevation: 0,
 

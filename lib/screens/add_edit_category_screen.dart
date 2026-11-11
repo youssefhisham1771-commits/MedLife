@@ -138,17 +138,17 @@ class _AddEditCategoryScreenState extends State<AddEditCategoryScreen> {
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          const Text('Category Name', style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 16)),
+          Text('Category Name', style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 16)),
           const SizedBox(height: 9),
           TextField(controller: _nameController, style: const TextStyle(color: Colors.white),
             decoration: InputDecoration(
               hintText: 'Enter category name', hintStyle: const TextStyle(color: Colors.white38),
               filled: true, fillColor: Colors.white.withValues(alpha: .04),
               border: OutlineInputBorder(borderRadius: BorderRadius.circular(17)),
-              enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(17), borderSide: const BorderSide(color: Theme.of(context).dividerColor)),
+              enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(17), borderSide: BorderSide(color: Theme.of(context).dividerColor)),
               focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(17), borderSide: const BorderSide(color: _blue)))),
           const SizedBox(height: 24),
-          const Text('Choose an icon', style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 16)),
+          Text('Choose an icon', style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 16)),
           const SizedBox(height: 12),
           Container(
             padding: const EdgeInsets.all(14),
@@ -173,7 +173,7 @@ class _AddEditCategoryScreenState extends State<AddEditCategoryScreen> {
             }).toList()),
           ),
           const SizedBox(height: 24),
-          const Text('Or upload a category image', style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 16)),
+          Text('Or upload a category image', style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 16)),
           const SizedBox(height: 10),
           InkWell(
             onTap: _isUploading ? null : _pickImage,

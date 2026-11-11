@@ -218,7 +218,7 @@ class _MyAddressesScreenState
           ),
           content: Text(
             "Remove the delivery fee for $governorate?",
-            style: const TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
+            style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
           ),
           actions: [
             TextButton(

@@ -212,7 +212,7 @@ class _ProductsScreenState extends State<ProductsScreen> {
                       ),
                       Text(
                         '${tempRange.start.round()} EGP  –  ${tempRange.end.round()} EGP',
-                        style: const TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
+                        style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
                       ),
                       const SizedBox(height: 24),
                       _filterSectionTitle('Sort By'),

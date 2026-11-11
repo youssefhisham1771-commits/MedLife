@@ -148,9 +148,9 @@ class _ShippingFeesScreenState extends State<ShippingFeesScreen> {
                   labelText: 'Shipping fee',
                   hintText: 'e.g. 25',
                   suffixText: 'EGP',
-                  labelStyle: const TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
+                  labelStyle: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
                   hintStyle: const TextStyle(color: Colors.white38),
-                  suffixStyle: const TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
+                  suffixStyle: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
                   filled: true,
                   fillColor: Colors.white.withOpacity(.05),
                   border: OutlineInputBorder(
@@ -289,7 +289,7 @@ class _ShippingFeesScreenState extends State<ShippingFeesScreen> {
           ),
           content: Text(
             'The shipping fee for $governorate will be removed.',
-            style: const TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
+            style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
           ),
           actions: [
             TextButton(
