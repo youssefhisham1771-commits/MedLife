@@ -9,6 +9,7 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'services/notification_service.dart';
 import 'screens/splash_screen.dart';
 import 'services/firebase_service.dart';
+import 'theme/app_theme.dart';
 
 
 
@@ -84,7 +85,7 @@ class MyApp extends StatefulWidget {
 }
 
 class MyAppState extends State<MyApp> {
-  bool isDark = false;
+  bool isDark = true;
 
   @override
 void initState() {
@@ -95,22 +96,21 @@ void initState() {
 }
 
   // 📥 تحميل من الميموري
-  void loadTheme() async {
+  Future<void> loadTheme() async {
     final prefs = await SharedPreferences.getInstance();
+    if (!mounted) return;
     setState(() {
-      isDark = prefs.getBool("isDark") ?? false;
+      isDark = prefs.getBool("isDark") ?? true;
     });
   }
 
-  // 💾 حفظ الاختيار
-  void toggleTheme() async {
-    final prefs = await SharedPreferences.getInstance();
-
+  Future<void> toggleTheme() async {
+    final nextIsDark = !isDark;
     setState(() {
-      isDark = !isDark;
+      isDark = nextIsDark;
     });
-
-    await prefs.setBool("isDark", isDark);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool("isDark", nextIsDark);
   }
 
   void startNotificationsListener() {
@@ -134,28 +134,12 @@ void initState() {
 
   @override
   Widget build(BuildContext context) {
-   return MaterialApp(
-  debugShowCheckedModeBanner: false,
-
-  theme: ThemeData(
-    brightness: Brightness.dark,
-    appBarTheme: const AppBarTheme(
-      backgroundColor: Colors.black,
-      foregroundColor: Colors.white,
-    ),
-  ),
-
-  darkTheme: ThemeData(
-    brightness: Brightness.dark,
-    appBarTheme: const AppBarTheme(
-      backgroundColor: Colors.black,
-      foregroundColor: Colors.white,
-    ),
-  ),
-
-  themeMode: ThemeMode.dark,
-
-  home: SplashScreen(),
-);
+    return MaterialApp(
+      debugShowCheckedModeBanner: false,
+      theme: AppTheme.light,
+      darkTheme: AppTheme.dark,
+      themeMode: isDark ? ThemeMode.dark : ThemeMode.light,
+      home: const SplashScreen(),
+    );
   }
 }
