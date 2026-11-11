@@ -85,7 +85,7 @@ class _ProductsScreenState extends State<ProductsScreen> {
               style: TextStyle(color: isDark ? Colors.white : const Color(0xFF172B3A), fontSize: 16),
               cursorColor: accent,
               textInputAction: TextInputAction.search,
-              decoration: const InputDecoration(
+              decoration: InputDecoration(
                 hintText: 'Search for products...',
                 hintStyle: TextStyle(color: isDark ? Colors.white54 : const Color(0xFF8495A2), fontSize: 15),
                 border: InputBorder.none,
