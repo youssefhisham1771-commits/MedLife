@@ -120,7 +120,7 @@ class _AddPhoneScreenState extends State<AddPhoneScreen> {
                           ).withValues(alpha: .08),
                         ),
 
-                        child: const Icon(
+                        child: Icon(
                           Icons.add_call,
                           size: 75,
                           color: Theme.of(context).colorScheme.primary,
@@ -233,7 +233,7 @@ class _AddPhoneScreenState extends State<AddPhoneScreen> {
 
     focusedBorder: OutlineInputBorder(
       borderRadius: BorderRadius.circular(18),
-      borderSide: const BorderSide(
+      borderSide: BorderSide(
         color: Theme.of(context).colorScheme.primary,
         width: 2,
       ),

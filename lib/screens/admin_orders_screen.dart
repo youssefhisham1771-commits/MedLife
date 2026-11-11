@@ -276,7 +276,7 @@ if (selectedFilter == 'Oldest First') {
 
 if (sortedOrders.isEmpty) {
 
-  return const Center(
+  return Center(
     child: Text(
       "No Orders Found!",
 
@@ -552,7 +552,7 @@ Row(
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
 
-            style: const TextStyle(
+            style: TextStyle(
               color: Theme.of(context).colorScheme.onSurfaceVariant,
               fontSize: 11,
               fontWeight: FontWeight.bold,

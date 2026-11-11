@@ -287,6 +287,7 @@ if (!isAdmin) {
 
                   children: [
                     statItem(
+                      context,
                       Icons.local_offer_outlined,
                       "Total Sales",
                       "$totalSales",
@@ -295,6 +296,7 @@ if (!isAdmin) {
                     divider(),
 
                     statItem(
+                      context,
                       Icons
                           .shopping_bag_outlined,
                       "Active Sales",
@@ -304,6 +306,7 @@ if (!isAdmin) {
                     divider(),
 
                     statItem(
+                      context,
                       Icons.percent,
                       "Avg. Discount",
                       "${avgDiscount.toInt()}%",
@@ -312,6 +315,7 @@ if (!isAdmin) {
                     divider(),
 
                     statItem(
+                      context,
   Icons.attach_money,
   "Total Discount",
   "${totalDiscountValue.toStringAsFixed(0)} EGP",
@@ -887,6 +891,7 @@ bool isExpired =
   }
 
   Widget statItem(
+    BuildContext context,
     IconData icon,
     String title,
     String value,

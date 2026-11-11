@@ -336,7 +336,7 @@ class _PlaceOrderDialogState extends State<PlaceOrderDialog> {
                 style: const TextStyle(
                   color: Colors.white,
                 ),
-                decoration: const InputDecoration(
+                decoration: InputDecoration(
                   labelText: "Name",
                   labelStyle: TextStyle(
                     color: Theme.of(context).colorScheme.onSurfaceVariant,
@@ -352,7 +352,7 @@ class _PlaceOrderDialogState extends State<PlaceOrderDialog> {
                 style: const TextStyle(
                   color: Colors.white,
                 ),
-                decoration: const InputDecoration(
+                decoration: InputDecoration(
                   labelText: "Phone",
                   labelStyle: TextStyle(
                     color: Theme.of(context).colorScheme.onSurfaceVariant,
@@ -397,7 +397,7 @@ class _PlaceOrderDialogState extends State<PlaceOrderDialog> {
                           color: Theme.of(context).dividerColor,
                         ),
                       ),
-                      child: const Text(
+                      child: Text(
                         "You don't have any saved address.",
                         textAlign: TextAlign.center,
                         style: TextStyle(
@@ -434,13 +434,13 @@ class _PlaceOrderDialogState extends State<PlaceOrderDialog> {
                           isExpanded: true,
                           dropdownColor:
                               const Color(0xFF1D1B20),
-                          hint: const Text(
+                          hint: Text(
                             "Choose a saved address",
                             style: TextStyle(
                               color: Theme.of(context).colorScheme.onSurfaceVariant,
                             ),
                           ),
-                          icon: const Icon(
+                          icon: Icon(
                             Icons.keyboard_arrow_down,
                             color: Theme.of(context).colorScheme.onSurfaceVariant,
                           ),
@@ -520,7 +520,7 @@ class _PlaceOrderDialogState extends State<PlaceOrderDialog> {
                                   Text(
                                     selectedAddress!['address']
                                         .toString(),
-                                    style: const TextStyle(
+                                    style: TextStyle(
                                       color: Theme.of(context).colorScheme.onSurfaceVariant,
                                     ),
                                   ),
@@ -555,7 +555,7 @@ class _PlaceOrderDialogState extends State<PlaceOrderDialog> {
               : () {
                   Navigator.pop(context);
                 },
-          child: const Text(
+          child: Text(
             "Cancel",
             style: TextStyle(
               color: Theme.of(context).colorScheme.onSurfaceVariant,
@@ -625,7 +625,7 @@ class _PlaceOrderDialogState extends State<PlaceOrderDialog> {
             mainAxisAlignment:
                 MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
+              Text(
                 "Shipping",
                 style: TextStyle(
                   color: Theme.of(context).colorScheme.onSurfaceVariant,
@@ -645,7 +645,7 @@ class _PlaceOrderDialogState extends State<PlaceOrderDialog> {
               else
                 Text(
                   "${shipping.toStringAsFixed(2)} EGP",
-                  style: const TextStyle(
+                  style: TextStyle(
                     color: Theme.of(context).colorScheme.onSurfaceVariant,
                     fontSize: 16,
                   ),
@@ -660,7 +660,7 @@ class _PlaceOrderDialogState extends State<PlaceOrderDialog> {
             -widget.discount,
           ),
 
-          const Divider(
+          Divider(
             color: Theme.of(context).dividerColor,
             height: 26,
           ),

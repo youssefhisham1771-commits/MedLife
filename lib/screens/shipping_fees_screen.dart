@@ -155,13 +155,13 @@ class _ShippingFeesScreenState extends State<ShippingFeesScreen> {
                   fillColor: Colors.white.withOpacity(.05),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(16),
-                    borderSide: const BorderSide(
+                    borderSide: BorderSide(
                       color: Theme.of(context).dividerColor,
                     ),
                   ),
                   enabledBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(16),
-                    borderSide: const BorderSide(
+                    borderSide: BorderSide(
                       color: Theme.of(context).dividerColor,
                     ),
                   ),
@@ -186,7 +186,7 @@ class _ShippingFeesScreenState extends State<ShippingFeesScreen> {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(dialogContext),
-              child: const Text(
+              child: Text(
                 'Cancel',
                 style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
               ),
@@ -294,7 +294,7 @@ class _ShippingFeesScreenState extends State<ShippingFeesScreen> {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(dialogContext, false),
-              child: const Text(
+              child: Text(
                 'Cancel',
                 style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
               ),
@@ -342,7 +342,7 @@ class _ShippingFeesScreenState extends State<ShippingFeesScreen> {
   @override
   Widget build(BuildContext context) {
     if (_checkingAdmin) {
-      return const Scaffold(
+      return Scaffold(
         backgroundColor: Theme.of(context).colorScheme.surface,
         body: Center(
           child: CircularProgressIndicator(
@@ -360,7 +360,7 @@ class _ShippingFeesScreenState extends State<ShippingFeesScreen> {
           foregroundColor: Colors.white,
           title: const Text('Shipping Fees'),
         ),
-        body: const Center(
+        body: Center(
           child: Text(
             'Access denied.',
             style: TextStyle(
@@ -445,7 +445,7 @@ class _ShippingFeesScreenState extends State<ShippingFeesScreen> {
                       ),
                     ),
                     const SizedBox(width: 15),
-                    const Expanded(
+                    Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [

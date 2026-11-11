@@ -1322,7 +1322,7 @@ Future<void> chatCustomer(String phone) async {
                   height: 10,
                 ),
 
-                priceRow(
+                priceRow(context,
                   "Subtotal",
                   "${subtotal.toStringAsFixed(0)} EGP",
                 ),
@@ -1331,7 +1331,7 @@ Future<void> chatCustomer(String phone) async {
                   height: 10,
                 ),
 
-                priceRow(
+                priceRow(context,
                   "Shipping",
                   "${shipping.toStringAsFixed(0)} EGP",
                 ),
@@ -1340,7 +1340,7 @@ Future<void> chatCustomer(String phone) async {
                   height: 10,
                 ),
 
-                priceRow(
+                priceRow(context,
                   "Discount",
                   "-${discount.toStringAsFixed(0)} EGP",
                   color:
@@ -1698,10 +1698,10 @@ const SizedBox(height: 20),
   }
 
   Widget priceRow(
+    BuildContext context,
     String title,
     String value, {
-    Color color =
-        Theme.of(context).colorScheme.onSurfaceVariant,
+    Color? color,
   }) {
 
     return Row(
@@ -1718,7 +1718,7 @@ const SizedBox(height: 20),
 
           style: TextStyle(
 
-            color: color,
+            color: color ?? Theme.of(context).colorScheme.onSurfaceVariant,
 
             fontSize: 17,
           ),
@@ -1730,7 +1730,7 @@ const SizedBox(height: 20),
 
           style: TextStyle(
 
-            color: color,
+            color: color ?? Theme.of(context).colorScheme.onSurfaceVariant,
 
             fontSize: 17,
 

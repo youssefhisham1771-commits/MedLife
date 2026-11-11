@@ -26,7 +26,7 @@ class CartSummary extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
+              Text(
                 "Subtotal",
                 style: TextStyle(
                   color: Theme.of(context).colorScheme.onSurfaceVariant,
@@ -35,7 +35,7 @@ class CartSummary extends StatelessWidget {
               ),
               Text(
                 "${subtotal.toStringAsFixed(1)} EGP",
-                style: const TextStyle(
+                style: TextStyle(
                   color: Theme.of(context).colorScheme.onSurfaceVariant,
                   fontSize: 20,
                 ),
@@ -46,7 +46,7 @@ class CartSummary extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
+              Text(
                 "Discount",
                 style: TextStyle(
                   color: Theme.of(context).colorScheme.onSurfaceVariant,
@@ -63,7 +63,7 @@ class CartSummary extends StatelessWidget {
               ),
             ],
           ),
-          const Divider(
+          Divider(
             height: 35,
             color: Theme.of(context).dividerColor,
           ),

@@ -199,14 +199,14 @@ class MyOrderDetailsScreen extends StatelessWidget {
                 height: 40,
               ),
 
-              _priceRow(
+              _priceRow(context,
                 "Subtotal",
                 subtotal,
               ),
 
               const SizedBox(height: 10),
 
-              _priceRow(
+              _priceRow(context,
                 "Shipping",
                 shipping,
               ),
@@ -216,7 +216,7 @@ class MyOrderDetailsScreen extends StatelessWidget {
                 height: 30,
               ),
 
-              _priceRow(
+              _priceRow(context,
                 "Total Amount",
                 total,
                 isTotal: true,
@@ -229,6 +229,7 @@ class MyOrderDetailsScreen extends StatelessWidget {
   }
 
   Widget _priceRow(
+    BuildContext context,
     String title,
     double value, {
     bool isTotal = false,

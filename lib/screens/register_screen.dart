@@ -164,7 +164,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
         controller: controller,
         obscureText: isPassword ? isPasswordHidden : false,
         keyboardType: keyboard,
-        style: const TextStyle(
+        style: TextStyle(
   color: Theme.of(context).colorScheme.onSurface,
   fontSize: 17,
   fontWeight: FontWeight.w500,

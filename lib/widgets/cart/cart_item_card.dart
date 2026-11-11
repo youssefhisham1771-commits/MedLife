@@ -75,7 +75,7 @@ class CartItemCard extends StatelessWidget {
                           const SizedBox(height: 5),
                           Text(
                             "Size: ${item["size"]}",
-                            style: const TextStyle(
+                            style: TextStyle(
                               color: Theme.of(context).colorScheme.onSurfaceVariant,
                               fontSize: 16,
                             ),

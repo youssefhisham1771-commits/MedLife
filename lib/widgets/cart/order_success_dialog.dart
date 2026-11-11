@@ -33,7 +33,7 @@ class OrderSuccessDialog extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 12),
-              const Text(
+              Text(
                 "سيتم التواصل معك اليوم لتأكيد الأوردر وتحديد مكان الاستلام",
                 textAlign: TextAlign.center,
                 style: TextStyle(
@@ -42,7 +42,7 @@ class OrderSuccessDialog extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 10),
-              const Text(
+              Text(
                 "الاستلام يكون خلال يومين 💨",
                 textAlign: TextAlign.center,
                 style: TextStyle(

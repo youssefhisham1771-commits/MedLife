@@ -224,7 +224,7 @@ class _MyAddressesScreenState
             TextButton(
               onPressed: () =>
                   Navigator.pop(dialogContext, false),
-              child: const Text(
+              child: Text(
                 "Cancel",
                 style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
               ),
@@ -290,7 +290,7 @@ class _MyAddressesScreenState
               decimal: true,
             ),
             style: const TextStyle(color: Colors.white),
-            decoration: const InputDecoration(
+            decoration: InputDecoration(
               labelText: "Delivery Fee",
               suffixText: "EGP",
               labelStyle: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
@@ -301,7 +301,7 @@ class _MyAddressesScreenState
             TextButton(
               onPressed: () =>
                   Navigator.pop(dialogContext),
-              child: const Text(
+              child: Text(
                 "Cancel",
                 style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
               ),
@@ -388,7 +388,7 @@ class _MyAddressesScreenState
 
         const SizedBox(height: 6),
 
-        const Text(
+        Text(
           "Set delivery fees for each governorate",
           style: TextStyle(
             color: Theme.of(context).colorScheme.onSurfaceVariant,
@@ -413,7 +413,7 @@ class _MyAddressesScreenState
               ),
               decoration: InputDecoration(
                 hintText: "Select governorate",
-                hintStyle: const TextStyle(
+                hintStyle: TextStyle(
                   color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
                 contentPadding:
@@ -476,11 +476,11 @@ class _MyAddressesScreenState
               ),
               decoration: InputDecoration(
                 hintText: "0.00",
-                hintStyle: const TextStyle(
+                hintStyle: TextStyle(
                   color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
                 suffixText: "EGP",
-                suffixStyle: const TextStyle(
+                suffixStyle: TextStyle(
                   color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
                 contentPadding:
@@ -581,7 +581,7 @@ class _MyAddressesScreenState
           )
         else
           Container(
-            decoration: const BoxDecoration(
+            decoration: BoxDecoration(
               border: Border(
                 top: BorderSide(color: Theme.of(context).dividerColor),
               ),
@@ -605,7 +605,7 @@ class _MyAddressesScreenState
   ) {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 11),
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         border: Border(
           bottom: BorderSide(color: Theme.of(context).dividerColor),
         ),
@@ -754,7 +754,7 @@ class _MyAddressesScreenState
 
                   labelText: "Title",
 
-                  labelStyle: const TextStyle(
+                  labelStyle: TextStyle(
                     color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
 
@@ -854,7 +854,7 @@ InkWell(
             crossAxisAlignment:
                 CrossAxisAlignment.start,
             children: [
-              const Text(
+              Text(
                 "Governorate",
                 style: TextStyle(
                   color: Theme.of(context).colorScheme.onSurfaceVariant,
@@ -878,7 +878,7 @@ InkWell(
           ),
         ),
 
-        const Icon(
+        Icon(
           Icons.keyboard_arrow_down,
           color: Theme.of(context).colorScheme.onSurfaceVariant,
         ),
@@ -901,7 +901,7 @@ TextField(
   ),
   decoration: InputDecoration(
     labelText: "Address Details",
-    labelStyle: const TextStyle(
+    labelStyle: TextStyle(
       color: Theme.of(context).colorScheme.onSurfaceVariant,
     ),
     hintText:
@@ -1109,8 +1109,7 @@ if (addressController.text.trim().isEmpty) {
   @override
   Widget build(BuildContext context) {
 
-    const Color bgColor =
-        Theme.of(context).colorScheme.surface;
+    final Color bgColor = Theme.of(context).colorScheme.surface;
 
     const Color cardColor =
         Color(0xFF1D1B20);
@@ -1118,8 +1117,7 @@ if (addressController.text.trim().isEmpty) {
     const Color mainText =
         Colors.white;
 
-    const Color subText =
-        Theme.of(context).colorScheme.onSurfaceVariant;
+    final Color subText = Theme.of(context).colorScheme.onSurfaceVariant;
 
     const Color blue =
         Color(0xFF6EA6C1);
@@ -1250,7 +1248,7 @@ if (addressController.text.trim().isEmpty) {
                         borderRadius:
                             BorderRadius.circular(24),
                         gradient:
-                            const LinearGradient(
+                            LinearGradient(
                           colors: [
                             Color(0xFF1D1B20),
                             Theme.of(context).colorScheme.surface,

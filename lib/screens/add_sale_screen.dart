@@ -237,7 +237,7 @@ class _AddSaleScreenState extends State<AddSaleScreen> {
 
                           const SizedBox(height: 10),
 
-                          const Text(
+                          Text(
                             "Choose Sale Image",
                             style: TextStyle(
                               color: Theme.of(context).colorScheme.onSurfaceVariant,
