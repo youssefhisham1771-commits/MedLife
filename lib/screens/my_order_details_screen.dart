@@ -127,7 +127,7 @@ class MyOrderDetailsScreen extends StatelessWidget {
 
                             Text(
                               "Size: ${item['size']}",
-                              style: const TextStyle(
+                              style: TextStyle(
                                 color: Theme.of(context).colorScheme.onSurfaceVariant,
                                 fontSize: 16,
                               ),
