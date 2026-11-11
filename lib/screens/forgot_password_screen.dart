@@ -45,18 +45,18 @@ class _ForgotPasswordScreenState
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF141118),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
 
       appBar: AppBar(
-        backgroundColor: const Color(0xFF141118),
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         elevation: 0,
-        foregroundColor: Colors.white,
+        foregroundColor: Theme.of(context).colorScheme.onSurface,
 
         title: Text(
           "Forgot Password",
           style: TextStyle(
             fontWeight: FontWeight.bold,
-            color: Colors.white,
+            color: Theme.of(context).colorScheme.onSurface,
           ),
         ),
       ),
@@ -77,8 +77,8 @@ class _ForgotPasswordScreenState
 
                 gradient: RadialGradient(
                   colors: [
-                    Color(0x221D1B20),
-                    Color(0x661D1B20),
+                    Theme.of(context).colorScheme.primary.withValues(alpha: 0.10),
+                    Theme.of(context).colorScheme.primary.withValues(alpha: 0.25),
                   ],
                 ),
               ),
@@ -90,7 +90,7 @@ class _ForgotPasswordScreenState
                   Icon(
                     Icons.lock_reset_rounded,
                     size: 110,
-                    color: Color(0xFF6EA6C1),
+                    color: Theme.of(context).colorScheme.primary,
                   ),
 
                   Positioned(
@@ -102,7 +102,7 @@ class _ForgotPasswordScreenState
 
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        color: Color(0xFF6EA6C1),
+                        color: Theme.of(context).colorScheme.primary,
                       ),
 
                       child: Icon(
@@ -127,7 +127,7 @@ class _ForgotPasswordScreenState
                   TextSpan(
                     text: "Reset ",
                     style: TextStyle(
-                      color: Color(0xFF6EA6C1),
+                      color: Theme.of(context).colorScheme.primary,
                       fontSize: 42,
                       fontWeight: FontWeight.bold,
                     ),
@@ -136,7 +136,7 @@ class _ForgotPasswordScreenState
                   TextSpan(
                     text: "Your Password",
                     style: TextStyle(
-                      color: Colors.white,
+                      color: Theme.of(context).colorScheme.onSurface,
                       fontSize: 42,
                       fontWeight: FontWeight.bold,
                     ),
@@ -154,7 +154,7 @@ class _ForgotPasswordScreenState
               textAlign: TextAlign.center,
 
               style: TextStyle(
-                color: Colors.white70,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
                 fontSize: 20,
                 height: 1.5,
               ),
@@ -170,7 +170,7 @@ class _ForgotPasswordScreenState
                 "Email Address",
 
                 style: TextStyle(
-                  color: Colors.white,
+                  color: Theme.of(context).colorScheme.onSurface,
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
                 ),
@@ -185,10 +185,10 @@ class _ForgotPasswordScreenState
                 borderRadius:
                     BorderRadius.circular(24),
 
-                color: const Color(0xFF1D1B20),
+                color: Theme.of(context).colorScheme.surface,
 
                 border: Border.all(
-                  color: Colors.white12,
+                  color: Theme.of(context).dividerColor,
                 ),
               ),
 
@@ -199,7 +199,7 @@ class _ForgotPasswordScreenState
                     TextInputType.emailAddress,
 
                 style: TextStyle(
-                  color: Colors.white,
+                  color: Theme.of(context).colorScheme.onSurface,
                   fontSize: 18,
                 ),
 
@@ -215,13 +215,13 @@ class _ForgotPasswordScreenState
                       "Enter your email address",
 
                   hintStyle: TextStyle(
-                    color: Colors.white38,
+                    color: Theme.of(context).hintColor,
                     fontSize: 18,
                   ),
 
                   prefixIcon: Icon(
                     Icons.email_outlined,
-                    color: Color(0xFF6EA6C1),
+                    color: Theme.of(context).colorScheme.primary,
                     size: 28,
                   ),
                 ),
@@ -239,7 +239,7 @@ class _ForgotPasswordScreenState
                 style:
                     ElevatedButton.styleFrom(
                   backgroundColor:
-                      const Color(0xFF6EA6C1),
+                      Theme.of(context).colorScheme.primary,
 
                   elevation: 12,
 
@@ -295,10 +295,10 @@ class _ForgotPasswordScreenState
                 borderRadius:
                     BorderRadius.circular(22),
 
-                color: const Color(0xFF1D1B20),
+                color: Theme.of(context).colorScheme.surface,
 
                 border: Border.all(
-                  color: Colors.white10,
+                  color: Theme.of(context).dividerColor,
                 ),
               ),
 
@@ -317,7 +317,7 @@ class _ForgotPasswordScreenState
                     child: Icon(
                       Icons.shield_outlined,
                       color:
-                          const Color(0xFF6EA6C1),
+                          Theme.of(context).colorScheme.primary,
                     ),
                   ),
 
@@ -328,7 +328,7 @@ class _ForgotPasswordScreenState
                       "We’ll never share your email with anyone else.",
 
                       style: TextStyle(
-                        color: Colors.white70,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
                         fontSize: 16,
                         height: 1.4,
                       ),

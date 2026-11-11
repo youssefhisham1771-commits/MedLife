@@ -215,10 +215,10 @@ class _AddSaleScreenState extends State<AddSaleScreen> {
                 width: double.infinity,
 
                 decoration: BoxDecoration(
-                  color: Colors.grey.shade200,
+                  color: Theme.of(context).colorScheme.surfaceContainerHighest,
                   borderRadius: BorderRadius.circular(20),
                   border: Border.all(
-                    color: Colors.grey.shade400,
+                    color: Theme.of(context).colorScheme.outlineVariant,
                   ),
                 ),
 
@@ -232,7 +232,7 @@ class _AddSaleScreenState extends State<AddSaleScreen> {
                           Icon(
                             Icons.add_photo_alternate,
                             size: 50,
-                            color: Colors.grey,
+                            color: Theme.of(context).colorScheme.onSurfaceVariant,
                           ),
 
                           const SizedBox(height: 10),
@@ -240,7 +240,7 @@ class _AddSaleScreenState extends State<AddSaleScreen> {
                           const Text(
                             "Choose Sale Image",
                             style: TextStyle(
-                              color: Colors.grey,
+                              color: Theme.of(context).colorScheme.onSurfaceVariant,
                               fontSize: 16,
                             ),
                           ),
@@ -406,7 +406,7 @@ const SizedBox(height: 25),
 
                 decoration: BoxDecoration(
                   border: Border.all(
-                    color: Colors.grey,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
 
                   borderRadius:
@@ -445,7 +445,7 @@ const SizedBox(height: 25),
                 child: isLoading
 
                     ? CircularProgressIndicator(
-                        color: Color(0xFF6EA6C1),
+                        color: Theme.of(context).colorScheme.primary,
                       )
 
                     : Text(

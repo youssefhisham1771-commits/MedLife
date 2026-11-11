@@ -149,7 +149,7 @@ if (e.code == "invalid-phone-number") {
               "Code sent to\n${widget.phoneNumber}",
               style: const TextStyle(
                 fontSize: 18,
-                color: Colors.grey,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
             ),
 
