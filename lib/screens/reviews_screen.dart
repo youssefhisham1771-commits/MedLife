@@ -673,7 +673,7 @@ void dispose() {
                 "${(animatedValue * 100).toInt()}%",
                 textAlign: TextAlign.end,
 
-                style: const TextStyle(
+                style: TextStyle(
                   color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
               ),
