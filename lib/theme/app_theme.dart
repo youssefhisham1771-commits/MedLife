@@ -48,6 +48,15 @@ class AppTheme {
     iconTheme: const IconThemeData(color: Color(0xFF42677D)),
     textTheme: const TextTheme(bodyLarge: TextStyle(color: Color(0xFF243B4A)), bodyMedium: TextStyle(color: Color(0xFF526675)), titleLarge: TextStyle(color: Color(0xFF172B3A), fontWeight: FontWeight.w700)),
     bottomNavigationBarTheme: const BottomNavigationBarThemeData(backgroundColor: Colors.white, selectedItemColor: Color(0xFF286F91), unselectedItemColor: Color(0xFF81919D), type: BottomNavigationBarType.fixed, elevation: 0),
+    textButtonTheme: TextButtonThemeData(style: TextButton.styleFrom(foregroundColor: const Color(0xFF286F91))),
+    outlinedButtonTheme: OutlinedButtonThemeData(style: OutlinedButton.styleFrom(foregroundColor: const Color(0xFF286F91), side: const BorderSide(color: Color(0xFFDCE6EC)), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)), padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 13))),
+    chipTheme: ChipThemeData(backgroundColor: const Color(0xFFEAF2F6), selectedColor: const Color(0xFFD5E8F1), labelStyle: const TextStyle(color: Color(0xFF243B4A)), side: BorderSide.none, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+    checkboxTheme: CheckboxThemeData(fillColor: WidgetStateProperty.resolveWith((states) => states.contains(WidgetState.selected) ? const Color(0xFF286F91) : null), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(5))),
+    switchTheme: SwitchThemeData(thumbColor: WidgetStateProperty.resolveWith((states) => states.contains(WidgetState.selected) ? Colors.white : null), trackColor: WidgetStateProperty.resolveWith((states) => states.contains(WidgetState.selected) ? const Color(0xFF286F91) : const Color(0xFFDCE6EC))),
+    snackBarTheme: SnackBarThemeData(backgroundColor: const Color(0xFF172B3A), contentTextStyle: const TextStyle(color: Colors.white), behavior: SnackBarBehavior.floating, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14))),
+    popupMenuTheme: PopupMenuThemeData(color: Colors.white, surfaceTintColor: Colors.transparent, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14))),
+    tabBarTheme: const TabBarThemeData(labelColor: Color(0xFF286F91), unselectedLabelColor: Color(0xFF81919D), indicatorColor: Color(0xFF286F91)),
+    listTileTheme: const ListTileThemeData(iconColor: Color(0xFF42677D), textColor: Color(0xFF243B4A)),
   );
 
   static final ThemeData dark = ThemeData(
@@ -65,5 +74,15 @@ class AppTheme {
     dividerColor: Colors.white12,
     iconTheme: const IconThemeData(color: Colors.white70),
     bottomNavigationBarTheme: const BottomNavigationBarThemeData(backgroundColor: Color(0xFF0B1220), selectedItemColor: Colors.white, unselectedItemColor: Colors.white70, type: BottomNavigationBarType.fixed, elevation: 0),
+    textTheme: const TextTheme(bodyLarge: TextStyle(color: Colors.white), bodyMedium: TextStyle(color: Colors.white70), titleLarge: TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
+    textButtonTheme: TextButtonThemeData(style: TextButton.styleFrom(foregroundColor: const Color(0xFF6EA6C1))),
+    outlinedButtonTheme: OutlinedButtonThemeData(style: OutlinedButton.styleFrom(foregroundColor: const Color(0xFF6EA6C1), side: const BorderSide(color: Colors.white24), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)), padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 13))),
+    chipTheme: ChipThemeData(backgroundColor: const Color(0xFF24212B), selectedColor: const Color(0xFF314A59), labelStyle: const TextStyle(color: Colors.white), side: BorderSide.none, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+    checkboxTheme: CheckboxThemeData(fillColor: WidgetStateProperty.resolveWith((states) => states.contains(WidgetState.selected) ? const Color(0xFF6EA6C1) : null), checkColor: const WidgetStatePropertyAll(Color(0xFF0B0713)), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(5))),
+    switchTheme: SwitchThemeData(thumbColor: WidgetStateProperty.resolveWith((states) => states.contains(WidgetState.selected) ? Colors.white : null), trackColor: WidgetStateProperty.resolveWith((states) => states.contains(WidgetState.selected) ? const Color(0xFF397E9E) : const Color(0xFF393640))),
+    snackBarTheme: SnackBarThemeData(backgroundColor: const Color(0xFF24212B), contentTextStyle: const TextStyle(color: Colors.white), behavior: SnackBarBehavior.floating, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14))),
+    popupMenuTheme: PopupMenuThemeData(color: const Color(0xFF24212B), surfaceTintColor: Colors.transparent, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14))),
+    tabBarTheme: const TabBarThemeData(labelColor: Color(0xFF6EA6C1), unselectedLabelColor: Colors.white60, indicatorColor: Color(0xFF6EA6C1)),
+    listTileTheme: const ListTileThemeData(iconColor: Colors.white70, textColor: Colors.white),
   );
 }
