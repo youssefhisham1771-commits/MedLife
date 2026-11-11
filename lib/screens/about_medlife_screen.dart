@@ -22,7 +22,7 @@ class AboutMedLifeScreen extends StatelessWidget {
         isDark ? Colors.white : Colors.black;
 
     final Color subText =
-        isDark ? Colors.white70 : Colors.grey.shade700;
+        isDark ? Theme.of(context).colorScheme.onSurfaceVariant : Colors.grey.shade700;
 
     const Color primaryBlue = Color(0xFF6EA6C1);
 

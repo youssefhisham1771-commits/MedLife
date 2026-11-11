@@ -148,21 +148,21 @@ class _ShippingFeesScreenState extends State<ShippingFeesScreen> {
                   labelText: 'Shipping fee',
                   hintText: 'e.g. 25',
                   suffixText: 'EGP',
-                  labelStyle: const TextStyle(color: Colors.white70),
+                  labelStyle: const TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
                   hintStyle: const TextStyle(color: Colors.white38),
-                  suffixStyle: const TextStyle(color: Colors.white70),
+                  suffixStyle: const TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
                   filled: true,
                   fillColor: Colors.white.withOpacity(.05),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(16),
                     borderSide: const BorderSide(
-                      color: Colors.white12,
+                      color: Theme.of(context).dividerColor,
                     ),
                   ),
                   enabledBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(16),
                     borderSide: const BorderSide(
-                      color: Colors.white12,
+                      color: Theme.of(context).dividerColor,
                     ),
                   ),
                   focusedBorder: OutlineInputBorder(
@@ -188,7 +188,7 @@ class _ShippingFeesScreenState extends State<ShippingFeesScreen> {
               onPressed: () => Navigator.pop(dialogContext),
               child: const Text(
                 'Cancel',
-                style: TextStyle(color: Colors.white70),
+                style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
               ),
             ),
             ElevatedButton(
@@ -289,14 +289,14 @@ class _ShippingFeesScreenState extends State<ShippingFeesScreen> {
           ),
           content: Text(
             'The shipping fee for $governorate will be removed.',
-            style: const TextStyle(color: Colors.white70),
+            style: const TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(dialogContext, false),
               child: const Text(
                 'Cancel',
-                style: TextStyle(color: Colors.white70),
+                style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
               ),
             ),
             TextButton(
@@ -343,7 +343,7 @@ class _ShippingFeesScreenState extends State<ShippingFeesScreen> {
   Widget build(BuildContext context) {
     if (_checkingAdmin) {
       return const Scaffold(
-        backgroundColor: Color(0xFF141118),
+        backgroundColor: Theme.of(context).colorScheme.surface,
         body: Center(
           child: CircularProgressIndicator(
             color: Color(0xFF6EA6C1),
@@ -354,9 +354,9 @@ class _ShippingFeesScreenState extends State<ShippingFeesScreen> {
 
     if (!_isAdmin) {
       return Scaffold(
-        backgroundColor: const Color(0xFF141118),
+        backgroundColor: Theme.of(context).colorScheme.surface,
         appBar: AppBar(
-          backgroundColor: Colors.black,
+          backgroundColor: Theme.of(context).scaffoldBackgroundColor,
           foregroundColor: Colors.white,
           title: const Text('Shipping Fees'),
         ),
@@ -364,7 +364,7 @@ class _ShippingFeesScreenState extends State<ShippingFeesScreen> {
           child: Text(
             'Access denied.',
             style: TextStyle(
-              color: Colors.white70,
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
               fontSize: 18,
             ),
           ),
@@ -373,9 +373,9 @@ class _ShippingFeesScreenState extends State<ShippingFeesScreen> {
     }
 
     return Scaffold(
-      backgroundColor: const Color(0xFF141118),
+      backgroundColor: Theme.of(context).colorScheme.surface,
       appBar: AppBar(
-        backgroundColor: Colors.black,
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         foregroundColor: Colors.white,
         elevation: 0,
         title: const Text(
@@ -461,7 +461,7 @@ class _ShippingFeesScreenState extends State<ShippingFeesScreen> {
                           Text(
                             'Set the delivery price for every governorate. The selected address fee will be added automatically to the order total.',
                             style: TextStyle(
-                              color: Colors.white70,
+                              color: Theme.of(context).colorScheme.onSurfaceVariant,
                               fontSize: 13,
                               height: 1.4,
                             ),
@@ -511,7 +511,7 @@ class _ShippingFeesScreenState extends State<ShippingFeesScreen> {
                     border: Border.all(
                       color: configured
                           ? const Color(0xFF6EA6C1).withOpacity(.25)
-                          : Colors.white10,
+                          : Theme.of(context).dividerColor,
                     ),
                   ),
                   child: Row(

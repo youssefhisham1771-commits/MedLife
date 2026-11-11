@@ -138,17 +138,17 @@ class _AddEditCategoryScreenState extends State<AddEditCategoryScreen> {
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          const Text('Category Name', style: TextStyle(color: Colors.white70, fontSize: 16)),
+          const Text('Category Name', style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 16)),
           const SizedBox(height: 9),
           TextField(controller: _nameController, style: const TextStyle(color: Colors.white),
             decoration: InputDecoration(
               hintText: 'Enter category name', hintStyle: const TextStyle(color: Colors.white38),
               filled: true, fillColor: Colors.white.withValues(alpha: .04),
               border: OutlineInputBorder(borderRadius: BorderRadius.circular(17)),
-              enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(17), borderSide: const BorderSide(color: Colors.white12)),
+              enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(17), borderSide: const BorderSide(color: Theme.of(context).dividerColor)),
               focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(17), borderSide: const BorderSide(color: _blue)))),
           const SizedBox(height: 24),
-          const Text('Choose an icon', style: TextStyle(color: Colors.white70, fontSize: 16)),
+          const Text('Choose an icon', style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 16)),
           const SizedBox(height: 12),
           Container(
             padding: const EdgeInsets.all(14),
@@ -167,13 +167,13 @@ class _AddEditCategoryScreenState extends State<AddEditCategoryScreen> {
                   decoration: BoxDecoration(
                     color: selected ? _blue.withValues(alpha: .2) : Colors.white.withValues(alpha: .04),
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: selected ? _blue : Colors.white12)),
-                  child: Icon(icon, color: selected ? _blue : Colors.white70, size: 25)),
+                    border: Border.all(color: selected ? _blue : Theme.of(context).dividerColor)),
+                  child: Icon(icon, color: selected ? _blue : Theme.of(context).colorScheme.onSurfaceVariant, size: 25)),
               );
             }).toList()),
           ),
           const SizedBox(height: 24),
-          const Text('Or upload a category image', style: TextStyle(color: Colors.white70, fontSize: 16)),
+          const Text('Or upload a category image', style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 16)),
           const SizedBox(height: 10),
           InkWell(
             onTap: _isUploading ? null : _pickImage,

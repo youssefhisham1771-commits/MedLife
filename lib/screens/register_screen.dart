@@ -157,7 +157,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
         color: Colors.white,
         borderRadius: BorderRadius.circular(18),
         border: Border.all(
-          color: Colors.grey.shade200,
+          color: Theme.of(context).dividerColor,
         ),
       ),
       child: TextField(
@@ -165,20 +165,20 @@ class _RegisterScreenState extends State<RegisterScreen> {
         obscureText: isPassword ? isPasswordHidden : false,
         keyboardType: keyboard,
         style: const TextStyle(
-  color: Color(0xff0B1F51),
+  color: Theme.of(context).colorScheme.onSurface,
   fontSize: 17,
   fontWeight: FontWeight.w500,
 ),
         decoration: InputDecoration(
           hintText: hint,
           hintStyle: TextStyle(
-            color: Color(0xff0B1F51),
+            color: Theme.of(context).colorScheme.onSurface,
             fontSize: 17,
             fontWeight: FontWeight.w500,
           ),
           prefixIcon: Icon(
             icon,
-            color: Color(0xff2F80ED),
+            color: Theme.of(context).colorScheme.primary,
           ),
           suffixIcon: isPassword
               ? IconButton(
@@ -221,7 +221,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
         borderRadius: BorderRadius.circular(18),
 
         border: Border.all(
-          color: Colors.grey.shade200,
+          color: Theme.of(context).dividerColor,
         ),
       ),
 
@@ -242,7 +242,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
               style: TextStyle(
                 fontWeight: FontWeight.bold,
                 fontSize: 18,
-                color: Color(0xff0B1F51),
+                color: Theme.of(context).colorScheme.onSurface,
               ),
             ),
           ],
@@ -264,7 +264,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
           backgroundColor: Colors.white,
           child: Icon(
             icon,
-            color: Color(0xff0B1F51),
+            color: Theme.of(context).colorScheme.onSurface,
             size: 28,
           ),
         ),
@@ -273,7 +273,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
           title,
           style: TextStyle(
             fontWeight: FontWeight.bold,
-            color: Color(0xff0B1F51),
+            color: Theme.of(context).colorScheme.onSurface,
           ),
         ),
         SizedBox(height: 4),
@@ -292,7 +292,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Color(0xffF5F9FF),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
 
       body: SafeArea(
         child: SingleChildScrollView(
@@ -342,7 +342,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         style: TextStyle(
                           fontSize: 34,
                           fontWeight: FontWeight.bold,
-                          color: Color(0xff0B1F51),
+                          color: Theme.of(context).colorScheme.onSurface,
                         ),
                       ),
 
@@ -352,7 +352,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         "Sign up to get started!",
                         style: TextStyle(
                           fontSize: 18,
-                          color: Colors.grey.shade600,
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
                         ),
                       ),
                     ],
@@ -432,7 +432,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                 onPressed: register,
 
                                 style: ElevatedButton.styleFrom(
-                                  backgroundColor: Color(0xff1565FF),
+                                  backgroundColor: Theme.of(context).colorScheme.primary,
 
                                   shape: RoundedRectangleBorder(
                                     borderRadius:
@@ -462,7 +462,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           Text(
                             "Already have an account?",
                             style: TextStyle(fontSize: 16,
-                            color: Color(0xff0B1F51),
+                            color: Theme.of(context).colorScheme.onSurface,
                             ),
                           ),
 
@@ -473,7 +473,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             child: Text(
                               "Login",
                               style: TextStyle(
-                                color: Color(0xff2F80ED),
+                                color: Theme.of(context).colorScheme.primary,
                                 fontWeight: FontWeight.bold,
                                 fontSize: 16,
                               ),
@@ -494,7 +494,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     Expanded(
                       child: Divider(
                         thickness: 1,
-                        color: Colors.grey.shade300,
+                        color: Theme.of(context).dividerColor,
                       ),
                     ),
 
@@ -505,7 +505,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         "Or sign up with",
                         style: TextStyle(
                           fontSize: 16,
-                          color: Colors.grey.shade700,
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
                         ),
                       ),
                     ),
@@ -513,7 +513,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     Expanded(
                       child: Divider(
                         thickness: 1,
-                        color: Colors.grey.shade300,
+                        color: Theme.of(context).dividerColor,
                       ),
                     ),
                   ],

@@ -17,10 +17,10 @@ class CartHeader extends StatelessWidget {
         vertical: 10,
       ),
       decoration: BoxDecoration(
-        color: const Color(0xFF141118),
+        color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: Colors.white10,
+          color: Theme.of(context).dividerColor,
         ),
       ),
       child: Row(
@@ -68,7 +68,7 @@ class CartHeader extends StatelessWidget {
           Container(
             width: 1,
             height: 50,
-            color: Colors.white10,
+            color: Theme.of(context).dividerColor,
           ),
           const SizedBox(width: 12),
           Expanded(

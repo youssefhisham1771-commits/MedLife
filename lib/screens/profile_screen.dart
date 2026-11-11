@@ -27,7 +27,7 @@ class ProfileScreen extends StatelessWidget {
         isDark ? Colors.white : Colors.black;
 
     final Color subTextColor =
-        isDark ? Colors.white70 : Colors.grey.shade700;
+        isDark ? Theme.of(context).colorScheme.onSurfaceVariant : Colors.grey.shade700;
 
     final Color cardColor =
         isDark
@@ -47,7 +47,7 @@ class ProfileScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor:
           isDark
-              ? const Color(0xFF141118)
+              ? Theme.of(context).colorScheme.surface
               : const Color(0xFFF7F7FA),
 
       appBar: AppBar(

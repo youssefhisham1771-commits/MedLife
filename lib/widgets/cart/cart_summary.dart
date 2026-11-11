@@ -17,9 +17,9 @@ class CartSummary extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: const Color(0xFF141118),
+        color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: Colors.white10),
+        border: Border.all(color: Theme.of(context).dividerColor),
       ),
       child: Column(
         children: [
@@ -29,14 +29,14 @@ class CartSummary extends StatelessWidget {
               const Text(
                 "Subtotal",
                 style: TextStyle(
-                  color: Colors.white70,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
                   fontSize: 20,
                 ),
               ),
               Text(
                 "${subtotal.toStringAsFixed(1)} EGP",
                 style: const TextStyle(
-                  color: Colors.white70,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
                   fontSize: 20,
                 ),
               ),
@@ -49,7 +49,7 @@ class CartSummary extends StatelessWidget {
               const Text(
                 "Discount",
                 style: TextStyle(
-                  color: Colors.white70,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
                   fontSize: 20,
                 ),
               ),
@@ -65,7 +65,7 @@ class CartSummary extends StatelessWidget {
           ),
           const Divider(
             height: 35,
-            color: Colors.white12,
+            color: Theme.of(context).dividerColor,
           ),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,

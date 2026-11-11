@@ -1701,7 +1701,7 @@ const SizedBox(height: 20),
     String title,
     String value, {
     Color color =
-        Colors.white70,
+        Theme.of(context).colorScheme.onSurfaceVariant,
   }) {
 
     return Row(

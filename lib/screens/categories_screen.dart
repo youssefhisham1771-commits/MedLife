@@ -15,7 +15,7 @@ class CategoriesScreen extends StatelessWidget {
         backgroundColor: const Color(0xFF111D31),
         title: const Text('Delete category?', style: TextStyle(color: Colors.white)),
         content: Text('Products assigned to "${data['name']}" will remain in the store but become uncategorized.',
-            style: const TextStyle(color: Colors.white70)),
+            style: const TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant)),
         actions: [
           TextButton(onPressed: () => Navigator.pop(dialogContext, false), child: const Text('Cancel')),
           TextButton(onPressed: () => Navigator.pop(dialogContext, true),
@@ -94,7 +94,7 @@ class CategoriesScreen extends StatelessWidget {
       body: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
         stream: FirebaseFirestore.instance.collection('categories').snapshots(),
         builder: (context, snapshot) {
-          if (snapshot.hasError) return const Center(child: Text('Could not load categories', style: TextStyle(color: Colors.white70)));
+          if (snapshot.hasError) return const Center(child: Text('Could not load categories', style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant)));
           if (!snapshot.hasData) return const Center(child: CircularProgressIndicator(color: _blue));
           final docs = snapshot.data!.docs.toList();
           docs.sort((a, b) {

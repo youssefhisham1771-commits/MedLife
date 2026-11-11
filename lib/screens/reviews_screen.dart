@@ -157,7 +157,7 @@ void dispose() {
         Theme.of(context).brightness ==
             Brightness.dark;
 
-    const Color bgColor = Color(0xFF141118);
+    const Color bgColor = Theme.of(context).colorScheme.surface;
 
     const Color cardColor = Color(0xFF1D1B20);
 
@@ -171,7 +171,7 @@ void dispose() {
 
   backgroundColor:
       isDark
-          ? const Color(0xFF141118)
+          ? Theme.of(context).colorScheme.surface
           : Colors.white,
 
   elevation: 0,
@@ -353,7 +353,7 @@ void dispose() {
             "Based on ${reviews.length} Reviews",
 
             style: TextStyle(
-              color: Colors.white70,
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
               fontSize: 16,
             ),
           ),
@@ -486,7 +486,7 @@ void dispose() {
                               "Write your review...",
 
                           hintStyle: TextStyle(
-                            color: Colors.white70,
+                            color: Theme.of(context).colorScheme.onSurfaceVariant,
                           ),
 
                           filled: true,
@@ -570,7 +570,7 @@ void dispose() {
                         "No Reviews Yet ⭐",
 
                         style: TextStyle(
-                          color: Colors.white70,
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
                           fontSize: 18,
                         ),
                       ),
@@ -655,7 +655,7 @@ void dispose() {
                   value: animatedValue,
                   minHeight: 10,
                   backgroundColor:
-                      Colors.white12,
+                      Theme.of(context).dividerColor,
 
                   valueColor:
                       const AlwaysStoppedAnimation(
@@ -674,7 +674,7 @@ void dispose() {
                 textAlign: TextAlign.end,
 
                 style: const TextStyle(
-                  color: Colors.white70,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
               ),
             ),
@@ -761,7 +761,7 @@ void dispose() {
             review,
 
             style: TextStyle(
-              color: Colors.white70,
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
               fontSize: 15,
             ),
           ),

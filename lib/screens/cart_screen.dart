@@ -125,12 +125,10 @@ void initState() {
 }
 
     return Scaffold(
-      backgroundColor:
-          const Color(0xFF0B0713),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
 
       appBar: AppBar(
-        backgroundColor:
-            const Color(0xFF0B0713),
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
 
         elevation: 0,
         toolbarHeight: 0,
@@ -230,7 +228,7 @@ CartHeader(
 
                     border: Border.all(
                       color:
-                          Colors.white10,
+                          Theme.of(context).dividerColor,
                     ),
                   ),
 
@@ -248,7 +246,7 @@ CartHeader(
                             style:
                                 TextStyle(
                               color:
-                                  Colors.white70,
+                                  Theme.of(context).colorScheme.onSurfaceVariant,
 
                               fontSize:
                                   20,
@@ -261,7 +259,7 @@ CartHeader(
                             style:
                                 TextStyle(
                               color:
-                                  Colors.white70,
+                                  Theme.of(context).colorScheme.onSurfaceVariant,
 
                               fontSize:
                                   20,
@@ -284,7 +282,7 @@ CartHeader(
                             style:
                                 TextStyle(
                               color:
-                                  Colors.white70,
+                                  Theme.of(context).colorScheme.onSurfaceVariant,
 
                               fontSize:
                                   20,
@@ -314,7 +312,7 @@ CartHeader(
                       Divider(
                         height: 35,
                         color:
-                            Colors.white12,
+                            Theme.of(context).dividerColor,
                       ),
 
                       Row(

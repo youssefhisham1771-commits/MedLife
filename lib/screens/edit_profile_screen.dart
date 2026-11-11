@@ -173,7 +173,7 @@ class _EditProfileScreenState
 
     final Color bgColor =
         isDark
-            ? const Color(0xFF141118)
+            ? Theme.of(context).colorScheme.surface
             : const Color(0xFFF7F7FA);
 
     final Color cardColor =
@@ -188,7 +188,7 @@ class _EditProfileScreenState
 
     final Color subTextColor =
         isDark
-            ? Colors.white70
+            ? Theme.of(context).colorScheme.onSurfaceVariant
             : Colors.grey.shade700;
 
     final Color iconBoxColor =

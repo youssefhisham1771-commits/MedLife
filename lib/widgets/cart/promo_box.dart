@@ -18,10 +18,10 @@ class PromoBox extends StatelessWidget {
         vertical: 4,
       ),
       decoration: BoxDecoration(
-        color: const Color(0xFF141118),
+        color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: Colors.white10,
+          color: Theme.of(context).dividerColor,
         ),
       ),
       child: TextField(

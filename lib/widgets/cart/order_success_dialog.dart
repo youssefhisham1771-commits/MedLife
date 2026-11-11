@@ -12,7 +12,7 @@ class OrderSuccessDialog extends StatelessWidget {
           width: MediaQuery.of(context).size.width * .85,
           padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
-            color: const Color(0xFF141118),
+            color: Theme.of(context).colorScheme.surface,
             borderRadius: BorderRadius.circular(24),
           ),
           child: Column(
@@ -37,7 +37,7 @@ class OrderSuccessDialog extends StatelessWidget {
                 "سيتم التواصل معك اليوم لتأكيد الأوردر وتحديد مكان الاستلام",
                 textAlign: TextAlign.center,
                 style: TextStyle(
-                  color: Colors.white70,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
                   fontSize: 16,
                 ),
               ),
@@ -46,7 +46,7 @@ class OrderSuccessDialog extends StatelessWidget {
                 "الاستلام يكون خلال يومين 💨",
                 textAlign: TextAlign.center,
                 style: TextStyle(
-                  color: Colors.white70,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
                   fontSize: 16,
                 ),
               ),

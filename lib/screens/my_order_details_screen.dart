@@ -128,7 +128,7 @@ class MyOrderDetailsScreen extends StatelessWidget {
                             Text(
                               "Size: ${item['size']}",
                               style: const TextStyle(
-                                color: Colors.white70,
+                                color: Theme.of(context).colorScheme.onSurfaceVariant,
                                 fontSize: 16,
                               ),
                             ),
@@ -159,7 +159,7 @@ class MyOrderDetailsScreen extends StatelessWidget {
                             ),
 
                             decoration: BoxDecoration(
-                              color: Colors.white12,
+                              color: Theme.of(context).dividerColor,
                               borderRadius:
                                   BorderRadius.circular(
                                 20,
@@ -242,7 +242,7 @@ class MyOrderDetailsScreen extends StatelessWidget {
           style: TextStyle(
             color: isTotal
                 ? Colors.white
-                : Colors.white70,
+                : Theme.of(context).colorScheme.onSurfaceVariant,
             fontSize: isTotal ? 24 : 17,
             fontWeight: isTotal
                 ? FontWeight.bold
@@ -254,7 +254,7 @@ class MyOrderDetailsScreen extends StatelessWidget {
           style: TextStyle(
             color: isTotal
                 ? const Color(0xFF6EA6C1)
-                : Colors.white70,
+                : Theme.of(context).colorScheme.onSurfaceVariant,
             fontSize: isTotal ? 28 : 17,
             fontWeight: isTotal
                 ? FontWeight.bold

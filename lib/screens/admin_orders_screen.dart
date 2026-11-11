@@ -281,7 +281,7 @@ if (sortedOrders.isEmpty) {
       "No Orders Found!",
 
       style: TextStyle(
-        color: Colors.white70,
+        color: Theme.of(context).colorScheme.onSurfaceVariant,
         fontSize: 18,
         fontWeight: FontWeight.w600,
       ),
@@ -553,7 +553,7 @@ Row(
             overflow: TextOverflow.ellipsis,
 
             style: const TextStyle(
-              color: Colors.white70,
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
               fontSize: 11,
               fontWeight: FontWeight.bold,
             ),
@@ -658,7 +658,7 @@ Row(
                               radius: 28,
 
                               backgroundColor:
-                                  Colors.white12,
+                                  Theme.of(context).dividerColor,
 
                               child: Text(
                                 data['name'] !=
@@ -766,7 +766,7 @@ Row(
                     10,
                   ),
 
-              color: Colors.white10,
+              color: Theme.of(context).dividerColor,
             ),
 
             child:
@@ -809,7 +809,7 @@ Row(
                   16,
                 ),
 
-            color: Colors.white10,
+            color: Theme.of(context).dividerColor,
           ),
 
           child: Center(
@@ -1124,7 +1124,7 @@ Widget statusChip(String title) {
 
           color: isSelected
               ? Colors.white
-              : Colors.white12,
+              : Theme.of(context).dividerColor,
         ),
       ),
 
@@ -1136,7 +1136,7 @@ Widget statusChip(String title) {
 
           color: isSelected
               ? Colors.black
-              : Colors.white70,
+              : Theme.of(context).colorScheme.onSurfaceVariant,
 
           fontWeight:
               FontWeight.w600,

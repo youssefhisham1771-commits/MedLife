@@ -76,7 +76,7 @@ Navigator.pushReplacement(
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Color(0xffF5F8FD),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
 
       body: SafeArea(
         child: SingleChildScrollView(
@@ -148,7 +148,7 @@ Navigator.pushReplacement(
                           Text(
                             "MEDICAL SCRUBS & APPAREL",
                             style: TextStyle(
-                              color: Color(0xff1D3557),
+                              color: Theme.of(context).colorScheme.onSurface,
                               fontWeight: FontWeight.w600,
                               letterSpacing: 1.2,
                             ),
@@ -190,7 +190,7 @@ Navigator.pushReplacement(
                         style: TextStyle(
                           fontSize: 34,
                           fontWeight: FontWeight.bold,
-                          color: Color(0xff16355C),
+                          color: Theme.of(context).colorScheme.onSurface,
                         ),
                       ),
 
@@ -199,7 +199,7 @@ Navigator.pushReplacement(
                       Text(
                         "Login to your account",
                         style: TextStyle(
-                          color: Colors.grey.shade600,
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
                           fontSize: 17,
                         ),
                       ),
@@ -209,10 +209,10 @@ Navigator.pushReplacement(
                       /// EMAIL
                       Container(
                         decoration: BoxDecoration(
-                          color: Color(0xffF7F9FC),
+                          color: Theme.of(context).scaffoldBackgroundColor,
                           borderRadius: BorderRadius.circular(18),
                           border: Border.all(
-                            color: Colors.grey.shade200,
+                            color: Theme.of(context).dividerColor,
                           ),
                         ),
 
@@ -221,7 +221,7 @@ Navigator.pushReplacement(
   keyboardType: TextInputType.emailAddress,
 
   style: TextStyle(
-    color: Color(0xff16355C), // 👈 نفس لون Welcome Back
+    color: Theme.of(context).colorScheme.onSurface, // 👈 نفس لون Welcome Back
     fontSize: 17,
     fontWeight: FontWeight.w600,
     height: 1.2,
@@ -235,7 +235,7 @@ Navigator.pushReplacement(
     hintText: "Email",
 
     hintStyle: TextStyle(
-      color: Color(0xff16355C),
+      color: Theme.of(context).colorScheme.onSurface,
       fontSize: 17,
     ),
 
@@ -256,7 +256,7 @@ Navigator.pushReplacement(
 
         child: Icon(
           Icons.email,
-          color: Color(0xff2D7DFF),
+          color: Theme.of(context).colorScheme.primary,
         ),
       ),
     ),
@@ -269,10 +269,10 @@ Navigator.pushReplacement(
                       /// PASSWORD
                       Container(
                         decoration: BoxDecoration(
-                          color: Color(0xffF7F9FC),
+                          color: Theme.of(context).scaffoldBackgroundColor,
                           borderRadius: BorderRadius.circular(18),
                           border: Border.all(
-                            color: Colors.grey.shade200,
+                            color: Theme.of(context).dividerColor,
                           ),
                         ),
 
@@ -281,7 +281,7 @@ Navigator.pushReplacement(
   obscureText: isPasswordHidden,
 
   style: TextStyle(
-    color: Color(0xff16355C),
+    color: Theme.of(context).colorScheme.onSurface,
     fontSize: 17,
     fontWeight: FontWeight.w600,
     height: 1.2,
@@ -295,7 +295,7 @@ Navigator.pushReplacement(
     hintText: "Password",
 
     hintStyle: TextStyle(
-      color: Color(0xff16355C),
+      color: Theme.of(context).colorScheme.onSurface,
       fontSize: 17,
     ),
 
@@ -316,7 +316,7 @@ Navigator.pushReplacement(
 
         child: Icon(
           Icons.lock,
-          color: Color(0xff2D7DFF),
+          color: Theme.of(context).colorScheme.primary,
         ),
       ),
     ),
@@ -371,7 +371,7 @@ Navigator.pushReplacement(
                           child: Text(
                             "Forgot Password?",
                             style: TextStyle(
-                              color: Color(0xff2D7DFF),
+                              color: Theme.of(context).colorScheme.primary,
                               fontWeight: FontWeight.w600,
                             ),
                           ),
@@ -398,7 +398,7 @@ Navigator.pushReplacement(
                                   elevation: 0,
 
                                   backgroundColor:
-                                      Color(0xff1565D8),
+                                      Theme.of(context).colorScheme.primary,
 
                                   shape:
                                       RoundedRectangleBorder(
@@ -452,7 +452,7 @@ Navigator.pushReplacement(
                               style: TextStyle(
                                 fontWeight:
                                     FontWeight.bold,
-                                color: Color(0xff1565D8),
+                                color: Theme.of(context).colorScheme.primary,
                               ),
                             ),
                           ),
@@ -472,7 +472,7 @@ Navigator.pushReplacement(
 
                     Expanded(
                       child: Divider(
-                        color: Colors.grey.shade300,
+                        color: Theme.of(context).dividerColor,
                       ),
                     ),
 
@@ -489,7 +489,7 @@ Navigator.pushReplacement(
 
                     Expanded(
                       child: Divider(
-                        color: Colors.grey.shade300,
+                        color: Theme.of(context).dividerColor,
                       ),
                     ),
                   ],
@@ -519,7 +519,7 @@ Navigator.pushReplacement(
           borderRadius: BorderRadius.circular(18),
 
           border: Border.all(
-            color: Colors.grey.shade200,
+            color: Theme.of(context).dividerColor,
           ),
         ),
 
@@ -548,7 +548,7 @@ Navigator.pushReplacement(
                       style: TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 18,
-                        color: Color(0xff0B1F51),
+                        color: Theme.of(context).colorScheme.onSurface,
                       ),
                     ),
                   ],
@@ -619,7 +619,7 @@ Navigator.pushReplacement(
 
           child: Icon(
             icon,
-            color: Color(0xff0B1F51),
+            color: Theme.of(context).colorScheme.onSurface,
             size: 32,
           ),
         ),
@@ -632,7 +632,7 @@ Navigator.pushReplacement(
 
           style: TextStyle(
             fontSize: 13,
-            color: Color(0xff0B1F51),
+            color: Theme.of(context).colorScheme.onSurface,
             fontWeight: FontWeight.w500,
           ),
         ),

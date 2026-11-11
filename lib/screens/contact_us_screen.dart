@@ -46,7 +46,7 @@ class ContactUsScreen extends StatelessWidget {
 
         border: Border.all(
           color: isDark
-              ? Colors.white10
+              ? Theme.of(context).dividerColor
               : Colors.black12,
         ),
 
@@ -181,7 +181,7 @@ class ContactUsScreen extends StatelessWidget {
 
     return Scaffold(
       backgroundColor: isDark
-          ? const Color(0xFF141118)
+          ? Theme.of(context).colorScheme.surface
           : Colors.white,
 
       appBar: AppBar(
@@ -198,7 +198,7 @@ class ContactUsScreen extends StatelessWidget {
         elevation: 0,
 
         backgroundColor: isDark
-            ? const Color(0xFF141118)
+            ? Theme.of(context).colorScheme.surface
             : Colors.white,
 
         foregroundColor:
@@ -230,7 +230,7 @@ class ContactUsScreen extends StatelessWidget {
 
                 border: Border.all(
                   color: isDark
-                      ? Colors.white12
+                      ? Theme.of(context).dividerColor
                       : Colors.black12,
                 ),
               ),
@@ -276,7 +276,7 @@ class ContactUsScreen extends StatelessWidget {
                 fontSize: 17,
 
                 color: isDark
-                    ? Colors.white70
+                    ? Theme.of(context).colorScheme.onSurfaceVariant
                     : Colors.black54,
               ),
             ),
@@ -413,7 +413,7 @@ class ContactUsScreen extends StatelessWidget {
 
                 border: Border.all(
                   color: isDark
-                      ? Colors.white10
+                      ? Theme.of(context).dividerColor
                       : Colors.black12,
                 ),
 
@@ -489,7 +489,7 @@ class ContactUsScreen extends StatelessWidget {
 
                           style: TextStyle(
                             color: isDark
-                                ? Colors.white70
+                                ? Theme.of(context).colorScheme.onSurfaceVariant
                                 : Colors.black54,
                           ),
                         ),

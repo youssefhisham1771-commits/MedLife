@@ -212,7 +212,7 @@ class _ProductsScreenState extends State<ProductsScreen> {
                       ),
                       Text(
                         '${tempRange.start.round()} EGP  –  ${tempRange.end.round()} EGP',
-                        style: const TextStyle(color: Colors.white70),
+                        style: const TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
                       ),
                       const SizedBox(height: 24),
                       _filterSectionTitle('Sort By'),
@@ -807,7 +807,7 @@ Padding(
                     shape: BoxShape.circle,
                     color: Colors.black.withValues(alpha: .45),
                     border: Border.all(
-                      color: Colors.white10,
+                      color: Theme.of(context).dividerColor,
                     ),
                   ),
 
@@ -956,7 +956,7 @@ Padding(
                       shape: BoxShape.circle,
                       color: Colors.black.withValues(alpha: .45),
                       border: Border.all(
-                        color: Colors.white10,
+                        color: Theme.of(context).dividerColor,
                       ),
                     ),
 
@@ -1057,7 +1057,7 @@ Spacer(),
               color: Colors.white.withValues(alpha: .06),
 
               border: Border.all(
-                color: Colors.white10,
+                color: Theme.of(context).dividerColor,
               ),
             ),
 
@@ -1238,7 +1238,7 @@ Widget buildFavourites() {
           padding: EdgeInsets.all(15),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(25),
-            border: Border.all(color: Colors.white10),
+            border: Border.all(color: Theme.of(context).dividerColor),
             gradient: LinearGradient(
               colors: [
                 Color(0xFF0E1220),
@@ -1289,7 +1289,7 @@ Widget buildFavourites() {
                       "${favourites.length} items saved",
                       style: TextStyle(
                         fontSize: 14,
-                        color: Colors.white70,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
                       ),
                     ),
 
@@ -1346,7 +1346,7 @@ mainAxisSpacing: 10,
           ),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(25),
-            border: Border.all(color: Colors.white10),
+            border: Border.all(color: Theme.of(context).dividerColor),
           ),
           child: Row(
             mainAxisAlignment:
@@ -1442,7 +1442,7 @@ Widget buildFavouriteCard(
                       shape: BoxShape.circle,
                       color: Colors.black.withValues(alpha: .45),
                       border: Border.all(
-                        color: Colors.white10,
+                        color: Theme.of(context).dividerColor,
                       ),
                     ),
                     child: Icon(
@@ -1518,7 +1518,7 @@ Widget buildFavouriteCard(
                 borderRadius: BorderRadius.circular(20),
                 color: Colors.white.withValues(alpha: .06),
                 border: Border.all(
-                  color: Colors.white10,
+                  color: Theme.of(context).dividerColor,
                 ),
               ),
               child: Row(
@@ -2062,7 +2062,7 @@ bottomNavigationBar: Container(
               Icons.store,
               color: currentIndex == 0
                   ? Colors.white
-                  : Colors.white70,
+                  : Theme.of(context).colorScheme.onSurfaceVariant,
             ),
           ),
         ),

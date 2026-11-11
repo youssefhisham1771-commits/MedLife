@@ -464,7 +464,7 @@ class _BannerSliderState extends State<BannerSlider> {
                                     .withValues(alpha: .45),
 
                                 border: Border.all(
-                                  color: Colors.white10,
+                                  color: Theme.of(context).dividerColor,
                                 ),
 
                                 boxShadow: [

@@ -23,12 +23,12 @@ class MyOrdersScreen extends StatelessWidget {
             padding: EdgeInsets.all(6),
 
             decoration: BoxDecoration(
-              color: const Color(0xFF141118),
+              color: Theme.of(context).colorScheme.surface,
 
               borderRadius: BorderRadius.circular(18),
 
               border: Border.all(
-                color: Colors.white10,
+                color: Theme.of(context).dividerColor,
               ),
 
               boxShadow: [

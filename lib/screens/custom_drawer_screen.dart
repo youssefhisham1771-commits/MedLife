@@ -229,7 +229,7 @@ if (user?.metadata.creationTime != null) {
                                 .withValues(alpha: .05),
 
                             border: Border.all(
-                              color: Colors.white10,
+                              color: Theme.of(context).dividerColor,
                             ),
                           ),
 
@@ -314,7 +314,7 @@ if (user?.metadata.creationTime != null) {
                               Container(
                                 width: 1,
                                 height: 35,
-                                color: Colors.white12,
+                                color: Theme.of(context).dividerColor,
                               ),
 
                               SizedBox(width: 8),
@@ -509,7 +509,7 @@ if (user?.metadata.creationTime != null) {
                   ),
 
                   Divider(
-                    color: Colors.white10,
+                    color: Theme.of(context).dividerColor,
                     height: 24,
                   ),
 
@@ -612,7 +612,7 @@ if (user?.metadata.creationTime != null) {
                         "Sign out from your account",
 
                         style: TextStyle(
-                          color: Colors.white70,
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
 
                           fontSize: 11,
                         ),
@@ -649,7 +649,7 @@ if (user?.metadata.creationTime != null) {
                           .withValues(alpha: .05),
 
                       border: Border.all(
-                        color: Colors.white10,
+                        color: Theme.of(context).dividerColor,
                       ),
                     ),
 
@@ -845,7 +845,7 @@ if (user?.metadata.creationTime != null) {
                             TextOverflow.ellipsis,
 
                         style: TextStyle(
-                          color: Colors.white70,
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
 
                           fontSize: 11,
                         ),
@@ -859,7 +859,7 @@ if (user?.metadata.creationTime != null) {
                 Icon(
                   Icons.arrow_forward_ios,
 
-                  color: Colors.white70,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
 
                   size: 15,
                 ),

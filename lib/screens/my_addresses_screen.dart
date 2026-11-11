@@ -218,7 +218,7 @@ class _MyAddressesScreenState
           ),
           content: Text(
             "Remove the delivery fee for $governorate?",
-            style: const TextStyle(color: Colors.white70),
+            style: const TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
           ),
           actions: [
             TextButton(
@@ -226,7 +226,7 @@ class _MyAddressesScreenState
                   Navigator.pop(dialogContext, false),
               child: const Text(
                 "Cancel",
-                style: TextStyle(color: Colors.white70),
+                style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
               ),
             ),
             TextButton(
@@ -293,8 +293,8 @@ class _MyAddressesScreenState
             decoration: const InputDecoration(
               labelText: "Delivery Fee",
               suffixText: "EGP",
-              labelStyle: TextStyle(color: Colors.white70),
-              suffixStyle: TextStyle(color: Colors.white70),
+              labelStyle: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
+              suffixStyle: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
             ),
           ),
           actions: [
@@ -303,7 +303,7 @@ class _MyAddressesScreenState
                   Navigator.pop(dialogContext),
               child: const Text(
                 "Cancel",
-                style: TextStyle(color: Colors.white70),
+                style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
               ),
             ),
             TextButton(
@@ -391,7 +391,7 @@ class _MyAddressesScreenState
         const Text(
           "Set delivery fees for each governorate",
           style: TextStyle(
-            color: Colors.white70,
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
             fontSize: 15,
           ),
         ),
@@ -414,7 +414,7 @@ class _MyAddressesScreenState
               decoration: InputDecoration(
                 hintText: "Select governorate",
                 hintStyle: const TextStyle(
-                  color: Colors.white70,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
                 contentPadding:
                     const EdgeInsets.symmetric(
@@ -477,11 +477,11 @@ class _MyAddressesScreenState
               decoration: InputDecoration(
                 hintText: "0.00",
                 hintStyle: const TextStyle(
-                  color: Colors.white70,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
                 suffixText: "EGP",
                 suffixStyle: const TextStyle(
-                  color: Colors.white70,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
                 contentPadding:
                     const EdgeInsets.symmetric(
@@ -583,7 +583,7 @@ class _MyAddressesScreenState
           Container(
             decoration: const BoxDecoration(
               border: Border(
-                top: BorderSide(color: Colors.white10),
+                top: BorderSide(color: Theme.of(context).dividerColor),
               ),
             ),
             child: Column(
@@ -607,7 +607,7 @@ class _MyAddressesScreenState
       padding: const EdgeInsets.symmetric(vertical: 11),
       decoration: const BoxDecoration(
         border: Border(
-          bottom: BorderSide(color: Colors.white10),
+          bottom: BorderSide(color: Theme.of(context).dividerColor),
         ),
       ),
       child: Row(
@@ -755,7 +755,7 @@ class _MyAddressesScreenState
                   labelText: "Title",
 
                   labelStyle: const TextStyle(
-                    color: Colors.white70,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
 
                   hintText:
@@ -857,7 +857,7 @@ InkWell(
               const Text(
                 "Governorate",
                 style: TextStyle(
-                  color: Colors.white70,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
                   fontSize: 13,
                 ),
               ),
@@ -880,7 +880,7 @@ InkWell(
 
         const Icon(
           Icons.keyboard_arrow_down,
-          color: Colors.white70,
+          color: Theme.of(context).colorScheme.onSurfaceVariant,
         ),
       ],
     ),
@@ -902,7 +902,7 @@ TextField(
   decoration: InputDecoration(
     labelText: "Address Details",
     labelStyle: const TextStyle(
-      color: Colors.white70,
+      color: Theme.of(context).colorScheme.onSurfaceVariant,
     ),
     hintText:
         "Street, Area, Building, Floor, Apartment...",
@@ -1110,7 +1110,7 @@ if (addressController.text.trim().isEmpty) {
   Widget build(BuildContext context) {
 
     const Color bgColor =
-        Color(0xFF141118);
+        Theme.of(context).colorScheme.surface;
 
     const Color cardColor =
         Color(0xFF1D1B20);
@@ -1119,7 +1119,7 @@ if (addressController.text.trim().isEmpty) {
         Colors.white;
 
     const Color subText =
-        Colors.white70;
+        Theme.of(context).colorScheme.onSurfaceVariant;
 
     const Color blue =
         Color(0xFF6EA6C1);
@@ -1131,7 +1131,7 @@ if (addressController.text.trim().isEmpty) {
       appBar: AppBar(
 
         backgroundColor:
-            const Color(0xFF141118),
+            Theme.of(context).colorScheme.surface,
 
         elevation: 0,
 
@@ -1253,7 +1253,7 @@ if (addressController.text.trim().isEmpty) {
                             const LinearGradient(
                           colors: [
                             Color(0xFF1D1B20),
-                            Color(0xFF141118),
+                            Theme.of(context).colorScheme.surface,
                           ],
                         ),
                       ),

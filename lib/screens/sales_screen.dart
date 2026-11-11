@@ -657,7 +657,7 @@ bool isExpired =
       : "No Expiry Date",
   style: TextStyle(
     color: isDark
-        ? Colors.white70
+        ? Theme.of(context).colorScheme.onSurfaceVariant
         : Colors.black54,
     fontSize: 12,
   ),
@@ -907,7 +907,7 @@ bool isExpired =
           title,
 
           style: TextStyle(
-            color: Colors.white70,
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
             fontSize: 13,
           ),
         ),

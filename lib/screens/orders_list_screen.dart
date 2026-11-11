@@ -89,7 +89,7 @@ String deliveredDate = deliveredAt != null
 
         Icon(
           Icons.calendar_month_outlined,
-          color: Colors.white70,
+          color: Theme.of(context).colorScheme.onSurfaceVariant,
           size: 18,
         ),
 
@@ -99,7 +99,7 @@ String deliveredDate = deliveredAt != null
           orderedDate,
 
           style: TextStyle(
-            color: Colors.white70,
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
             fontSize: 15,
             fontWeight: FontWeight.w500,
           ),

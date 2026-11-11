@@ -51,7 +51,7 @@ class _AddPhoneScreenState extends State<AddPhoneScreen> {
                 height: 260,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: const Color(0xff2D7DFF)
+                  color: const Theme.of(context).colorScheme.primary
                       .withValues(alpha: .08),
                 ),
               ),
@@ -123,7 +123,7 @@ class _AddPhoneScreenState extends State<AddPhoneScreen> {
                         child: const Icon(
                           Icons.add_call,
                           size: 75,
-                          color: Color(0xff1565D8),
+                          color: Theme.of(context).colorScheme.primary,
                         ),
                       ),
                     ),
@@ -148,7 +148,7 @@ class _AddPhoneScreenState extends State<AddPhoneScreen> {
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           fontSize: 19,
-                          color: Colors.grey.shade600,
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
                           height: 1.5,
                         ),
                       ),
@@ -217,7 +217,7 @@ class _AddPhoneScreenState extends State<AddPhoneScreen> {
     filled: true,
     fillColor: isDark
         ? const Color(0xff2A2A2A)
-        : const Color(0xffF7F9FC),
+        : const Theme.of(context).scaffoldBackgroundColor,
 
     border: OutlineInputBorder(
       borderRadius: BorderRadius.circular(18),
@@ -227,14 +227,14 @@ class _AddPhoneScreenState extends State<AddPhoneScreen> {
     enabledBorder: OutlineInputBorder(
       borderRadius: BorderRadius.circular(18),
       borderSide: BorderSide(
-        color: Colors.grey.shade300,
+        color: Theme.of(context).dividerColor,
       ),
     ),
 
     focusedBorder: OutlineInputBorder(
       borderRadius: BorderRadius.circular(18),
       borderSide: const BorderSide(
-        color: Color(0xff1565D8),
+        color: Theme.of(context).colorScheme.primary,
         width: 2,
       ),
     ),
@@ -363,7 +363,7 @@ SizedBox(
       },
 
     style: ElevatedButton.styleFrom(
-      backgroundColor: const Color(0xff1565D8),
+      backgroundColor: const Theme.of(context).colorScheme.primary,
 
       elevation: 0,
 

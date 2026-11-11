@@ -315,7 +315,7 @@ class _PlaceOrderDialogState extends State<PlaceOrderDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      backgroundColor: const Color(0xFF141118),
+      backgroundColor: Theme.of(context).colorScheme.surface,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(20),
       ),
@@ -339,7 +339,7 @@ class _PlaceOrderDialogState extends State<PlaceOrderDialog> {
                 decoration: const InputDecoration(
                   labelText: "Name",
                   labelStyle: TextStyle(
-                    color: Colors.white70,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
                 ),
               ),
@@ -355,7 +355,7 @@ class _PlaceOrderDialogState extends State<PlaceOrderDialog> {
                 decoration: const InputDecoration(
                   labelText: "Phone",
                   labelStyle: TextStyle(
-                    color: Colors.white70,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
                 ),
               ),
@@ -394,14 +394,14 @@ class _PlaceOrderDialogState extends State<PlaceOrderDialog> {
                         borderRadius:
                             BorderRadius.circular(15),
                         border: Border.all(
-                          color: Colors.white12,
+                          color: Theme.of(context).dividerColor,
                         ),
                       ),
                       child: const Text(
                         "You don't have any saved address.",
                         textAlign: TextAlign.center,
                         style: TextStyle(
-                          color: Colors.white70,
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
                         ),
                       ),
                     ),
@@ -425,7 +425,7 @@ class _PlaceOrderDialogState extends State<PlaceOrderDialog> {
                         borderRadius:
                             BorderRadius.circular(15),
                         border: Border.all(
-                          color: Colors.white12,
+                          color: Theme.of(context).dividerColor,
                         ),
                       ),
                       child: DropdownButtonHideUnderline(
@@ -437,12 +437,12 @@ class _PlaceOrderDialogState extends State<PlaceOrderDialog> {
                           hint: const Text(
                             "Choose a saved address",
                             style: TextStyle(
-                              color: Colors.white70,
+                              color: Theme.of(context).colorScheme.onSurfaceVariant,
                             ),
                           ),
                           icon: const Icon(
                             Icons.keyboard_arrow_down,
-                            color: Colors.white70,
+                            color: Theme.of(context).colorScheme.onSurfaceVariant,
                           ),
                           items: addresses.map((address) {
                             return DropdownMenuItem<String>(
@@ -521,7 +521,7 @@ class _PlaceOrderDialogState extends State<PlaceOrderDialog> {
                                     selectedAddress!['address']
                                         .toString(),
                                     style: const TextStyle(
-                                      color: Colors.white70,
+                                      color: Theme.of(context).colorScheme.onSurfaceVariant,
                                     ),
                                   ),
                                 ],
@@ -558,7 +558,7 @@ class _PlaceOrderDialogState extends State<PlaceOrderDialog> {
           child: const Text(
             "Cancel",
             style: TextStyle(
-              color: Colors.white70,
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
             ),
           ),
         ),
@@ -609,7 +609,7 @@ class _PlaceOrderDialogState extends State<PlaceOrderDialog> {
         color: Colors.white.withOpacity(.05),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: Colors.white12,
+          color: Theme.of(context).dividerColor,
         ),
       ),
       child: Column(
@@ -628,7 +628,7 @@ class _PlaceOrderDialogState extends State<PlaceOrderDialog> {
               const Text(
                 "Shipping",
                 style: TextStyle(
-                  color: Colors.white70,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
                   fontSize: 16,
                 ),
               ),
@@ -646,7 +646,7 @@ class _PlaceOrderDialogState extends State<PlaceOrderDialog> {
                 Text(
                   "${shipping.toStringAsFixed(2)} EGP",
                   style: const TextStyle(
-                    color: Colors.white70,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
                     fontSize: 16,
                   ),
                 ),
@@ -661,7 +661,7 @@ class _PlaceOrderDialogState extends State<PlaceOrderDialog> {
           ),
 
           const Divider(
-            color: Colors.white12,
+            color: Theme.of(context).dividerColor,
             height: 26,
           ),
 
@@ -689,7 +689,7 @@ class _PlaceOrderDialogState extends State<PlaceOrderDialog> {
           style: TextStyle(
             color: isTotal
                 ? Colors.white
-                : Colors.white70,
+                : Theme.of(context).colorScheme.onSurfaceVariant,
             fontSize: isTotal ? 20 : 16,
             fontWeight: isTotal
                 ? FontWeight.bold
@@ -701,7 +701,7 @@ class _PlaceOrderDialogState extends State<PlaceOrderDialog> {
           style: TextStyle(
             color: isTotal
                 ? const Color(0xFF6EA6C1)
-                : Colors.white70,
+                : Theme.of(context).colorScheme.onSurfaceVariant,
             fontSize: isTotal ? 22 : 16,
             fontWeight: isTotal
                 ? FontWeight.bold

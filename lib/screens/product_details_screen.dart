@@ -56,14 +56,14 @@ void initState() {
         alignment: Alignment.center,
 
         decoration: BoxDecoration(
-          color: const Color(0xFF141118),
+          color: Theme.of(context).colorScheme.surface,
 
           borderRadius: BorderRadius.circular(18),
 
           border: Border.all(
             color: isSelected
                 ? const Color(0xFF4EA5FF)
-                : Colors.white10,
+                : Theme.of(context).dividerColor,
             width: 1.6,
           ),
 
@@ -103,10 +103,10 @@ void initState() {
         : [data['image']];
 
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
 
       appBar: AppBar(
-        backgroundColor: Colors.black,
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         elevation: 0,
 
         title: Text(
@@ -255,7 +255,7 @@ void initState() {
 
         return Dialog(
 
-          backgroundColor: Colors.black,
+          backgroundColor: Theme.of(context).scaffoldBackgroundColor,
 
           insetPadding: EdgeInsets.zero,
 
@@ -515,7 +515,7 @@ void initState() {
 
                                   border: Border.all(
                                     color:
-                                        Colors.white10,
+                                        Theme.of(context).dividerColor,
                                   ),
                                 ),
 
@@ -588,10 +588,10 @@ Container(
   padding: EdgeInsets.all(22),
 
   decoration: BoxDecoration(
-    color: const Color(0xFF141118),
+    color: Theme.of(context).colorScheme.surface,
     borderRadius: BorderRadius.circular(24),
     border: Border.all(
-      color: Colors.white10,
+      color: Theme.of(context).dividerColor,
     ),
   ),
 
@@ -668,7 +668,7 @@ Container(
                   "No description available",
 
               style: TextStyle(
-                color: Colors.white70,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
                 height: 1.6,
                 fontSize: 16,
               ),
@@ -692,13 +692,13 @@ Container(
   padding: EdgeInsets.all(22),
 
   decoration: BoxDecoration(
-    color: const Color(0xFF141118),
+    color: Theme.of(context).colorScheme.surface,
 
     borderRadius:
         BorderRadius.circular(24),
 
     border: Border.all(
-      color: Colors.white10,
+      color: Theme.of(context).dividerColor,
     ),
   ),
 
@@ -777,7 +777,7 @@ Container(
                   "No delivery info available",
 
               style: TextStyle(
-                color: Colors.white70,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
                 height: 1.6,
                 fontSize: 16,
               ),
@@ -813,7 +813,7 @@ Container(
 
                 border: Border(
                   top: BorderSide(
-                    color: Colors.white10,
+                    color: Theme.of(context).dividerColor,
                   ),
                 ),
               ),
@@ -1048,7 +1048,7 @@ messenger.showSnackBar(
               text,
 
               style: TextStyle(
-                color: Colors.white70,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
                 fontSize: 16,
                 height: 1.5,
               ),
@@ -1067,13 +1067,13 @@ messenger.showSnackBar(
           horizontal: 22, vertical: 22),
 
       decoration: BoxDecoration(
-        color: const Color(0xFF141118),
+        color: Theme.of(context).colorScheme.surface,
 
         borderRadius:
             BorderRadius.circular(22),
 
         border: Border.all(
-          color: Colors.white10,
+          color: Theme.of(context).dividerColor,
         ),
       ),
 

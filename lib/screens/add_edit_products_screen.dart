@@ -264,8 +264,7 @@ deliveryText.text.isEmpty ||
 
     return Scaffold(
 
-      backgroundColor:
-          const Color(0xFF0B0713),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
 
       appBar: AppBar(
 
@@ -358,7 +357,7 @@ deliveryText.text.isEmpty ||
                       decoration: BoxDecoration(
                         color: Colors.white.withValues(alpha: 0.03),
                         borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: Colors.white10),
+                        border: Border.all(color: Theme.of(context).dividerColor),
                       ),
                       child: DropdownButtonHideUnderline(
                         child: DropdownButton<String>(
@@ -619,7 +618,7 @@ deliveryText.text.isEmpty ||
 
                 border: Border.all(
                   color:
-                      Colors.white10,
+                      Theme.of(context).dividerColor,
                 ),
               ),
 
@@ -734,7 +733,7 @@ SizedBox(height: 18),
 
                       style: TextStyle(
                         color:
-                            Colors.white70,
+                            Theme.of(context).colorScheme.onSurfaceVariant,
                         fontSize: 14,
                       ),
                     ),
@@ -810,7 +809,7 @@ SizedBox(height: 18),
       text,
 
       style: TextStyle(
-        color: Colors.white70,
+        color: Theme.of(context).colorScheme.onSurfaceVariant,
         fontSize: 18,
         fontWeight:
             FontWeight.w500,
@@ -843,7 +842,7 @@ SizedBox(height: 18),
                 20),
 
         border: Border.all(
-          color: Colors.white10,
+          color: Theme.of(context).dividerColor,
         ),
       ),
 
