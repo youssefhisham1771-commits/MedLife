@@ -53,27 +53,27 @@ class _ProductsScreenState extends State<ProductsScreen> {
       value?.toString().trim().toLowerCase() ?? '';
 
   Widget buildSearchBar(double availableMaxPrice) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final accent = Theme.of(context).colorScheme.primary;
     return Container(
       height: 45,
       margin: const EdgeInsets.symmetric(horizontal: 28, vertical: 8),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(40),
-        gradient: const LinearGradient(
-          colors: [Color(0xFF101D35), Color(0xFF091428)],
-        ),
-        border: Border.all(color: const Color(0xFF59C7FF), width: 1.5),
+        color: isDark ? const Color(0xFF101D35) : Colors.white,
+        border: Border.all(color: isDark ? const Color(0xFF59C7FF) : const Color(0xFFD5E2EA), width: 1.2),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF59C7FF).withValues(alpha: 0.22),
-            blurRadius: 20,
-            spreadRadius: 1,
+            color: (isDark ? const Color(0xFF59C7FF) : const Color(0xFF31566B)).withValues(alpha: isDark ? 0.18 : 0.07),
+            blurRadius: 16,
+            spreadRadius: 0,
           ),
         ],
       ),
       child: Row(
         children: [
           const SizedBox(width: 10),
-          const Icon(Icons.search, color: Colors.white, size: 29),
+          Icon(Icons.search, color: isDark ? Colors.white : accent, size: 25),
           const SizedBox(width: 7),
           Expanded(
             child: TextField(
@@ -81,23 +81,23 @@ class _ProductsScreenState extends State<ProductsScreen> {
               onChanged: (value) {
                 setState(() => searchQuery = value.trim().toLowerCase());
               },
-              style: const TextStyle(color: Colors.white, fontSize: 16),
-              cursorColor: const Color(0xFF59C7FF),
+              style: TextStyle(color: isDark ? Colors.white : const Color(0xFF172B3A), fontSize: 16),
+              cursorColor: accent,
               textInputAction: TextInputAction.search,
               decoration: const InputDecoration(
                 hintText: 'Search for products...',
-                hintStyle: TextStyle(color: Colors.white54, fontSize: 15),
+                hintStyle: TextStyle(color: isDark ? Colors.white54 : const Color(0xFF8495A2), fontSize: 15),
                 border: InputBorder.none,
                 isDense: true,
                 contentPadding: EdgeInsets.symmetric(vertical: 12),
               ),
             ),
           ),
-          Container(height: 34, width: 1, color: Colors.white24),
+          Container(height: 34, width: 1, color: isDark ? Colors.white24 : const Color(0xFFE1E9EE)),
           IconButton(
             tooltip: 'Filter products',
             onPressed: () => showProductFilters(availableMaxPrice),
-            icon: const Icon(Icons.tune, color: Colors.white, size: 24),
+            icon: Icon(Icons.tune, color: isDark ? Colors.white : accent, size: 24),
           ),
           const SizedBox(width: 4),
         ],
