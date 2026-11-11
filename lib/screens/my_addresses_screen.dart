@@ -1294,7 +1294,7 @@ if (addressController.text.trim().isEmpty) {
                                       ),
                                     ),
                                     const SizedBox(height: 6),
-                                    const Text(
+                                    Text(
                                       "You can add up to 3 addresses",
                                       style: TextStyle(
                                         color: subText,
@@ -1436,7 +1436,7 @@ if (addressController.text.trim().isEmpty) {
                               height: 10,
                             ),
 
-                            const Text(
+                            Text(
 
                               "Add your first address to make ordering faster and easier.",
 
@@ -1689,7 +1689,7 @@ const SizedBox(height: 4),
 
 Text(
   item['address'] ?? '',
-  style: const TextStyle(
+  style: TextStyle(
     color: subText,
     fontSize: 16,
     height: 1.5,
@@ -1704,7 +1704,7 @@ Text(
                                   color:
                                       cardColor,
 
-                                  icon: const Icon(
+                                  icon: Icon(
                                     Icons.more_vert,
                                     color:
                                         subText,
@@ -1813,7 +1813,7 @@ Text(
                             width: 16,
                           ),
 
-                          const Expanded(
+                          Expanded(
 
                             child: Text(
 
