@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
@@ -274,7 +275,7 @@ if (!userDoc.exists ||
                   width: double.infinity,
                   height: 52,
                   child: OutlinedButton.icon(
-                    onPressed: loading
+                    onPressed: loading || !kIsWeb
                         ? null
                         : signInAdminWithGoogle,
                     style: OutlinedButton.styleFrom(
