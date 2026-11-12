@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'main.dart';
 
 class AdminLogin extends StatefulWidget {
   const AdminLogin({super.key});
@@ -28,18 +28,12 @@ class _AdminLoginState extends State<AdminLogin> {
 
       final uid = credential.user!.uid;
 
-print("LOGIN UID = $uid");
-
 final userDoc = await FirebaseFirestore.instance
     .collection('users')
     .doc(uid)
     .get();
 
-print("DOC EXISTS = ${userDoc.exists}");
-print("DATA = ${userDoc.data()}");
-print("ROLE = ${userDoc.data()?['role']}");
-
-      if (!userDoc.exists ||
+if (!userDoc.exists ||
           userDoc.data()?['role'] != 'admin') {
         await FirebaseAuth.instance.signOut();
 
@@ -52,12 +46,7 @@ print("ROLE = ${userDoc.data()?['role']}");
         return;
       }
 
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(
-          builder: (_) => const DashboardScreen(),
-        ),
-      );
+      // The root auth gate listens to authStateChanges and opens the Command Center.
     } on FirebaseAuthException catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -98,12 +87,7 @@ print("ROLE = ${userDoc.data()?['role']}");
         return;
       }
 
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(
-          builder: (_) => const DashboardScreen(),
-        ),
-      );
+      // Root auth gate handles the signed-in state.
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -115,6 +99,13 @@ print("ROLE = ${userDoc.data()?['role']}");
         setState(() => loading = false);
       }
     }
+  }
+
+  @override
+  void dispose() {
+    emailController.dispose();
+    passwordController.dispose();
+    super.dispose();
   }
 
   @override
@@ -136,8 +127,10 @@ print("ROLE = ${userDoc.data()?['role']}");
         ),
 
         child: Center(
-          child: Container(
-            width: 480,
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(16),
+            child: Container(
+            width: MediaQuery.sizeOf(context).width < 560 ? MediaQuery.sizeOf(context).width - 32 : 480,
             padding: const EdgeInsets.all(35),
 
             decoration: BoxDecoration(
@@ -157,7 +150,7 @@ print("ROLE = ${userDoc.data()?['role']}");
               children: [
                 Image.asset(
                   "assets/1.png",
-                  width: 300,
+                  width: 240,
                 ),
 
                 const SizedBox(height: 20),
@@ -282,7 +275,7 @@ print("ROLE = ${userDoc.data()?['role']}");
                   width: double.infinity,
                   height: 52,
                   child: OutlinedButton.icon(
-                    onPressed: loading
+                    onPressed: loading || !kIsWeb
                         ? null
                         : signInAdminWithGoogle,
                     style: OutlinedButton.styleFrom(
@@ -312,6 +305,7 @@ print("ROLE = ${userDoc.data()?['role']}");
                 ),
               ],
             ),
+          ),
           ),
         ),
       ),
