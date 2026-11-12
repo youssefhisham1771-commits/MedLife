@@ -103,17 +103,43 @@ class OverviewPage extends StatelessWidget{const OverviewPage({super.key});
  })
  ]));
 }
-class OrdersPage extends StatelessWidget{const OrdersPage({super.key});
- @override Widget build(BuildContext c)=>_Page(Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
- const Text('Orders management',style:TextStyle(fontSize:24,fontWeight:FontWeight.w900)),const SizedBox(height:15),
- StreamBuilder<QuerySnapshot<Map<String,dynamic>>>(stream:FirebaseFirestore.instance.collection('orders').snapshots(),builder:(c,s){
-  if(s.hasError)return Text('Orders error: '+s.error.toString());if(!s.hasData)return const Center(child:CircularProgressIndicator());
-  return Card(child:Column(children:s.data!.docs.map((d){
-   final status=(d.data()['status']??'pending').toString();const choices=['pending','processing','shipped','delivered','cancelled'];
-   return ListTile(leading:const CircleAvatar(child:Icon(Icons.receipt_long)),title:Text('Order '+d.id),subtitle:Text('Customer '+(d.data()['userId']??'').toString()+' · '+_n(d.data()['total']).toStringAsFixed(2)+' EGP'),trailing:SizedBox(width:145,child:DropdownButtonFormField<String>(value:choices.contains(status)?status:'pending',items:choices.map((v)=>DropdownMenuItem(value:v,child:Text(v))).toList(),onChanged:(v)async{if(v!=null){await d.reference.update({'status':v,'updatedAt':FieldValue.serverTimestamp()});await _log('order_status_updated',d.id);}})));
-  }).toList()));
- })
+class OrdersPage extends StatefulWidget {
+ const OrdersPage({super.key});
+ @override State<OrdersPage> createState()=>_OrdersPageState();
+}
+class _OrdersPageState extends State<OrdersPage>{
+ final search=TextEditingController(); String status='All'; String sort='Newest first';
+ @override void dispose(){search.dispose();super.dispose();}
+ @override Widget build(BuildContext context)=>_Page(Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
+  const Text('Orders management',style:TextStyle(fontSize:24,fontWeight:FontWeight.w900)),
+  const SizedBox(height:14),
+  Wrap(spacing:12,runSpacing:10,children:[
+   SizedBox(width:340,child:TextField(controller:search,onChanged:(_)=>setState((){}),decoration:const InputDecoration(prefixIcon:Icon(Icons.search),hintText:'Search order, customer or phone',border:OutlineInputBorder()))),
+   SizedBox(width:180,child:DropdownButtonFormField<String>(value:status,decoration:const InputDecoration(labelText:'Status',border:OutlineInputBorder()),items:['All','pending','processing','shipped','delivered','cancelled'].map((v)=>DropdownMenuItem(value:v,child:Text(v))).toList(),onChanged:(v)=>setState(()=>status=v??'All'))),
+   SizedBox(width:180,child:DropdownButtonFormField<String>(value:sort,decoration:const InputDecoration(labelText:'Sort by',border:OutlineInputBorder()),items:['Newest first','Oldest first','Highest value','Lowest value'].map((v)=>DropdownMenuItem(value:v,child:Text(v))).toList(),onChanged:(v)=>setState(()=>sort=v??'Newest first'))),
+  ]),
+  const SizedBox(height:15),
+  StreamBuilder<QuerySnapshot<Map<String,dynamic>>>(stream:FirebaseFirestore.instance.collection('orders').snapshots(),builder:(context,s){
+   if(s.hasError)return Text('Orders error: '+s.error.toString());
+   if(!s.hasData)return const Center(child:CircularProgressIndicator());
+   final docs=s.data!.docs.toList(); final q=search.text.trim().toLowerCase();
+   docs.removeWhere((d){final x=d.data();final st=(x['status']??'pending').toString().toLowerCase();final matchStatus=status=='All'||st==status;final matchQuery=q.isEmpty||d.id.toLowerCase().contains(q)||(x['name']??'').toString().toLowerCase().contains(q)||(x['phone']??'').toString().toLowerCase().contains(q);return !matchStatus||!matchQuery;});
+   docs.sort((a,b){if(sort=='Highest value')return _n(b.data()['total']).compareTo(_n(a.data()['total']));if(sort=='Lowest value')return _n(a.data()['total']).compareTo(_n(b.data()['total']));final av=a.data()['orderedAt'],bv=b.data()['orderedAt'];final ad=av is Timestamp?av.toDate():DateTime.fromMillisecondsSinceEpoch(0);final bd=bv is Timestamp?bv.toDate():DateTime.fromMillisecondsSinceEpoch(0);return sort=='Oldest first'?ad.compareTo(bd):bd.compareTo(ad);});
+   if(docs.isEmpty)return const Center(child:Padding(padding:EdgeInsets.all(30),child:Text('No matching orders')));
+   return Card(child:Column(children:docs.map((d){final x=d.data();final items=x['items'] is List?x['items'] as List:[];final t=x['orderedAt'];final date=t is Timestamp?t.toDate().toLocal().toString().split('.').first:'Date unavailable';final current=(x['status']??'pending').toString();const choices=['pending','processing','shipped','delivered','cancelled'];return Column(children:[
+    ListTile(leading:const CircleAvatar(child:Icon(Icons.receipt_long)),title:Text('Order '+(d.id.length>8?d.id.substring(0,8):d.id)+' · '+(x['name']??'Customer').toString()),subtitle:Text((x['phone']??'No phone').toString()+' · '+date+' · '+items.length.toString()+' item(s)'),trailing:Column(mainAxisAlignment:MainAxisAlignment.center,crossAxisAlignment:CrossAxisAlignment.end,children:[Text(_n(x['total']).toStringAsFixed(2)+' EGP',style:const TextStyle(fontWeight:FontWeight.bold)),Text(current,style:const TextStyle(color:Colors.grey,fontSize:11))]),onTap:()=>_details(context,d)),
+    Padding(padding:const EdgeInsets.fromLTRB(16,0,16,10),child:Row(children:[const Text('Update status',style:TextStyle(color:Colors.grey,fontSize:11)),const Spacer(),SizedBox(width:170,child:DropdownButtonFormField<String>(value:choices.contains(current)?current:'pending',isDense:true,items:choices.map((v)=>DropdownMenuItem(value:v,child:Text(v))).toList(),onChanged:(v)async{if(v!=null){await d.reference.update({'status':v,'updatedAt':FieldValue.serverTimestamp()});await _log('order_status_updated',d.id);}}))])),
+    const Divider(height:1),
+   ]);}).toList()));
+  }),
  ]));
+ Future<void> _details(BuildContext context,QueryDocumentSnapshot<Map<String,dynamic>> doc)async{
+  final x=doc.data();final items=x['items'] is List?x['items'] as List:[];
+  await showDialog<void>(context:context,builder:(ctx)=>AlertDialog(title:Text('Order '+doc.id),content:SizedBox(width:480,child:SingleChildScrollView(child:Column(crossAxisAlignment:CrossAxisAlignment.start,mainAxisSize:MainAxisSize.min,children:[
+   Text('Customer: '+(x['name']??'—').toString()),Text('Phone: '+(x['phone']??'—').toString()),Text('Address: '+(x['address']??'—').toString()),Text('Status: '+(x['status']??'pending').toString()),Text('Total: '+_n(x['total']).toStringAsFixed(2)+' EGP'),const Divider(),const Text('Items',style:TextStyle(fontWeight:FontWeight.bold)),
+   ...items.map((item){final m=item is Map?item:<dynamic,dynamic>{};return ListTile(contentPadding:EdgeInsets.zero,title:Text((m['name']??'Product').toString()),subtitle:Text('Qty: '+(m['quantity']??1).toString()+' · Size: '+(m['size']??'—').toString()),trailing:Text(_n(m['price']).toStringAsFixed(2)+' EGP'));}),
+  ]))),actions:[TextButton(onPressed:()=>Navigator.pop(ctx),child:const Text('Close'))]));
+ }
 }
 class ProductsPage extends StatelessWidget{const ProductsPage({super.key});
  Future<void> _edit(BuildContext c,[QueryDocumentSnapshot<Map<String,dynamic>>? doc])async{
