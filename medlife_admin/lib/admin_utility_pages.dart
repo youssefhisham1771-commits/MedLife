@@ -33,7 +33,7 @@ class SystemSettingsPage extends StatelessWidget {
         ListTile(contentPadding:EdgeInsets.zero,leading:const Icon(Icons.person_outline),title:Text(user?.displayName??'Administrator'),subtitle:Text(user?.email??'No email available')),
         ListTile(contentPadding:EdgeInsets.zero,leading:const Icon(Icons.verified_user_outlined),title:const Text('Access control'),subtitle:const Text('Admin access is validated against users/{uid}.role == admin')),
         ListTile(contentPadding:EdgeInsets.zero,leading:const Icon(Icons.cloud_outlined),title:const Text('Data source'),subtitle:const Text('Firebase Authentication + Cloud Firestore')),
-      ])),
+      ]))),
       const SizedBox(height:14),
       const Card(child:Padding(padding:EdgeInsets.all(18),child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
         Text('Configuration safety',style:TextStyle(fontWeight:FontWeight.bold)),
