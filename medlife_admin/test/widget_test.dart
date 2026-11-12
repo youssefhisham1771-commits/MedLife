@@ -3,11 +3,11 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:medlife_admin/admin_login.dart';
 
 void main() {
-  testWidgets('Admin login screen renders', (WidgetTester tester) async {
+  testWidgets('Redesigned admin login renders', (tester) async {
     await tester.pumpWidget(const MaterialApp(home: AdminLogin()));
-
-    expect(find.text('MEDLIFE ADMIN'), findsOneWidget);
-    expect(find.text('Login'), findsOneWidget);
+    expect(find.text('MedLife'), findsOneWidget);
+    expect(find.text('ADMIN CONTROL CENTER'), findsOneWidget);
+    expect(find.text('Sign in'), findsOneWidget);
     expect(find.byType(TextField), findsNWidgets(2));
   });
 }
