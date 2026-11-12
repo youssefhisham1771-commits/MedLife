@@ -165,10 +165,48 @@ class ProductsPage extends StatelessWidget{const ProductsPage({super.key});
  })
  ]));
 }
-class CustomersPage extends StatelessWidget{const CustomersPage({super.key});
- @override Widget build(BuildContext c)=>_Page(Column(crossAxisAlignment:CrossAxisAlignment.start,children:[const Text('Customers',style:TextStyle(fontSize:24,fontWeight:FontWeight.w900)),const SizedBox(height:15),
- StreamBuilder<QuerySnapshot<Map<String,dynamic>>>(stream:FirebaseFirestore.instance.collection('users').snapshots(),builder:(c,s){if(!s.hasData)return const Center(child:CircularProgressIndicator());final docs=s.data!.docs.where((d)=>d.data()['role']!='admin');return Card(child:Column(children:docs.map((d)=>ListTile(leading:const CircleAvatar(child:Icon(Icons.person_outline)),title:Text((d.data()['name']??'Customer').toString()),subtitle:Text((d.data()['email']??'').toString()),trailing:Text((d.data()['phone']??'').toString()))).toList()));})
+class CustomersPage extends StatefulWidget{
+ const CustomersPage({super.key});
+ @override State<CustomersPage> createState()=>_CustomersPageState();
+}
+class _CustomersPageState extends State<CustomersPage>{
+ final search=TextEditingController();
+ @override void dispose(){search.dispose();super.dispose();}
+ @override Widget build(BuildContext context)=>_Page(Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
+  const Text('Customers',style:TextStyle(fontSize:24,fontWeight:FontWeight.w900)),
+  const SizedBox(height:12),
+  SizedBox(width:420,child:TextField(controller:search,onChanged:(_)=>setState((){}),decoration:const InputDecoration(prefixIcon:Icon(Icons.search),hintText:'Search name, email or phone',border:OutlineInputBorder()))),
+  const SizedBox(height:14),
+  StreamBuilder<QuerySnapshot<Map<String,dynamic>>>(stream:FirebaseFirestore.instance.collection('users').snapshots(),builder:(context,s){
+   if(s.hasError)return Text('Customers error: '+s.error.toString());
+   if(!s.hasData)return const Center(child:CircularProgressIndicator());
+   final q=search.text.trim().toLowerCase();
+   final docs=s.data!.docs.where((d){final x=d.data();if(x['role']=='admin')return false;return q.isEmpty||(x['name']??'').toString().toLowerCase().contains(q)||(x['email']??'').toString().toLowerCase().contains(q)||(x['phone']??'').toString().toLowerCase().contains(q);}).toList();
+   if(docs.isEmpty)return const Center(child:Padding(padding:EdgeInsets.all(25),child:Text('No customers found')));
+   return Card(child:Column(children:docs.map((d){final x=d.data();final name=(x['name']??'Customer').toString();return ListTile(
+    leading:CircleAvatar(child:Text(name.isEmpty?'C':name[0].toUpperCase())),
+    title:Text(name),subtitle:Text((x['email']??'No email').toString()+' · '+(x['phone']??'No phone').toString()),
+    trailing:const Icon(Icons.chevron_right),
+    onTap:()=>_details(context,d),
+   );}).toList()));
+  }),
  ]));
+ Future<void> _details(BuildContext context,QueryDocumentSnapshot<Map<String,dynamic>> customer)async{
+  final x=customer.data();
+  await showDialog<void>(context:context,builder:(ctx)=>AlertDialog(
+   title:Text((x['name']??'Customer').toString()),
+   content:SizedBox(width:480,child:SingleChildScrollView(child:Column(crossAxisAlignment:CrossAxisAlignment.start,mainAxisSize:MainAxisSize.min,children:[
+    Text('Email: '+(x['email']??'—').toString()),Text('Phone: '+(x['phone']??'—').toString()),Text('Account ID: '+customer.id),
+    const Divider(),const Text('Order history',style:TextStyle(fontWeight:FontWeight.bold)),
+    StreamBuilder<QuerySnapshot<Map<String,dynamic>>>(stream:FirebaseFirestore.instance.collection('orders').where('userId',isEqualTo:customer.id).snapshots(),builder:(context,s){
+     if(s.hasError)return Text(s.error.toString());if(!s.hasData)return const Padding(padding:EdgeInsets.all(12),child:CircularProgressIndicator());
+     if(s.data!.docs.isEmpty)return const Text('No orders linked by userId.');
+     return Column(children:s.data!.docs.map((d)=>ListTile(contentPadding:EdgeInsets.zero,title:Text('Order '+d.id),subtitle:Text((d.data()['status']??'pending').toString()),trailing:Text(_n(d.data()['total']).toStringAsFixed(2)+' EGP'))).toList());
+    }),
+   ]))),
+   actions:[TextButton(onPressed:()=>Navigator.pop(ctx),child:const Text('Close'))],
+  ));
+ }
 }
 class FinancePage extends StatelessWidget{const FinancePage({super.key});
  @override Widget build(BuildContext c)=>_Page(Column(crossAxisAlignment:CrossAxisAlignment.start,children:[const Text('Finance & reports',style:TextStyle(fontSize:24,fontWeight:FontWeight.w900)),const Text('Revenue uses delivered orders and their existing total field; it is not net profit.',style:TextStyle(color:Colors.grey)),const SizedBox(height:15),
