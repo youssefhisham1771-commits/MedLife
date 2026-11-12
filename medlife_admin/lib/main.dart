@@ -1,10 +1,97 @@
-import 'package:flutter/material.dart';
-import 'package:firebase_core/firebase_core.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'firebase_options.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter/material.dart';
+
 import 'admin_login.dart';
 import 'dashboard_v2.dart';
-Future<void> main()async{WidgetsFlutterBinding.ensureInitialized();await Firebase.initializeApp(options:DefaultFirebaseOptions.currentPlatform);runApp(const MedLifeAdminApp());}
-class MedLifeAdminApp extends StatefulWidget{const MedLifeAdminApp({super.key});@override State<MedLifeAdminApp> createState()=>_MedLifeAdminAppState();}
-class _MedLifeAdminAppState extends State<MedLifeAdminApp>{ThemeMode mode=ThemeMode.dark;@override Widget build(BuildContext context)=>MaterialApp(title:'MedLife Admin',debugShowCheckedModeBanner:false,themeMode:mode,theme:ThemeData(useMaterial3:true,colorScheme:ColorScheme.fromSeed(seedColor:const Color(0xff1769ed)),scaffoldBackgroundColor:const Color(0xfff2f5fb)),darkTheme:ThemeData(useMaterial3:true,brightness:Brightness.dark,colorScheme:ColorScheme.fromSeed(seedColor:const Color(0xff1769ed),brightness:Brightness.dark),scaffoldBackgroundColor:const Color(0xff0a1228)),home:StreamBuilder<User?>(stream:FirebaseAuth.instance.authStateChanges(),builder:(context,a){if(a.connectionState==ConnectionState.waiting)return const Scaffold(body:Center(child:CircularProgressIndicator()));if(a.data==null)return const AdminLogin();return FutureBuilder<DocumentSnapshot<Map<String,dynamic>>>(future:FirebaseFirestore.instance.collection('users').doc(a.data!.uid).get(),builder:(context,u){if(u.connectionState==ConnectionState.waiting)return const Scaffold(body:Center(child:CircularProgressIndicator()));if(!u.hasData||!u.data!.exists||u.data!.data()?['role']!='admin'){WidgetsBinding.instance.addPostFrameCallback((_){if(FirebaseAuth.instance.currentUser!=null)FirebaseAuth.instance.signOut();});return const AdminLogin();}return AdminDashboard(onThemeChanged:(v)=>setState(()=>mode=v?ThemeMode.dark:ThemeMode.light));});}));}}
+import 'firebase_options.dart';
+
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
+  runApp(const MedLifeAdminApp());
+}
+
+class MedLifeAdminApp extends StatefulWidget {
+  const MedLifeAdminApp({super.key});
+
+  @override
+  State<MedLifeAdminApp> createState() => _MedLifeAdminAppState();
+}
+
+class _MedLifeAdminAppState extends State<MedLifeAdminApp> {
+  ThemeMode mode = ThemeMode.dark;
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      title: 'MedLife Admin',
+      debugShowCheckedModeBanner: false,
+      themeMode: mode,
+      theme: ThemeData(
+        useMaterial3: true,
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: const Color(0xff1769ed),
+        ),
+        scaffoldBackgroundColor: const Color(0xfff2f5fb),
+      ),
+      darkTheme: ThemeData(
+        useMaterial3: true,
+        brightness: Brightness.dark,
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: const Color(0xff1769ed),
+          brightness: Brightness.dark,
+        ),
+        scaffoldBackgroundColor: const Color(0xff0a1228),
+      ),
+      home: StreamBuilder<User?>(
+        stream: FirebaseAuth.instance.authStateChanges(),
+        builder: (context, auth) {
+          if (auth.connectionState == ConnectionState.waiting) {
+            return const Scaffold(
+              body: Center(child: CircularProgressIndicator()),
+            );
+          }
+          final user = auth.data;
+          if (user == null) {
+            return const AdminLogin();
+          }
+          return FutureBuilder<DocumentSnapshot<Map<String, dynamic>>>(
+            future: FirebaseFirestore.instance
+                .collection('users')
+                .doc(user.uid)
+                .get(),
+            builder: (context, profile) {
+              if (profile.connectionState == ConnectionState.waiting) {
+                return const Scaffold(
+                  body: Center(child: CircularProgressIndicator()),
+                );
+              }
+              final isAdmin = profile.hasData &&
+                  profile.data!.exists &&
+                  profile.data!.data()?['role'] == 'admin';
+              if (!isAdmin) {
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  if (FirebaseAuth.instance.currentUser != null) {
+                    FirebaseAuth.instance.signOut();
+                  }
+                });
+                return const AdminLogin();
+              }
+              return AdminDashboard(
+                onThemeChanged: (isDark) {
+                  setState(() {
+                    mode = isDark ? ThemeMode.dark : ThemeMode.light;
+                  });
+                },
+              );
+            },
+          );
+        },
+      ),
+    );
+  }
+}
