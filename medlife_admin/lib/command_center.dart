@@ -2,13 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'legacy_admin_dashboard.dart' as legacy;
+import 'admin_extra_pages.dart';
 
 const _nav = <(String,IconData)>[
  ('Overview',Icons.grid_view_rounded),('Orders',Icons.shopping_bag_outlined),
  ('Products & Stock',Icons.inventory_2_outlined),('Customers',Icons.people_alt_outlined),
  ('Finance & Reports',Icons.query_stats_rounded),('Staff',Icons.badge_outlined),
  ('AI Assistant',Icons.auto_awesome),('Automation',Icons.account_tree_outlined),
- ('Activity Log',Icons.history_rounded),('Existing Admin Tools',Icons.apps_rounded),
+ ('Activity Log',Icons.history_rounded),('Inventory',Icons.warehouse_outlined),
+ ('Marketing',Icons.campaign_outlined),('Delivery Settings',Icons.local_shipping_outlined),
+ ('Advanced Reports',Icons.analytics_outlined),('Existing Admin Tools',Icons.apps_rounded),
 ];
 
 class CommandCenter extends StatefulWidget {
@@ -52,7 +55,8 @@ class _CommandCenterState extends State<CommandCenter>{
  Widget _content()=>switch(index){
   0=>const OverviewPage(),1=>const OrdersPage(),2=>const ProductsPage(),3=>const CustomersPage(),
   4=>const FinancePage(),5=>const StaffPage(),6=>const AssistantPage(),7=>const AutomationPage(),
-  8=>const ActivityPage(),_=>const legacy.DashboardScreen()
+  8=>const ActivityPage(),9=>const InventoryPage(),10=>const MarketingPage(),
+  11=>const DeliverySettingsPage(),12=>const ReportsPage(),_=>const legacy.DashboardScreen()
  };
 }
 
