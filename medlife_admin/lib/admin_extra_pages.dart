@@ -1,8 +1,9 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 double _value(dynamic v) => v is num ? v.toDouble() : double.tryParse('$v') ?? 0;
-Future<void> _record(String action, String id) async { await FirebaseFirestore.instance.collection('adminAuditLogs').add({'action': action, 'targetId': id, 'createdAt': FieldValue.serverTimestamp()}); }
+Future<void> _record(String action, String id) async { final user = FirebaseAuth.instance.currentUser; await FirebaseFirestore.instance.collection('adminAuditLogs').add({'action': action, 'targetId': id, 'actorUid': user?.uid, 'actorEmail': user?.email, 'createdAt': FieldValue.serverTimestamp()}); }
 
 class InventoryPage extends StatelessWidget {
   const InventoryPage({super.key});
