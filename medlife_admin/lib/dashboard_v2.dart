@@ -40,7 +40,57 @@ class _AdminDashboardState extends State<AdminDashboard>{
  ]));
  Widget _metric(String t,String v,IconData i,Color c)=>Container(padding:const EdgeInsets.all(14),decoration:BoxDecoration(gradient:LinearGradient(colors:[c,c.withValues(alpha:.65)]),borderRadius:BorderRadius.circular(16)),child:Row(children:[Icon(i,color:Colors.white,size:27),const SizedBox(width:10),Expanded(child:Column(mainAxisAlignment:MainAxisAlignment.center,crossAxisAlignment:CrossAxisAlignment.start,children:[Text(t,style:const TextStyle(color:Colors.white,fontSize:11)),FittedBox(child:Text(v,style:const TextStyle(color:Colors.white,fontSize:20,fontWeight:FontWeight.w900)))]))]));
  Widget _panel(String t,Widget child)=>Card(child:Padding(padding:const EdgeInsets.all(16),child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[Text(t,style:const TextStyle(fontWeight:FontWeight.bold)),const SizedBox(height:12),child])));
- Widget _chart()=>StreamBuilder<QuerySnapshot<Map<String,dynamic>>>(stream:FirebaseFirestore.instance.collection('orders').snapshots(),builder:(context,s){if(!s.hasData)return const CircularProgressIndicator();final a=List<double>.filled(7,0);for(final d in s.data!.docs){final t=d.data()['createdAt'];if(t is Timestamp)a[t.toDate().weekday-1]+=_num(d.data()['total']);}return LineChart(LineChartData(borderData:FlBorderData(show:false),gridData:FlGridData(show:true,drawVerticalLine:false),titlesData:FlTitlesData(topTitles:const AxisTitles(sideTitles:SideTitles(showTitles:false)),rightTitles:const AxisTitles(sideTitles:SideTitles(showTitles:false)),bottomTitles:AxisTitles(sideTitles:SideTitles(showTitles:true,getTitlesWidget:(v,m){const days=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];return Text(days[v.toInt().clamp(0,6)],style:const TextStyle(fontSize:9));})),lineBarsData:[LineChartBarData(isCurved:true,color:_blue,barWidth:3,dotData:const FlDotData(show:false),spots:[for(var i=0;i<7;i++)FlSpot(i.toDouble(),a[i])])]));});
+ Widget _chart() => StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+   stream: FirebaseFirestore.instance.collection('orders').snapshots(),
+   builder: (context, snapshot) {
+     if (!snapshot.hasData) {
+       return const Center(child: CircularProgressIndicator());
+     }
+     final totals = List<double>.filled(7, 0);
+     for (final document in snapshot.data!.docs) {
+       final createdAt = document.data()['createdAt'];
+       if (createdAt is Timestamp) {
+         totals[createdAt.toDate().weekday - 1] +=
+             _num(document.data()['total']);
+       }
+     }
+     const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+     return LineChart(
+       LineChartData(
+         borderData: FlBorderData(show: false),
+         gridData: FlGridData(show: true, drawVerticalLine: false),
+         titlesData: FlTitlesData(
+           topTitles: const AxisTitles(
+             sideTitles: SideTitles(showTitles: false),
+           ),
+           rightTitles: const AxisTitles(
+             sideTitles: SideTitles(showTitles: false),
+           ),
+           bottomTitles: AxisTitles(
+             sideTitles: SideTitles(
+               showTitles: true,
+               getTitlesWidget: (value, meta) => Text(
+                 days[value.toInt().clamp(0, 6)],
+                 style: const TextStyle(fontSize: 9),
+               ),
+             ),
+           ),
+         ),
+         lineBarsData: [
+           LineChartBarData(
+             isCurved: true,
+             color: _blue,
+             barWidth: 3,
+             dotData: const FlDotData(show: false),
+             spots: [
+               for (var i = 0; i < 7; i++) FlSpot(i.toDouble(), totals[i]),
+             ],
+           ),
+         ],
+       ),
+     );
+   },
+ );
  Widget _topProducts()=>StreamBuilder<QuerySnapshot<Map<String,dynamic>>>(stream:FirebaseFirestore.instance.collection('products').limit(5).snapshots(),builder:(context,s){if(!s.hasData)return const CircularProgressIndicator();return Column(children:s.data!.docs.asMap().entries.map((e){final d=e.value.data();return ListTile(dense:true,contentPadding:EdgeInsets.zero,leading:CircleAvatar(child:Text((e.key+1).toString())),title:Text((d['name']??'Product').toString()),subtitle:Text('EGP '+_num(d['price']).toStringAsFixed(2)));}).toList());});
  Widget _orderSummary()=>StreamBuilder<QuerySnapshot<Map<String,dynamic>>>(stream:FirebaseFirestore.instance.collection('orders').snapshots(),builder:(context,s){if(!s.hasData)return const CircularProgressIndicator();final n=s.data!.docs.length,done=s.data!.docs.where((d)=>_status(d.data())=='delivered').length;return Column(children:[Text(n==0?'0%':(done*100/n).toStringAsFixed(0)+'%',style:const TextStyle(fontSize:30,fontWeight:FontWeight.bold)),Text(done.toString()+' completed / '+n.toString()+' total')]);});
  Widget _categorySummary()=>StreamBuilder<QuerySnapshot<Map<String,dynamic>>>(stream:FirebaseFirestore.instance.collection('products').snapshots(),builder:(context,s){if(!s.hasData)return const CircularProgressIndicator();final m=<String,int>{};for(final d in s.data!.docs){final k=(d.data()['category']??'Other').toString();m[k]=(m[k]??0)+1;}return Column(children:m.entries.take(5).map((e)=>ListTile(dense:true,title:Text(e.key),trailing:Text(e.value.toString()))).toList());});
