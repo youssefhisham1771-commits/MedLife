@@ -53,7 +53,6 @@ class _CommandCenterState extends State<CommandCenter>{
   Expanded(child:ListView.builder(itemCount:_nav.length,itemBuilder:(c,i)=>ListTile(dense:true,selected:index==i,selectedTileColor:const Color(0xff3478f6).withValues(alpha:.15),shape:RoundedRectangleBorder(borderRadius:BorderRadius.circular(12)),leading:Icon(_nav[i].$2,color:index==i?const Color(0xff4c8cff):null),title:Text(_nav[i].$1,style:const TextStyle(fontSize:12)),onTap:(){setState(()=>index=i);if(drawer)Navigator.pop(context);}))),
   const Divider(),ListTile(leading:const Icon(Icons.logout,color:Colors.redAccent),title:const Text('Sign out',style:TextStyle(color:Colors.redAccent)),onTap:()=>FirebaseAuth.instance.signOut())
  ]));
- }
  Widget _content()=>switch(index){
   0=>const OverviewPage(),1=>const OrdersPage(),2=>const ProductsPage(),3=>const CustomersPage(),
   4=>const FinancePage(),5=>const StaffPage(),6=>const AssistantPage(),7=>const AutomationPage(),
