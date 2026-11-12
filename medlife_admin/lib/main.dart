@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 import 'command_center.dart';
-import 'firebase_options.dart';
 import 'admin_login.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -31,7 +30,12 @@ class _MedLifeAdminAppState extends State<MedLifeAdminApp> {
       if (auth.data == null) return const AdminLogin();
       return FutureBuilder<DocumentSnapshot<Map<String,dynamic>>>(future: FirebaseFirestore.instance.collection('users').doc(auth.data!.uid).get(), builder: (context, user) {
         if (user.connectionState == ConnectionState.waiting) return const Scaffold(body: Center(child: CircularProgressIndicator()));
-        if (!user.hasData || !user.data!.exists || user.data!.data()?['role'] != 'admin') { FirebaseAuth.instance.signOut(); return const AdminLogin(); }
+        if (!user.hasData || !user.data!.exists || user.data!.data()?['role'] != 'admin') {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (FirebaseAuth.instance.currentUser != null) FirebaseAuth.instance.signOut();
+          });
+          return const AdminLogin();
+        }
         return CommandCenter(onThemeChanged: (dark) => setState(() => mode = dark ? ThemeMode.dark : ThemeMode.light));
       });
     }),
