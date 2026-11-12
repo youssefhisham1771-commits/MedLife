@@ -1,3 +1,6 @@
+import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 class SendNotificationScreen extends StatefulWidget {
   const SendNotificationScreen({super.key});
 
@@ -27,6 +30,8 @@ class _SendNotificationScreenState
       'createdAt': FieldValue.serverTimestamp(),
     });
 
+    if (!mounted) return;
+
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
         content: Text("Notification Sent"),
@@ -35,6 +40,13 @@ class _SendNotificationScreenState
 
     titleController.clear();
     bodyController.clear();
+  }
+
+  @override
+  void dispose() {
+    titleController.dispose();
+    bodyController.dispose();
+    super.dispose();
   }
 
   @override
