@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'main.dart';
 
 class AdminLogin extends StatefulWidget {
   const AdminLogin({super.key});
@@ -28,18 +27,12 @@ class _AdminLoginState extends State<AdminLogin> {
 
       final uid = credential.user!.uid;
 
-print("LOGIN UID = $uid");
-
 final userDoc = await FirebaseFirestore.instance
     .collection('users')
     .doc(uid)
     .get();
 
-print("DOC EXISTS = ${userDoc.exists}");
-print("DATA = ${userDoc.data()}");
-print("ROLE = ${userDoc.data()?['role']}");
-
-      if (!userDoc.exists ||
+if (!userDoc.exists ||
           userDoc.data()?['role'] != 'admin') {
         await FirebaseAuth.instance.signOut();
 
@@ -52,12 +45,7 @@ print("ROLE = ${userDoc.data()?['role']}");
         return;
       }
 
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(
-          builder: (_) => const DashboardScreen(),
-        ),
-      );
+      // The root auth gate listens to authStateChanges and opens the Command Center.
     } on FirebaseAuthException catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -98,12 +86,7 @@ print("ROLE = ${userDoc.data()?['role']}");
         return;
       }
 
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(
-          builder: (_) => const DashboardScreen(),
-        ),
-      );
+      // Root auth gate handles the signed-in state.
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -115,6 +98,13 @@ print("ROLE = ${userDoc.data()?['role']}");
         setState(() => loading = false);
       }
     }
+  }
+
+  @override
+  void dispose() {
+    emailController.dispose();
+    passwordController.dispose();
+    super.dispose();
   }
 
   @override
