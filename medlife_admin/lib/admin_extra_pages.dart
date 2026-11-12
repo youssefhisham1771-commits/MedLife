@@ -2,7 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
 double _value(dynamic v) => v is num ? v.toDouble() : double.tryParse('$v') ?? 0;
-Future<void> _record(String action, String id) => FirebaseFirestore.instance.collection('adminAuditLogs').add({'action': action, 'targetId': id, 'createdAt': FieldValue.serverTimestamp()});
+Future<void> _record(String action, String id) async { await FirebaseFirestore.instance.collection('adminAuditLogs').add({'action': action, 'targetId': id, 'createdAt': FieldValue.serverTimestamp()}); }
 
 class InventoryPage extends StatelessWidget {
   const InventoryPage({super.key});
