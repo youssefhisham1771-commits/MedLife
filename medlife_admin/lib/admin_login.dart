@@ -126,8 +126,10 @@ if (!userDoc.exists ||
         ),
 
         child: Center(
-          child: Container(
-            width: 480,
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(16),
+            child: Container(
+            width: MediaQuery.sizeOf(context).width < 560 ? MediaQuery.sizeOf(context).width - 32 : 480,
             padding: const EdgeInsets.all(35),
 
             decoration: BoxDecoration(
@@ -147,7 +149,7 @@ if (!userDoc.exists ||
               children: [
                 Image.asset(
                   "assets/1.png",
-                  width: 300,
+                  width: 240,
                 ),
 
                 const SizedBox(height: 20),
@@ -302,6 +304,7 @@ if (!userDoc.exists ||
                 ),
               ],
             ),
+          ),
           ),
         ),
       ),
