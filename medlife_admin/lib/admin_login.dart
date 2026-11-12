@@ -36,6 +36,7 @@ final userDoc = await FirebaseFirestore.instance
 if (!userDoc.exists ||
           userDoc.data()?['role'] != 'admin') {
         await FirebaseAuth.instance.signOut();
+        if (!mounted) return;
 
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -48,6 +49,7 @@ if (!userDoc.exists ||
 
       // The root auth gate listens to authStateChanges and opens the Command Center.
     } on FirebaseAuthException catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(e.message ?? e.code),
@@ -73,10 +75,12 @@ if (!userDoc.exists ||
           .collection('users')
           .doc(uid)
           .get();
+      if (!mounted) return;
 
       if (!doc.exists ||
           doc.data()?['role'] != 'admin') {
         await FirebaseAuth.instance.signOut();
+        if (!mounted) return;
 
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -89,6 +93,7 @@ if (!userDoc.exists ||
 
       // Root auth gate handles the signed-in state.
     } catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(e.toString()),
@@ -138,7 +143,7 @@ if (!userDoc.exists ||
               borderRadius: BorderRadius.circular(24),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.blue.withOpacity(.15),
+                  color: Colors.blue.withValues(alpha: .15),
                   blurRadius: 40,
                   spreadRadius: 2,
                 ),
