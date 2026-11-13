@@ -285,6 +285,12 @@ class _ProductEditorState extends State<_ProductEditor> {
         }
       }
 
+      if (widget.initial == null && categoryId == null) {
+        throw StateError(
+          'Select an existing category before adding a new product.',
+        );
+      }
+
       final data = <String, dynamic>{
         'name': name.text.trim(),
         // ProductModel reads price as a number, not a string.
