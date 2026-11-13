@@ -140,7 +140,7 @@ class ProductsAdminPage extends StatefulWidget {
 class _ProductsAdminPageState extends State<ProductsAdminPage> {
   String search = '';
   Future<void> editProduct([QueryDocumentSnapshot<Map<String, dynamic>>? doc]) async {
-    final result = await showDialog<bool>(context: context, builder: (_) => _ProductEditor(initial: doc?.data()));
+    final result = await showDialog<bool>(context: context, builder: (_) => _ProductEditor(initial: doc?.data(), documentId: doc?.id));
     if (result == true && mounted) _message(context, doc == null ? 'Product added.' : 'Product updated.');
   }
   @override
@@ -180,8 +180,9 @@ class _ProductsAdminPageState extends State<ProductsAdminPage> {
 }
 
 class _ProductEditor extends StatefulWidget {
-  const _ProductEditor({this.initial});
+  const _ProductEditor({this.initial, this.documentId});
   final Map<String, dynamic>? initial;
+  final String? documentId;
   @override
   State<_ProductEditor> createState() => _ProductEditorState();
 }
@@ -209,8 +210,7 @@ class _ProductEditorState extends State<_ProductEditor> {
         data['createdAt'] = FieldValue.serverTimestamp();
         await _db.collection('Products').add(data);
       } else {
-        final id = widget.initial!['_adminDocId'];
-        if (id is String) { await _db.collection('Products').doc(id).update(data); }
+        await _db.collection('Products').doc(widget.documentId).update(data);
       }
       if (mounted) Navigator.pop(context, true);
     } catch (e) {
