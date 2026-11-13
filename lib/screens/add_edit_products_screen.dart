@@ -64,11 +64,10 @@ class _AddEditProductScreenState
           ? (widget.oldData['sizes'] as List).join(', ')
           : '';
 
-      if (widget.oldData['images'] != null) {
-
-        imageUrls =
-            List<String>.from(
-                widget.oldData['images']);
+      if (widget.oldData['images'] is List) {
+        imageUrls = List<String>.from(widget.oldData['images']);
+      } else if ((widget.oldData['image'] ?? '').toString().isNotEmpty) {
+        imageUrls = [widget.oldData['image'].toString()];
       }
     }
   }
