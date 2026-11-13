@@ -4,6 +4,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'firebase_options.dart';
+import 'admin_pages.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -172,7 +173,7 @@ class _AdminShellState extends State<AdminShell> {
         if (wide) SizedBox(width: 248, child: _sidebar()),
         Expanded(child: Column(children: [
           _topbar(wide),
-          Expanded(child: selected == 0 ? const DashboardPage() : ModulePlaceholder(title: _nav[selected].$1)),
+          Expanded(child: selected == 0 ? const DashboardPage() : AdminModulePage(index: selected)),
         ])),
       ]),
     );
@@ -299,7 +300,7 @@ class _RecentOrdersCard extends StatelessWidget {
     Text('Recent Orders', style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800)),
     const SizedBox(height: 12),
     StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-      stream: FirebaseFirestore.instance.collection('orders').orderBy('createdAt', descending: true).limit(5).snapshots(),
+      stream: FirebaseFirestore.instance.collection('orders').orderBy('orderedAt', descending: true).limit(5).snapshots(),
       builder: (context, snapshot) {
         if (snapshot.hasError) return const Text('Unable to load orders. Check Firestore access and the createdAt field.');
         if (!snapshot.hasData) return const LinearProgressIndicator();
@@ -321,9 +322,9 @@ class _AssistantTeaser extends StatelessWidget {
     const SizedBox(width: 14),
     const Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       Text('MedLife AI Assistant', style: TextStyle(fontWeight: FontWeight.w800)),
-      Text('The AI analysis service will be connected through a secure backend in a later milestone.', style: TextStyle(fontSize: 12, color: Colors.grey)),
+      Text('Ask for store insights from authorized MedLife data. Secure AI integration is being prepared.', style: TextStyle(fontSize: 12, color: Colors.grey)),
     ])),
-    OutlinedButton(onPressed: () {}, child: const Text('Coming soon')),
+    OutlinedButton(onPressed: () {}, child: const Text('Open assistant')),
   ])));
 }
 
