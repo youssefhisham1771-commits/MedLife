@@ -626,7 +626,7 @@ class _InventoryProductCard extends StatelessWidget {
                     children: [
                       Text((data['name'] ?? 'Unnamed product').toString(), style: const TextStyle(fontWeight: FontWeight.w700)),
                       const SizedBox(height: 3),
-                      Text('${{_money(data['price'])} • ${{sizes.length} sizes', style: Theme.of(context).textTheme.bodySmall),
+                      Text(_money(data['price']) + ' • ' + sizes.length.toString() + ' sizes', style: Theme.of(context).textTheme.bodySmall),
                     ],
                   ),
                 ),
@@ -730,7 +730,7 @@ class _InventoryEditorDialogState extends State<_InventoryEditorDialog> {
     for (final entry in controllers.entries) {
       final count = int.tryParse(entry.value.text.trim());
       if (count == null || count < 0) {
-        setState(() => error = 'Enter a whole number (0 or more) for size ${{entry.key}.');
+        setState(() => error = 'Enter a whole number (0 or more) for size ' + entry.key + '.');
         return;
       }
       quantities[entry.key] = count;
@@ -740,7 +740,7 @@ class _InventoryEditorDialogState extends State<_InventoryEditorDialog> {
 
   @override
   Widget build(BuildContext context) => AlertDialog(
-        title: Text('Manage ${{widget.productName}'),
+        title: Text('Manage ' + widget.productName),
         content: SizedBox(
           width: 440,
           child: SingleChildScrollView(
@@ -754,7 +754,7 @@ class _InventoryEditorDialogState extends State<_InventoryEditorDialog> {
                       child: TextField(
                         controller: entry.value,
                         keyboardType: TextInputType.number,
-                        decoration: InputDecoration(labelText: 'Size ${{entry.key}', hintText: 'Enter quantity'),
+                        decoration: InputDecoration(labelText: 'Size ' + entry.key, hintText: 'Enter quantity'),
                       ),
                     )),
                 const SizedBox(height: 8),
