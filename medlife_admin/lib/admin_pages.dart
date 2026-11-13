@@ -80,7 +80,7 @@ class _OrdersAdminPageState extends State<OrdersAdminPage> {
       Padding(padding: const EdgeInsets.symmetric(horizontal: 24), child: Column(children: [
         TextField(controller: controller, onChanged: (v) => setState(() => search = v.trim().toLowerCase()), decoration: const InputDecoration(prefixIcon: Icon(Icons.search), hintText: 'Search order ID, customer or phone')),
         const SizedBox(height: 12),
-        SingleChildScrollView(scrollDirection: Axis.horizontal, child: Row(children: ['All', ...statuses].map((s) => Padding(padding: const EdgeInsets.only(right: 8), child: ChoiceChip(label: Text(s.toUpperCase()), selected: status == s, onSelected: (_) => setState(() => status = s))).toList())),
+        SingleChildScrollView(\n          scrollDirection: Axis.horizontal,\n          child: Row(\n            children: ['All', ...statuses].map((s) => Padding(\n              padding: const EdgeInsets.only(right: 8),\n              child: ChoiceChip(\n                label: Text(s.toUpperCase()),\n                selected: status == s,\n                onSelected: (_) => setState(() => status = s),\n              ),\n            )).toList(),\n          ),\n        ),
       ])),
       const SizedBox(height: 12),
       Expanded(child: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
@@ -308,7 +308,7 @@ class BannersAdminPage extends StatelessWidget {
     if (snap.hasError) return const Center(child: Text('Could not load banners.'));
     if (!snap.hasData) return const Center(child: CircularProgressIndicator());
     if (snap.data!.docs.isEmpty) return const Center(child: Text('No banners found.'));
-    return ListView(padding: const EdgeInsets.all(24), children: snap.data!.docs.map((d) => Card(child: ListTile(leading: const Icon(Icons.image_outlined), title: Text((d.data()['title'] ?? d.data()['name'] ?? 'Banner').toString()), subtitle: Text(d.id))).toList());
+    return ListView(\n      padding: const EdgeInsets.all(24),\n      children: snap.data!.docs.map((d) => Card(\n        child: ListTile(\n          leading: const Icon(Icons.image_outlined),\n          title: Text((d.data()['title'] ?? d.data()['name'] ?? 'Banner').toString()),\n          subtitle: Text(d.id),\n        ),\n      )).toList(),\n    );
   }));
 }
 
@@ -380,7 +380,7 @@ class NotificationsAdminPage extends StatelessWidget {
     if (snap.hasError) return const Center(child: Text('Could not load notifications.'));
     if (!snap.hasData) return const Center(child: CircularProgressIndicator());
     if (snap.data!.docs.isEmpty) return const Center(child: Text('No notification records found.'));
-    return ListView(padding: const EdgeInsets.all(24), children: snap.data!.docs.map((d) => Card(child: ListTile(leading: const Icon(Icons.notifications_none), title: Text((d.data()['title'] ?? 'Notification').toString()), subtitle: Text((d.data()['body'] ?? d.data()['message'] ?? '').toString()), trailing: Text(_date(d.data()['createdAt'])))).toList());
+    return ListView(\n      padding: const EdgeInsets.all(24),\n      children: snap.data!.docs.map((d) => Card(\n        child: ListTile(\n          leading: const Icon(Icons.notifications_none),\n          title: Text((d.data()['title'] ?? 'Notification').toString()),\n          subtitle: Text((d.data()['body'] ?? d.data()['message'] ?? '').toString()),\n          trailing: Text(_date(d.data()['createdAt'])),\n        ),\n      )).toList(),\n    );
   }));
 }
 
