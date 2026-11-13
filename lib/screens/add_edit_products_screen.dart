@@ -155,8 +155,12 @@ class _AddEditProductScreenState
 
   Future<void> saveProduct() async {
 
-    if (name.text.isEmpty ||
-        price.text.isEmpty ||
+    final parsedPrice = double.tryParse(price.text.trim());
+
+    if (name.text.trim().isEmpty ||
+        parsedPrice == null ||
+        !parsedPrice.isFinite ||
+        parsedPrice < 0 ||
         description.text.isEmpty ||
         imageUrls.isEmpty ||
 deliveryText.text.isEmpty ||
@@ -197,7 +201,7 @@ deliveryText.text.isEmpty ||
           name.text.trim(),
 
       "price":
-          price.text.trim(),
+          parsedPrice,
 
       "description":
           description.text.trim(),
