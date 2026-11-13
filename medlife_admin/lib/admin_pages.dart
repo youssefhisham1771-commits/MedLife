@@ -502,17 +502,283 @@ class _CustomersAdminPageState extends State<CustomersAdminPage> {
 
 class InventoryAdminPage extends StatelessWidget {
   const InventoryAdminPage({super.key});
+
   @override
-  Widget build(BuildContext context) => _PageFrame(title: 'Inventory', subtitle: 'Stock visibility based on fields currently available in the product records.', child: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(stream: _db.collection('Products').snapshots(), builder: (context, snap) {
-    if (snap.hasError) return const Center(child: Text('Could not load products.'));
-    if (!snap.hasData) return const Center(child: CircularProgressIndicator());
-    final docs = snap.data!.docs;
-    return ListView(padding: const EdgeInsets.all(24), children: [
-      Card(child: Padding(padding: const EdgeInsets.all(18), child: Row(children: [const Icon(Icons.info_outline, color: _blue), const SizedBox(width: 12), const Expanded(child: Text('The current MedLife product schema does not contain a stock quantity per size. This page is read-only until an inventory data model and matching security rules are approved; it will not invent or overwrite stock values.'))]))),
-      const SizedBox(height: 12),
-      ...docs.map((d) { final x = d.data(); final sizes = (x['sizes'] as List?)?.join(', ') ?? 'Sizes not stored'; return Card(child: ListTile(leading: const Icon(Icons.inventory_2_outlined), title: Text((x['name'] ?? 'Product').toString()), subtitle: Text('Sizes: $sizes'), trailing: Text(_money(x['price'])))); }),
-    ]);
-  }));
+  Widget build(BuildContext context) => _PageFrame(
+        title: 'Inventory',
+        subtitle: 'Track available quantities separately for every product size.',
+        child: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+          stream: _db.collection('Products').snapshots(),
+          builder: (context, snapshot) {
+            if (snapshot.hasError) return const Center(child: Text('Could not load products.'));
+            if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
+            final docs = snapshot.data!.docs;
+            var configured = 0;
+            var units = 0;
+            var low = 0;
+            var out = 0;
+            for (final doc in docs) {
+              final data = doc.data();
+              final sizes = data['sizes'] is List
+                  ? (data['sizes'] as List).map((e) => e.toString()).toList()
+                  : <String>[];
+              final stock = data['stockBySize'] is Map
+                  ? Map<String, dynamic>.from(data['stockBySize'] as Map)
+                  : <String, dynamic>{};
+              final limit = (data['lowStockThreshold'] as num?)?.toInt() ?? 5;
+              if (sizes.isNotEmpty && sizes.every((s) => stock[s] is num)) configured++;
+              for (final size in sizes) {
+                final count = (stock[size] as num?)?.toInt();
+                if (count == null) continue;
+                units += count;
+                if (count == 0) {
+                  out++;
+                } else if (count <= limit) {
+                  low++;
+                }
+              }
+            }
+            return ListView(
+              padding: const EdgeInsets.fromLTRB(24, 4, 24, 24),
+              children: [
+                Wrap(
+                  spacing: 12,
+                  runSpacing: 12,
+                  children: [
+                    _Kpi(title: 'Products', value: docs.length.toString(), icon: Icons.inventory_2_outlined),
+                    _Kpi(title: 'Configured', value: configured.toString(), icon: Icons.fact_check_outlined),
+                    _Kpi(title: 'Total units', value: units.toString(), icon: Icons.stacked_bar_chart),
+                    _Kpi(title: 'Low / out sizes', value: '$low / $out', icon: Icons.warning_amber_outlined),
+                  ],
+                ),
+                const SizedBox(height: 14),
+                const Card(
+                  child: Padding(
+                    padding: EdgeInsets.all(16),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Icon(Icons.info_outline, color: _blue),
+                        SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            'Stock is stored in Products.stockBySize. Existing quantities are not guessed; products begin as Not configured. This milestone adds admin stock entry and monitoring only. Checkout blocking and automatic deduction require a separate trusted server-side order workflow.',
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                if (docs.isEmpty)
+                  const Center(child: Padding(padding: EdgeInsets.all(32), child: Text('No products found.')))
+                else
+                  ...docs.map((doc) => _InventoryProductCard(productId: doc.id, data: doc.data())),
+              ],
+            );
+          },
+        ),
+      );
+}
+
+class _InventoryProductCard extends StatelessWidget {
+  const _InventoryProductCard({required this.productId, required this.data});
+  final String productId;
+  final Map<String, dynamic> data;
+
+  @override
+  Widget build(BuildContext context) {
+    final sizes = data['sizes'] is List
+        ? (data['sizes'] as List).map((e) => e.toString()).toList()
+        : <String>[];
+    final stock = data['stockBySize'] is Map
+        ? Map<String, dynamic>.from(data['stockBySize'] as Map)
+        : <String, dynamic>{};
+    final threshold = (data['lowStockThreshold'] as num?)?.toInt() ?? 5;
+    final configured = sizes.isNotEmpty && sizes.every((s) => stock[s] is num);
+    final total = sizes.fold<int>(0, (sum, s) => sum + ((stock[s] as num?)?.toInt() ?? 0));
+    final imageUrl = (data['image'] ?? '').toString();
+
+    return Card(
+      margin: const EdgeInsets.only(bottom: 10),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(10),
+                  child: SizedBox(
+                    width: 58,
+                    height: 58,
+                    child: imageUrl.startsWith('http')
+                        ? Image.network(imageUrl, fit: BoxFit.cover,
+                            errorBuilder: (_, __, ___) => const Icon(Icons.image_not_supported_outlined))
+                        : const Icon(Icons.inventory_2_outlined),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text((data['name'] ?? 'Unnamed product').toString(), style: const TextStyle(fontWeight: FontWeight.w700)),
+                      const SizedBox(height: 3),
+                      Text('${{_money(data['price'])} • ${{sizes.length} sizes', style: Theme.of(context).textTheme.bodySmall),
+                    ],
+                  ),
+                ),
+                Text(configured ? '$total units' : 'Not configured',
+                    style: TextStyle(color: configured ? Colors.green : Colors.orange, fontWeight: FontWeight.w700)),
+              ],
+            ),
+            const SizedBox(height: 14),
+            if (sizes.isEmpty)
+              const Text('No sizes are saved for this product. Add sizes in Products before setting stock.')
+            else
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: sizes.map((size) {
+                  final count = (stock[size] as num?)?.toInt();
+                  final color = count == null ? Colors.orange : count == 0 ? Colors.red : count <= threshold ? Colors.deepOrange : Colors.green;
+                  return Chip(
+                    avatar: Icon(Icons.straighten, size: 16, color: color),
+                    label: Text(count == null ? '$size: Not set' : '$size: $count'),
+                  );
+                }).toList(),
+              ),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                Expanded(
+                  child: Text(configured ? 'Low-stock alert: $threshold per size' : 'Enter the real quantity for each size',
+                      style: Theme.of(context).textTheme.bodySmall),
+                ),
+                FilledButton.tonalIcon(
+                  onPressed: sizes.isEmpty ? null : () async {
+                    final result = await showDialog<Map<String, dynamic>>(
+                      context: context,
+                      builder: (_) => _InventoryEditorDialog(
+                        productName: (data['name'] ?? 'Product').toString(),
+                        sizes: sizes,
+                        initialStock: stock,
+                        initialThreshold: threshold,
+                      ),
+                    );
+                    if (result == null) return;
+                    try {
+                      await _db.collection('Products').doc(productId).update({
+                        'stockBySize': result['stockBySize'],
+                        'lowStockThreshold': result['lowStockThreshold'],
+                        'inventoryUpdatedAt': FieldValue.serverTimestamp(),
+                      });
+                      if (context.mounted) _message(context, 'Inventory updated.');
+                    } catch (error) {
+                      if (context.mounted) _message(context, 'Could not update inventory: $error');
+                    }
+                  },
+                  icon: const Icon(Icons.edit_outlined),
+                  label: const Text('Manage stock'),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _InventoryEditorDialog extends StatefulWidget {
+  const _InventoryEditorDialog({required this.productName, required this.sizes, required this.initialStock, required this.initialThreshold});
+  final String productName;
+  final List<String> sizes;
+  final Map<String, dynamic> initialStock;
+  final int initialThreshold;
+
+  @override
+  State<_InventoryEditorDialog> createState() => _InventoryEditorDialogState();
+}
+
+class _InventoryEditorDialogState extends State<_InventoryEditorDialog> {
+  late final Map<String, TextEditingController> controllers = {
+    for (final size in widget.sizes)
+      size: TextEditingController(text: widget.initialStock[size]?.toString() ?? ''),
+  };
+  late final threshold = TextEditingController(text: widget.initialThreshold.toString());
+  String? error;
+
+  @override
+  void dispose() {
+    for (final controller in controllers.values) {
+      controller.dispose();
+    }
+    threshold.dispose();
+    super.dispose();
+  }
+
+  void save() {
+    final limit = int.tryParse(threshold.text.trim());
+    if (limit == null || limit < 0) {
+      setState(() => error = 'Enter a valid non-negative alert threshold.');
+      return;
+    }
+    final quantities = <String, int>{};
+    for (final entry in controllers.entries) {
+      final count = int.tryParse(entry.value.text.trim());
+      if (count == null || count < 0) {
+        setState(() => error = 'Enter a whole number (0 or more) for size ${{entry.key}.');
+        return;
+      }
+      quantities[entry.key] = count;
+    }
+    Navigator.pop(context, {'stockBySize': quantities, 'lowStockThreshold': limit});
+  }
+
+  @override
+  Widget build(BuildContext context) => AlertDialog(
+        title: Text('Manage ${{widget.productName}'),
+        content: SizedBox(
+          width: 440,
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Align(alignment: Alignment.centerLeft, child: Text('Available quantity for each size')),
+                const SizedBox(height: 12),
+                ...controllers.entries.map((entry) => Padding(
+                      padding: const EdgeInsets.only(bottom: 10),
+                      child: TextField(
+                        controller: entry.value,
+                        keyboardType: TextInputType.number,
+                        decoration: InputDecoration(labelText: 'Size ${{entry.key}', hintText: 'Enter quantity'),
+                      ),
+                    )),
+                const SizedBox(height: 8),
+                TextField(
+                  controller: threshold,
+                  keyboardType: TextInputType.number,
+                  decoration: const InputDecoration(
+                    labelText: 'Low-stock alert threshold',
+                    helperText: 'A size is low when quantity is above zero and at or below this value.',
+                  ),
+                ),
+                if (error != null) ...[
+                  const SizedBox(height: 10),
+                  Align(alignment: Alignment.centerLeft, child: Text(error!, style: const TextStyle(color: Colors.red))),
+                ],
+              ],
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+          FilledButton(onPressed: save, child: const Text('Save stock')),
+        ],
+      );
 }
 
 class BannersAdminPage extends StatelessWidget {
