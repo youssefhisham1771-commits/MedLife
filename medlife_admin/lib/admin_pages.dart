@@ -195,60 +195,256 @@ class _ProductEditor extends StatefulWidget {
   const _ProductEditor({this.initial, this.documentId});
   final Map<String, dynamic>? initial;
   final String? documentId;
+
   @override
   State<_ProductEditor> createState() => _ProductEditorState();
 }
+
 class _ProductEditorState extends State<_ProductEditor> {
-  late final name = TextEditingController(text: widget.initial?['name']?.toString() ?? '');
-  late final price = TextEditingController(text: widget.initial?['price']?.toString() ?? '');
-  late final description = TextEditingController(text: widget.initial?['description']?.toString() ?? '');
-  late final delivery = TextEditingController(text: widget.initial?['deliveryText']?.toString() ?? '');
-  late final image = TextEditingController(text: ((widget.initial?['images'] as List?)?.join(', ') ?? widget.initial?['image']?.toString()) ?? '');
-  late final category = TextEditingController(text: widget.initial?['category']?.toString() ?? '');
+  late final name = TextEditingController(
+    text: widget.initial?['name']?.toString() ?? '',
+  );
+  late final price = TextEditingController(
+    text: widget.initial?['price']?.toString() ?? '',
+  );
+  late final description = TextEditingController(
+    text: widget.initial?['description']?.toString() ?? '',
+  );
+  late final delivery = TextEditingController(
+    text: widget.initial?['deliveryText']?.toString() ?? '',
+  );
+  late final image = TextEditingController(
+    text: widget.initial?['images'] is List
+        ? (widget.initial!['images'] as List).join(', ')
+        : widget.initial?['image']?.toString() ?? '',
+  );
+  late final category = TextEditingController(
+    text: widget.initial?['category']?.toString() ?? '',
+  );
+  late final sizes = TextEditingController(
+    text: widget.initial?['sizes'] is List
+        ? (widget.initial!['sizes'] as List).join(', ')
+        : '',
+  );
+
+  String? selectedCategoryId;
   bool saving = false;
+
+  @override
+  void initState() {
+    super.initState();
+    selectedCategoryId = widget.initial?['categoryId']?.toString();
+  }
+
   Future<void> save() async {
     final parsedPrice = double.tryParse(price.text.trim());
-    if (name.text.trim().isEmpty || parsedPrice == null || parsedPrice < 0) { _message(context, 'Enter a product name and a valid non-negative price.'); return; }
+    if (name.text.trim().isEmpty ||
+        parsedPrice == null ||
+        !parsedPrice.isFinite ||
+        parsedPrice < 0) {
+      _message(context, 'Enter a product name and a valid non-negative price.');
+      return;
+    }
+
+    if (category.text.trim().isEmpty) {
+      _message(context, 'Choose or enter a product category.');
+      return;
+    }
+
     setState(() => saving = true);
     try {
-      final images = image.text.split(',').map((e) => e.trim()).where((e) => e.isNotEmpty).toList();
+      final images = image.text
+          .split(',')
+          .map((value) => value.trim())
+          .where((value) => value.isNotEmpty)
+          .toList();
+      final productSizes = sizes.text
+          .split(',')
+          .map((value) => value.trim())
+          .where((value) => value.isNotEmpty)
+          .toSet()
+          .toList();
+
+      String? categoryId = selectedCategoryId;
+      if (categoryId != null) {
+        final categoryDoc =
+            await _db.collection('categories').doc(categoryId).get();
+        if (!categoryDoc.exists) {
+          throw StateError('The selected category no longer exists.');
+        }
+        category.text = categoryDoc.data()?['name']?.toString() ??
+            category.text.trim();
+      } else {
+        final matchingCategories = await _db
+            .collection('categories')
+            .where('name', isEqualTo: category.text.trim())
+            .limit(1)
+            .get();
+        if (matchingCategories.docs.isNotEmpty) {
+          categoryId = matchingCategories.docs.first.id;
+        }
+      }
+
       final data = <String, dynamic>{
-        'name': name.text.trim(), 'price': price.text.trim(),
-        'description': description.text.trim(), 'deliveryText': delivery.text.trim(),
-        'category': category.text.trim(), 'images': images,
+        'name': name.text.trim(),
+        // ProductModel reads price as a number, not a string.
+        'price': parsedPrice,
+        'description': description.text.trim(),
+        'deliveryText': delivery.text.trim(),
+        'category': category.text.trim(),
+        'images': images,
+        // Keep the legacy singular image field used by ProductModel.
+        'image': images.isEmpty ? '' : images.first,
+        'sizes': productSizes,
         'updatedAt': FieldValue.serverTimestamp(),
       };
+      if (categoryId != null) {
+        data['categoryId'] = categoryId;
+      }
+
       if (widget.initial == null) {
         data['createdAt'] = FieldValue.serverTimestamp();
         await _db.collection('Products').add(data);
       } else {
         await _db.collection('Products').doc(widget.documentId).update(data);
       }
+
       if (mounted) Navigator.pop(context, true);
     } catch (e) {
       if (mounted) _message(context, 'Could not save product: $e');
-    } finally { if (mounted) setState(() => saving = false); }
+    } finally {
+      if (mounted) setState(() => saving = false);
+    }
   }
+
   @override
-  void dispose() { name.dispose(); price.dispose(); description.dispose(); delivery.dispose(); image.dispose(); category.dispose(); super.dispose(); }
+  void dispose() {
+    name.dispose();
+    price.dispose();
+    description.dispose();
+    delivery.dispose();
+    image.dispose();
+    category.dispose();
+    sizes.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) => AlertDialog(
-    title: Text(widget.initial == null ? 'Add Product' : 'Edit Product'),
-    content: SizedBox(width: 520, child: SingleChildScrollView(child: Column(mainAxisSize: MainAxisSize.min, children: [
-      TextField(controller: name, decoration: const InputDecoration(labelText: 'Product name')),
-      const SizedBox(height: 10),
-      TextField(controller: price, keyboardType: const TextInputType.numberWithOptions(decimal: true), decoration: const InputDecoration(labelText: 'Price (EGP)')),
-      const SizedBox(height: 10),
-      TextField(controller: category, decoration: const InputDecoration(labelText: 'Category name')),
-      const SizedBox(height: 10),
-      TextField(controller: description, maxLines: 3, decoration: const InputDecoration(labelText: 'Description')),
-      const SizedBox(height: 10),
-      TextField(controller: delivery, decoration: const InputDecoration(labelText: 'Delivery text')),
-      const SizedBox(height: 10),
-      TextField(controller: image, maxLines: 2, decoration: const InputDecoration(labelText: 'Image URL(s)', helperText: 'Separate multiple image URLs with commas.')),
-    ]))),
-    actions: [TextButton(onPressed: saving ? null : () => Navigator.pop(context, false), child: const Text('Cancel')), FilledButton(onPressed: saving ? null : save, child: Text(saving ? 'Saving…' : 'Save Product'))],
-  );
+        title: Text(widget.initial == null ? 'Add Product' : 'Edit Product'),
+        content: SizedBox(
+          width: 520,
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: name,
+                  decoration: const InputDecoration(labelText: 'Product name'),
+                ),
+                const SizedBox(height: 10),
+                TextField(
+                  controller: price,
+                  keyboardType:
+                      const TextInputType.numberWithOptions(decimal: true),
+                  decoration: const InputDecoration(labelText: 'Price (EGP)'),
+                ),
+                const SizedBox(height: 10),
+                StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+                  stream: _db.collection('categories').snapshots(),
+                  builder: (context, snapshot) {
+                    final docs = snapshot.data?.docs ?? [];
+                    final hasSelected =
+                        docs.any((doc) => doc.id == selectedCategoryId);
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        DropdownButtonFormField<String>(
+                          value: hasSelected ? selectedCategoryId : null,
+                          decoration: const InputDecoration(
+                            labelText: 'Choose existing category',
+                          ),
+                          items: docs
+                              .map(
+                                (doc) => DropdownMenuItem<String>(
+                                  value: doc.id,
+                                  child: Text(
+                                    (doc.data()['name'] ?? 'Unnamed').toString(),
+                                  ),
+                                ),
+                              )
+                              .toList(),
+                          onChanged: saving
+                              ? null
+                              : (value) {
+                                  if (value == null) return;
+                                  final selected =
+                                      docs.firstWhere((doc) => doc.id == value);
+                                  setState(() {
+                                    selectedCategoryId = value;
+                                    category.text =
+                                        (selected.data()['name'] ?? '')
+                                            .toString();
+                                  });
+                                },
+                        ),
+                        const SizedBox(height: 8),
+                        TextField(
+                          controller: category,
+                          decoration: const InputDecoration(
+                            labelText: 'Category name',
+                            helperText:
+                                'Selecting a category above also saves its category ID.',
+                          ),
+                        ),
+                      ],
+                    );
+                  },
+                ),
+                const SizedBox(height: 10),
+                TextField(
+                  controller: sizes,
+                  decoration: const InputDecoration(
+                    labelText: 'Available sizes',
+                    helperText: 'Separate sizes with commas, e.g. S, M, L, XL.',
+                  ),
+                ),
+                const SizedBox(height: 10),
+                TextField(
+                  controller: description,
+                  maxLines: 3,
+                  decoration: const InputDecoration(labelText: 'Description'),
+                ),
+                const SizedBox(height: 10),
+                TextField(
+                  controller: delivery,
+                  decoration: const InputDecoration(labelText: 'Delivery text'),
+                ),
+                const SizedBox(height: 10),
+                TextField(
+                  controller: image,
+                  maxLines: 2,
+                  decoration: const InputDecoration(
+                    labelText: 'Image URL(s)',
+                    helperText:
+                        'Separate multiple image URLs with commas. The first URL is also saved to the legacy image field.',
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: saving ? null : () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: saving ? null : save,
+            child: Text(saving ? 'Saving…' : 'Save Product'),
+          ),
+        ],
+      );
 }
 
 class CategoriesAdminPage extends StatelessWidget {
