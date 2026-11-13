@@ -28,7 +28,7 @@ class _AddEditProductScreenState
   final price = TextEditingController();
   final description = TextEditingController();
   final deliveryText = TextEditingController();
-
+  final sizes = TextEditingController();
 
   List<String> imageUrls = [];
 
@@ -59,6 +59,10 @@ class _AddEditProductScreenState
 
       deliveryText.text =
     widget.oldData['deliveryText']?.toString() ?? "";
+
+      sizes.text = widget.oldData['sizes'] is List
+          ? (widget.oldData['sizes'] as List).join(', ')
+          : '';
 
       if (widget.oldData['images'] != null) {
 
@@ -217,6 +221,12 @@ deliveryText.text.isEmpty ||
 
       "images":
           imageUrls,
+
+      "image":
+          imageUrls.isEmpty ? "" : imageUrls.first,
+
+      "sizes":
+          sizes.text.split(',').map((value) => value.trim()).where((value) => value.isNotEmpty).toSet().toList(),
     };
 
     if (widget.docId == null) {
@@ -602,6 +612,20 @@ deliveryText.text.isEmpty ||
 
             SizedBox(height: 28),
 
+            ////////////////// AVAILABLE SIZES //////////////////
+
+            buildLabel("Available Sizes"),
+
+            SizedBox(height: 10),
+
+            buildTextField(
+              controller: sizes,
+              hint: "Enter sizes separated by commas (S, M, L, XL)",
+              icon: Icons.straighten,
+            ),
+
+            SizedBox(height: 24),
+
             ////////////////// DESCRIPTION //////////////////
 
             buildLabel("Description"),
@@ -910,6 +934,7 @@ SizedBox(height: 18),
     price.dispose();
     description.dispose();
     deliveryText.dispose();
+    sizes.dispose();
 
     super.dispose();
   }
