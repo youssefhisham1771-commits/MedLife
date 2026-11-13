@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'orders_management_page.dart';
 
 final _db = FirebaseFirestore.instance;
 const _blue = Color(0xFF1769E0);
@@ -22,7 +23,7 @@ class AdminModulePage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     switch (index) {
-      case 1: return const OrdersAdminPage();
+      case 1: return const OrdersManagementPage();
       case 2: return const ProductsAdminPage();
       case 3: return const InventoryAdminPage();
       case 4: return const CustomersAdminPage();
