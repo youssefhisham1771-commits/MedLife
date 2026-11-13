@@ -80,7 +80,19 @@ class _OrdersAdminPageState extends State<OrdersAdminPage> {
       Padding(padding: const EdgeInsets.symmetric(horizontal: 24), child: Column(children: [
         TextField(controller: controller, onChanged: (v) => setState(() => search = v.trim().toLowerCase()), decoration: const InputDecoration(prefixIcon: Icon(Icons.search), hintText: 'Search order ID, customer or phone')),
         const SizedBox(height: 12),
-        SingleChildScrollView(\n          scrollDirection: Axis.horizontal,\n          child: Row(\n            children: ['All', ...statuses].map((s) => Padding(\n              padding: const EdgeInsets.only(right: 8),\n              child: ChoiceChip(\n                label: Text(s.toUpperCase()),\n                selected: status == s,\n                onSelected: (_) => setState(() => status = s),\n              ),\n            )).toList(),\n          ),\n        ),
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Row(
+            children: ['All', ...statuses].map((s) => Padding(
+              padding: const EdgeInsets.only(right: 8),
+              child: ChoiceChip(
+                label: Text(s.toUpperCase()),
+                selected: status == s,
+                onSelected: (_) => setState(() => status = s),
+              ),
+            )).toList(),
+          ),
+        ),
       ])),
       const SizedBox(height: 12),
       Expanded(child: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
@@ -281,7 +293,9 @@ class _CustomersAdminPageState extends State<CustomersAdminPage> {
       if (!snap.hasData) return const Center(child: CircularProgressIndicator());
       final docs = snap.data!.docs.where((d) { final x = d.data(); return (x['role'] ?? 'user') != 'admin' && (query.isEmpty || x.toString().toLowerCase().contains(query)); }).toList();
       if (docs.isEmpty) return const Center(child: Text('No customers found.'));
-      return ListView.separated(padding: const EdgeInsets.all(24), itemCount: docs.length, separatorBuilder: (_, __) => const SizedBox(height: 8), itemBuilder: (context, i) { final d = docs[i].data(); return Card(child: ListTile(leading: const CircleAvatar(child: Icon(Icons.person_outline)), title: Text((d['name'] ?? d['fullName'] ?? 'Customer').toString()), subtitle: Text('${d['email'] ?? 'No email'} • ${d['phone'] ?? 'No phone'}'), trailing: const Icon(Icons.chevron_right), onTap: () => showDialog(context: context, builder: (_) => AlertDialog(title: Text((d['name'] ?? 'Customer').toString()), content: SelectableText('Email: ${d['email'] ?? '—'}\nPhone: ${d['phone'] ?? '—'}\nUser ID: ${docs[i].id}'), actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('Close'))])))); });
+      return ListView.separated(padding: const EdgeInsets.all(24), itemCount: docs.length, separatorBuilder: (_, __) => const SizedBox(height: 8), itemBuilder: (context, i) { final d = docs[i].data(); return Card(child: ListTile(leading: const CircleAvatar(child: Icon(Icons.person_outline)), title: Text((d['name'] ?? d['fullName'] ?? 'Customer').toString()), subtitle: Text('${d['email'] ?? 'No email'} • ${d['phone'] ?? 'No phone'}'), trailing: const Icon(Icons.chevron_right), onTap: () => showDialog(context: context, builder: (_) => AlertDialog(title: Text((d['name'] ?? 'Customer').toString()), content: SelectableText('Email: ${d['email'] ?? '—'}
+Phone: ${d['phone'] ?? '—'}
+User ID: ${docs[i].id}'), actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('Close'))])))); });
     })),
   ]));
 }
@@ -308,7 +322,16 @@ class BannersAdminPage extends StatelessWidget {
     if (snap.hasError) return const Center(child: Text('Could not load banners.'));
     if (!snap.hasData) return const Center(child: CircularProgressIndicator());
     if (snap.data!.docs.isEmpty) return const Center(child: Text('No banners found.'));
-    return ListView(\n      padding: const EdgeInsets.all(24),\n      children: snap.data!.docs.map((d) => Card(\n        child: ListTile(\n          leading: const Icon(Icons.image_outlined),\n          title: Text((d.data()['title'] ?? d.data()['name'] ?? 'Banner').toString()),\n          subtitle: Text(d.id),\n        ),\n      )).toList(),\n    );
+    return ListView(
+      padding: const EdgeInsets.all(24),
+      children: snap.data!.docs.map((d) => Card(
+        child: ListTile(
+          leading: const Icon(Icons.image_outlined),
+          title: Text((d.data()['title'] ?? d.data()['name'] ?? 'Banner').toString()),
+          subtitle: Text(d.id),
+        ),
+      )).toList(),
+    );
   }));
 }
 
@@ -343,7 +366,8 @@ class ReportsAdminPage extends StatelessWidget {
     if (!snap.hasData) return const Center(child: CircularProgressIndicator());
     final docs = snap.data!.docs;
     final rows = docs.map((d) => '${d.id},${(d.data()['name'] ?? '').toString().replaceAll(',', ' ')},${d.data()['status'] ?? ''},${d.data()['total'] ?? 0},${_date(d.data()['orderedAt'])}').toList();
-    final csv = ['Order ID,Customer,Status,Total EGP,Ordered At', ...rows].join('\n');
+    final csv = ['Order ID,Customer,Status,Total EGP,Ordered At', ...rows].join('
+');
     return ListView(padding: const EdgeInsets.all(24), children: [
       _Kpi(title: 'Orders in report', value: docs.length.toString(), icon: Icons.description_outlined),
       const SizedBox(height: 12),
@@ -380,7 +404,17 @@ class NotificationsAdminPage extends StatelessWidget {
     if (snap.hasError) return const Center(child: Text('Could not load notifications.'));
     if (!snap.hasData) return const Center(child: CircularProgressIndicator());
     if (snap.data!.docs.isEmpty) return const Center(child: Text('No notification records found.'));
-    return ListView(\n      padding: const EdgeInsets.all(24),\n      children: snap.data!.docs.map((d) => Card(\n        child: ListTile(\n          leading: const Icon(Icons.notifications_none),\n          title: Text((d.data()['title'] ?? 'Notification').toString()),\n          subtitle: Text((d.data()['body'] ?? d.data()['message'] ?? '').toString()),\n          trailing: Text(_date(d.data()['createdAt'])),\n        ),\n      )).toList(),\n    );
+    return ListView(
+      padding: const EdgeInsets.all(24),
+      children: snap.data!.docs.map((d) => Card(
+        child: ListTile(
+          leading: const Icon(Icons.notifications_none),
+          title: Text((d.data()['title'] ?? 'Notification').toString()),
+          subtitle: Text((d.data()['body'] ?? d.data()['message'] ?? '').toString()),
+          trailing: Text(_date(d.data()['createdAt'])),
+        ),
+      )).toList(),
+    );
   }));
 }
 
@@ -390,7 +424,9 @@ class AssistantAdminPage extends StatelessWidget {
   Widget build(BuildContext context) => _PageFrame(title: 'MedLife AI Assistant', subtitle: 'Data-grounded insights with secure, read-only access are planned for this workspace.', child: ListView(padding: const EdgeInsets.all(24), children: const [
     Card(child: Padding(padding: EdgeInsets.all(20), child: Row(children: [Icon(Icons.auto_awesome, color: _blue, size: 34), SizedBox(width: 14), Expanded(child: Text('The assistant must query authorized MedLife data through a secure backend. No external AI key is embedded in this app.'))]))),
     SizedBox(height: 12),
-    Card(child: ListTile(title: Text('Suggested questions'), subtitle: Text('Which products are top sellers?\nHow many orders are pending?\nSummarize sales for the last 30 days.'))),
+    Card(child: ListTile(title: Text('Suggested questions'), subtitle: Text('Which products are top sellers?
+How many orders are pending?
+Summarize sales for the last 30 days.'))),
   ]));
 }
 
