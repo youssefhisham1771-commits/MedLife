@@ -293,9 +293,7 @@ class _CustomersAdminPageState extends State<CustomersAdminPage> {
       if (!snap.hasData) return const Center(child: CircularProgressIndicator());
       final docs = snap.data!.docs.where((d) { final x = d.data(); return (x['role'] ?? 'user') != 'admin' && (query.isEmpty || x.toString().toLowerCase().contains(query)); }).toList();
       if (docs.isEmpty) return const Center(child: Text('No customers found.'));
-      return ListView.separated(padding: const EdgeInsets.all(24), itemCount: docs.length, separatorBuilder: (_, __) => const SizedBox(height: 8), itemBuilder: (context, i) { final d = docs[i].data(); return Card(child: ListTile(leading: const CircleAvatar(child: Icon(Icons.person_outline)), title: Text((d['name'] ?? d['fullName'] ?? 'Customer').toString()), subtitle: Text('${d['email'] ?? 'No email'} • ${d['phone'] ?? 'No phone'}'), trailing: const Icon(Icons.chevron_right), onTap: () => showDialog(context: context, builder: (_) => AlertDialog(title: Text((d['name'] ?? 'Customer').toString()), content: SelectableText('Email: ${d['email'] ?? '—'}
-Phone: ${d['phone'] ?? '—'}
-User ID: ${docs[i].id}'), actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('Close'))])))); });
+      return ListView.separated(padding: const EdgeInsets.all(24), itemCount: docs.length, separatorBuilder: (_, __) => const SizedBox(height: 8), itemBuilder: (context, i) { final d = docs[i].data(); return Card(child: ListTile(leading: const CircleAvatar(child: Icon(Icons.person_outline)), title: Text((d['name'] ?? d['fullName'] ?? 'Customer').toString()), subtitle: Text('${d['email'] ?? 'No email'} • ${d['phone'] ?? 'No phone'}'), trailing: const Icon(Icons.chevron_right), onTap: () => showDialog(context: context, builder: (_) => AlertDialog(title: Text((d['name'] ?? 'Customer').toString()), content: SelectableText('Email: ${d['email'] ?? '—'}\nPhone: ${d['phone'] ?? '—'}\nUser ID: ${docs[i].id}'), actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('Close'))])))); });
     })),
   ]));
 }
@@ -366,8 +364,7 @@ class ReportsAdminPage extends StatelessWidget {
     if (!snap.hasData) return const Center(child: CircularProgressIndicator());
     final docs = snap.data!.docs;
     final rows = docs.map((d) => '${d.id},${(d.data()['name'] ?? '').toString().replaceAll(',', ' ')},${d.data()['status'] ?? ''},${d.data()['total'] ?? 0},${_date(d.data()['orderedAt'])}').toList();
-    final csv = ['Order ID,Customer,Status,Total EGP,Ordered At', ...rows].join('
-');
+    final csv = ['Order ID,Customer,Status,Total EGP,Ordered At', ...rows].join('\\n');
     return ListView(padding: const EdgeInsets.all(24), children: [
       _Kpi(title: 'Orders in report', value: docs.length.toString(), icon: Icons.description_outlined),
       const SizedBox(height: 12),
@@ -424,9 +421,7 @@ class AssistantAdminPage extends StatelessWidget {
   Widget build(BuildContext context) => _PageFrame(title: 'MedLife AI Assistant', subtitle: 'Data-grounded insights with secure, read-only access are planned for this workspace.', child: ListView(padding: const EdgeInsets.all(24), children: const [
     Card(child: Padding(padding: EdgeInsets.all(20), child: Row(children: [Icon(Icons.auto_awesome, color: _blue, size: 34), SizedBox(width: 14), Expanded(child: Text('The assistant must query authorized MedLife data through a secure backend. No external AI key is embedded in this app.'))]))),
     SizedBox(height: 12),
-    Card(child: ListTile(title: Text('Suggested questions'), subtitle: Text('Which products are top sellers?
-How many orders are pending?
-Summarize sales for the last 30 days.'))),
+    Card(child: ListTile(title: Text('Suggested questions'), subtitle: Text('Which products are top sellers?\\nHow many orders are pending?\\nSummarize sales for the last 30 days.'))),
   ]));
 }
 
