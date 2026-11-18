@@ -161,14 +161,18 @@ class _CustomersManagementPageState extends State<CustomersManagementPage> {
                                 itemBuilder: (context, index) {
                                   final customer = customers[index];
                                   final data = customer.data();
-                                  final customerOrders = [...(ordersByCustomer[customer.id] ?? [])]
-                                    ..sort((a, b) {
-                                      final aDate = a.data()['orderedAt'];
-                                      final bDate = b.data()['orderedAt'];
-                                      final aMillis = aDate is Timestamp ? aDate.millisecondsSinceEpoch : 0;
-                                      final bMillis = bDate is Timestamp ? bDate.millisecondsSinceEpoch : 0;
-                                      return bMillis.compareTo(aMillis);
-                                    });
+                                  final List<QueryDocumentSnapshot<Map<String, dynamic>>> customerOrders =
+                                      List<QueryDocumentSnapshot<Map<String, dynamic>>>.of(
+                                    ordersByCustomer[customer.id] ??
+                                        const <QueryDocumentSnapshot<Map<String, dynamic>>>[],
+                                  );
+                                  customerOrders.sort((a, b) {
+                                    final aDate = a.data()['orderedAt'];
+                                    final bDate = b.data()['orderedAt'];
+                                    final aMillis = aDate is Timestamp ? aDate.millisecondsSinceEpoch : 0;
+                                    final bMillis = bDate is Timestamp ? bDate.millisecondsSinceEpoch : 0;
+                                    return bMillis.compareTo(aMillis);
+                                  });
                                   final spend = customerOrders.fold<double>(0, (sum, order) {
                                     final orderData = order.data();
                                     if ((orderData['status'] ?? '').toString().toLowerCase() == 'cancelled') return sum;
