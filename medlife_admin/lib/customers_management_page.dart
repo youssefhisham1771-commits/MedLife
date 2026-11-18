@@ -19,6 +19,13 @@ class _CustomersManagementPageState extends State<CustomersManagementPage> {
   String money(dynamic value) =>
       'EGP ' + NumberFormat('#,##0.00').format(amount(value));
 
+  String normalizedEmail(dynamic value) =>
+      (value ?? '').toString().trim().toLowerCase();
+
+  String shortId(String value) => value.length <= 12
+      ? value
+      : value.substring(0, 8) + '…' + value.substring(value.length - 4);
+
   String date(dynamic value) {
     if (value is Timestamp) {
       return DateFormat('dd MMM yyyy • hh:mm a').format(value.toDate());
@@ -170,6 +177,17 @@ class _CustomersManagementPageState extends State<CustomersManagementPage> {
                                   final name = (data['name'] ?? data['fullName'] ?? 'Customer').toString();
                                   final email = (data['email'] ?? 'No email').toString();
                                   final phone = (data['phone'] ?? 'No phone').toString();
+                                  final emailKey = normalizedEmail(data['email']);
+                                  final duplicateAccounts = emailKey.isEmpty
+                                      ? <QueryDocumentSnapshot<Map<String, dynamic>>>[]
+                                      : usersSnapshot.data!.docs.where((other) {
+                                          if (other.id == customer.id) return false;
+                                          final otherData = other.data();
+                                          if ((otherData['role'] ?? 'user').toString().toLowerCase() == 'admin') {
+                                            return false;
+                                          }
+                                          return normalizedEmail(otherData['email']) == emailKey;
+                                        }).toList();
 
                                   return Card(
                                     child: ListTile(
@@ -185,6 +203,22 @@ class _CustomersManagementPageState extends State<CustomersManagementPage> {
                                           children: [
                                             Text(email),
                                             Text(phone),
+                                            Text('Account ID: ' + shortId(customer.id)),
+                                            if (duplicateAccounts.isNotEmpty)
+                                              Padding(
+                                                padding: const EdgeInsets.only(top: 6),
+                                                child: Wrap(
+                                                  children: [
+                                                    Chip(
+                                                      avatar: const Icon(Icons.content_copy, size: 16),
+                                                      label: Text('Duplicate email • ' +
+                                                          (duplicateAccounts.length + 1).toString() +
+                                                          ' accounts'),
+                                                      visualDensity: VisualDensity.compact,
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
                                             const SizedBox(height: 5),
                                             Text(
                                               customerOrders.length.toString() + ' order(s)  •  ' + money(spend),
@@ -201,6 +235,15 @@ class _CustomersManagementPageState extends State<CustomersManagementPage> {
                                         phone: phone,
                                         customerOrders: customerOrders,
                                         spend: spend,
+                                        duplicateAccounts: duplicateAccounts.map((account) {
+                                          final accountData = account.data();
+                                          return <String, String>{
+                                            'id': account.id,
+                                            'name': (accountData['name'] ??
+                                                accountData['fullName'] ??
+                                                'Customer').toString(),
+                                          };
+                                        }).toList(),
                                       ),
                                     ),
                                   );
@@ -252,6 +295,7 @@ class _CustomersManagementPageState extends State<CustomersManagementPage> {
     required String phone,
     required List<QueryDocumentSnapshot<Map<String, dynamic>>> customerOrders,
     required double spend,
+    required List<Map<String, String>> duplicateAccounts,
   }) {
     showDialog<void>(
       context: context,
@@ -267,6 +311,39 @@ class _CustomersManagementPageState extends State<CustomersManagementPage> {
                 infoLine('Email', email),
                 infoLine('Phone', phone),
                 infoLine('Customer ID', customerId),
+                if (duplicateAccounts.isNotEmpty) ...[
+                  const SizedBox(height: 12),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Theme.of(dialogContext).colorScheme.errorContainer.withValues(alpha: 0.35),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Duplicate email detected',
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                        const SizedBox(height: 4),
+                        const Text(
+                          'Other accounts use this email. Their orders remain separate because purchase history is matched by User ID.',
+                        ),
+                        const SizedBox(height: 8),
+                        for (final account in duplicateAccounts)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 4),
+                            child: Text(
+                              (account['name'] ?? 'Customer') +
+                                  ' • ID: ' + shortId(account['id'] ?? ''),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                ],
                 const Divider(height: 28),
                 Wrap(
                   spacing: 18,
