@@ -173,7 +173,7 @@ class _FinanceReportsPageState extends State<FinanceReportsPage> {
                     onPressed: chooseRange,
                     icon: const Icon(Icons.date_range),
                     label: Text(selectedRange == null
-                        ? 'Last 30 days'
+                        ? 'All dates'
                         : '${DateFormat('dd MMM').format(selectedRange!.start)} – ${DateFormat('dd MMM yyyy').format(selectedRange!.end)}'),
                   ),
                   if (selectedRange != null)
@@ -272,16 +272,6 @@ class _FinanceReportsPageState extends State<FinanceReportsPage> {
                     subtitle: const Text('Copyable data preview; file download is not enabled in this milestone.'),
                     children: [
                       Card(child: Padding(padding: const EdgeInsets.all(12), child: SelectableText(csvPreview))),
-                      Align(
-                        alignment: Alignment.centerRight,
-                        child: TextButton.icon(
-                          onPressed: () {
-                            // Clipboard integration can be added with the export workflow.
-                          },
-                          icon: const Icon(Icons.copy),
-                          label: const Text('Copy is not enabled yet'),
-                        ),
-                      ),
                     ],
                   ),
                 ],
