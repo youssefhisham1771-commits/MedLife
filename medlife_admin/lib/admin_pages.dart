@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'orders_management_page.dart';
 import 'customers_management_page.dart';
+import 'finance_reports_page.dart';
 
 final _db = FirebaseFirestore.instance;
 const _blue = Color(0xFF1769E0);
@@ -31,7 +32,7 @@ class AdminModulePage extends StatelessWidget {
       case 5: return const CategoriesAdminPage();
       case 6: return const BannersAdminPage();
       case 7: return const AnalyticsAdminPage();
-      case 8: return const ReportsAdminPage();
+      case 8: return const FinanceReportsPage();
       case 9: return const StaffAdminPage();
       case 10: return const NotificationsAdminPage();
       case 11: return const AssistantAdminPage();
