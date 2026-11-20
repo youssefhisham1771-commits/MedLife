@@ -384,7 +384,7 @@ class _FinanceReportsPageState extends State<FinanceReportsPage> {
                     tilePadding: EdgeInsets.zero,
                     title: const Text('CSV export preview'),
                     subtitle: const Text('Preview of the same filtered rows included in the downloaded report.'),
-                    children: [Card(child: Padding(padding: const EdgeInsets.all(12), child: SelectableText(csvRows.map((row) => row).join('\n')))],
+                    children: [Card(child: Padding(padding: const EdgeInsets.all(12), child: SelectableText(csvRows.join('\\n'))))],
                   ),
                 ],
               ),
