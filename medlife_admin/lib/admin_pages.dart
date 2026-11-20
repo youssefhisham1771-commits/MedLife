@@ -854,15 +854,179 @@ class _Kpi extends StatelessWidget {
   Widget build(BuildContext context) => SizedBox(width: 220, child: Card(child: Padding(padding: const EdgeInsets.all(18), child: Row(children: [Icon(icon, color: _blue, size: 28), const SizedBox(width: 12), Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(title, style: Theme.of(context).textTheme.bodySmall), Text(value, style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold))]))]))));
 }
 
-class StaffAdminPage extends StatelessWidget {
+class StaffAdminPage extends StatefulWidget {
   const StaffAdminPage({super.key});
   @override
-  Widget build(BuildContext context) => _PageFrame(title: 'Staff & Permissions', subtitle: 'Current admin accounts. Role editing is intentionally disabled until the custom permission model and rules are implemented.', child: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(stream: _db.collection('users').where('role', isEqualTo: 'admin').snapshots(), builder: (context, snap) {
-    if (snap.hasError) return const Center(child: Text('Could not load admin accounts.'));
-    if (!snap.hasData) return const Center(child: CircularProgressIndicator());
-    if (snap.data!.docs.isEmpty) return const Center(child: Text('No admin profiles found.'));
-    return ListView(padding: const EdgeInsets.all(24), children: snap.data!.docs.map((d) => Card(child: ListTile(leading: const CircleAvatar(child: Icon(Icons.admin_panel_settings)), title: Text((d.data()['name'] ?? 'Administrator').toString()), subtitle: Text('${d.data()['email'] ?? d.id} • role: admin')))).toList());
-  }));
+  State<StaffAdminPage> createState() => _StaffAdminPageState();
+}
+
+class _StaffAdminPageState extends State<StaffAdminPage> {
+  String search = '';
+
+  void _showStaffDetails(
+    BuildContext context,
+    QueryDocumentSnapshot<Map<String, dynamic>> doc,
+  ) {
+    final data = doc.data();
+    final name = (data['name'] ?? data['fullName'] ?? 'Administrator').toString();
+    showDialog<void>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(name),
+        content: SizedBox(
+          width: 420,
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _staffDetail('Email', data['email'] ?? '—'),
+                _staffDetail('Phone', data['phone'] ?? '—'),
+                _staffDetail('Account ID', doc.id),
+                _staffDetail('Role', data['role'] ?? 'admin'),
+                _staffDetail('Created', _date(data['createdAt'])),
+              ],
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Close'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _staffDetail(String label, dynamic value) => Padding(
+    padding: const EdgeInsets.only(bottom: 12),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label, style: const TextStyle(color: Colors.grey, fontSize: 12)),
+        const SizedBox(height: 3),
+        SelectableText(value.toString()),
+      ],
+    ),
+  );
+
+  @override
+  Widget build(BuildContext context) => _PageFrame(
+    title: 'Staff & Permissions',
+    subtitle: 'Read-only directory of accounts currently marked as administrators. Permission editing is not enabled.',
+    child: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+      stream: _db.collection('users').where('role', isEqualTo: 'admin').snapshots(),
+      builder: (context, snap) {
+        if (snap.hasError) {
+          return const Center(child: Text('Could not load admin accounts. Check Firestore access.'));
+        }
+        if (!snap.hasData) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
+        final allStaff = snap.data!.docs;
+        final filtered = allStaff.where((doc) {
+          final data = doc.data();
+          final searchable = [
+            data['name'],
+            data['fullName'],
+            data['email'],
+            data['phone'],
+            doc.id,
+          ].where((value) => value != null).join(' ').toLowerCase();
+          return searchable.contains(search.trim().toLowerCase());
+        }).toList()
+          ..sort((a, b) {
+            final aName = (a.data()['name'] ?? a.data()['fullName'] ?? a.id).toString();
+            final bName = (b.data()['name'] ?? b.data()['fullName'] ?? b.id).toString();
+            return aName.toLowerCase().compareTo(bName.toLowerCase());
+          });
+
+        return Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(24, 8, 24, 12),
+              child: Wrap(
+                spacing: 12,
+                runSpacing: 8,
+                children: [
+                  _Kpi(title: 'Admin Accounts', value: allStaff.length.toString(), icon: Icons.admin_panel_settings_outlined),
+                  _Kpi(title: 'Search Results', value: filtered.length.toString(), icon: Icons.manage_search),
+                ],
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: TextField(
+                onChanged: (value) => setState(() => search = value),
+                decoration: InputDecoration(
+                  prefixIcon: const Icon(Icons.search),
+                  hintText: 'Search by name, email, phone or account ID',
+                  suffixIcon: search.isEmpty
+                    ? null
+                    : IconButton(
+                        tooltip: 'Clear search',
+                        onPressed: () => setState(() => search = ''),
+                        icon: const Icon(Icons.close),
+                      ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 8),
+            Expanded(
+              child: filtered.isEmpty
+                ? Center(
+                    child: Text(allStaff.isEmpty
+                      ? 'No admin profiles found.'
+                      : 'No admin accounts match your search.'),
+                  )
+                : ListView.separated(
+                    padding: const EdgeInsets.all(24),
+                    itemCount: filtered.length,
+                    separatorBuilder: (_, __) => const SizedBox(height: 8),
+                    itemBuilder: (context, index) {
+                      final doc = filtered[index];
+                      final data = doc.data();
+                      final name = (data['name'] ?? data['fullName'] ?? 'Administrator').toString();
+                      final email = (data['email'] ?? 'No email recorded').toString();
+                      final phone = (data['phone'] ?? 'No phone recorded').toString();
+                      return Card(
+                        child: ListTile(
+                          leading: const CircleAvatar(
+                            child: Icon(Icons.admin_panel_settings_outlined),
+                          ),
+                          title: Text(name, maxLines: 1, overflow: TextOverflow.ellipsis),
+                          subtitle: Text(
+                            '$email\n$phone',
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          isThreeLine: true,
+                          trailing: const Icon(Icons.chevron_right),
+                          onTap: () => _showStaffDetails(context, doc),
+                        ),
+                      );
+                    },
+                  ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(24, 0, 24, 16),
+              child: Card(
+                child: ListTile(
+                  leading: const Icon(Icons.info_outline, color: _blue),
+                  title: const Text('Permissions are unchanged'),
+                  subtitle: const Text(
+                    'All listed accounts currently use the existing admin role. Fine-grained roles will only be enabled after secure backend and Firestore rule enforcement is implemented.',
+                  ),
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+    ),
+  );
 }
 
 class NotificationsAdminPage extends StatelessWidget {
