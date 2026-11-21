@@ -1059,14 +1059,6 @@ class _StaffAdminPageState extends State<StaffAdminPage> {
   );
 }
 
-    ),
-          ],
-        );
-      },
-    ),
-  );
-}
-
 class NotificationsAdminPage extends StatelessWidget {
   const NotificationsAdminPage({super.key});
   @override
