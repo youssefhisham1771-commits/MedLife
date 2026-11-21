@@ -71,3 +71,97 @@ exports.bootstrapMedLifeSuperAdmin = onCall(async (request) => {
     uid: MEDLIFE_SUPER_ADMIN_UID,
   };
 });
+
+// ============================================================
+// Staff permission management (Super Admin only)
+// Custom claims are the authorization source; Firestore fields
+// below are staff-directory metadata only.
+// ============================================================
+
+const MEDLIFE_STAFF_PERMISSIONS = new Set([
+  "dashboard.view",
+  "orders.view",
+  "orders.update",
+  "products.view",
+  "products.create",
+  "products.update",
+  "products.delete",
+  "inventory.view",
+  "inventory.manage",
+  "customers.view",
+  "categories.manage",
+  "marketing.manage",
+  "reports_finance.view",
+  "staff.manage",
+  "notifications.manage",
+  "settings.manage",
+  "activity_log.view",
+  "backup.manage",
+]);
+
+exports.setMedLifeStaffPermissions = onCall(async (request) => {
+  if (!request.auth) {
+    throw new HttpsError("unauthenticated", "Authentication is required.");
+  }
+
+  if (request.auth.token.medlifeSuperAdmin !== true) {
+    throw new HttpsError("permission-denied", "Only the Super Admin can manage staff.");
+  }
+
+  const targetUid = request.data?.targetUid;
+  const active = request.data?.active ?? true;
+  const requestedPermissions = request.data?.permissions;
+
+  if (typeof targetUid !== "string" || targetUid.trim().length < 10) {
+    throw new HttpsError("invalid-argument", "A valid targetUid is required.");
+  }
+  if (typeof active !== "boolean" || !Array.isArray(requestedPermissions)) {
+    throw new HttpsError("invalid-argument", "Invalid active flag or permissions list.");
+  }
+  if (targetUid === MEDLIFE_SUPER_ADMIN_UID) {
+    throw new HttpsError("failed-precondition", "The Super Admin cannot be modified as staff.");
+  }
+
+  const permissions = [...new Set(requestedPermissions)];
+  if (
+    permissions.length !== requestedPermissions.length ||
+    permissions.some((permission) =>
+      typeof permission !== "string" || !MEDLIFE_STAFF_PERMISSIONS.has(permission)
+    )
+  ) {
+    throw new HttpsError("invalid-argument", "The permissions list contains invalid entries.");
+  }
+  if (!active && permissions.length > 0) {
+    throw new HttpsError("invalid-argument", "Inactive staff must have no permissions.");
+  }
+
+  try {
+    const target = await admin.auth().getUser(targetUid);
+    if (target.customClaims?.medlifeSuperAdmin === true) {
+      throw new HttpsError("failed-precondition", "A Super Admin cannot be managed as staff.");
+    }
+
+    const assignedPermissions = active ? permissions : [];
+    await admin.auth().setCustomUserClaims(targetUid, {
+      ...(target.customClaims || {}),
+      medlifeRole: "staff",
+      medlifePermissions: assignedPermissions,
+      medlifeStaffActive: active,
+    });
+
+    await admin.firestore().collection("users").doc(targetUid).set({
+      medlifeRole: "staff",
+      medlifePermissions: assignedPermissions,
+      medlifeStaffActive: active,
+      staffPermissionsUpdatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      staffPermissionsUpdatedBy: request.auth.uid,
+    }, { merge: true });
+
+    return { success: true, targetUid, active, permissions: assignedPermissions };
+  } catch (error) {
+    if (error instanceof HttpsError) throw error;
+    console.error("setMedLifeStaffPermissions failed:", error);
+    throw new HttpsError("internal", "Unable to update staff permissions.");
+  }
+});
+
