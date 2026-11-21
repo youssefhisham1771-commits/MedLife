@@ -852,7 +852,10 @@ class _Kpi extends StatelessWidget {
   final String title, value;
   final IconData icon;
   @override
-  Widget build(BuildContext context) => SizedBox(width: 220, child: Card(child: Padding(padding: const EdgeInsets.all(18), child: Row(children: [Icon(icon, color: _blue, size: 28), const SizedBox(width: 12), Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(title, style: Theme.of(context).textTheme.bodySmall), Text(value, style: Theme.of(context).textTheme.titleLarclass StaffAdminPage extends StatefulWidget {
+  Widget build(BuildContext context) => SizedBox(width: 220, child: Card(child: Padding(padding: const EdgeInsets.all(18), child: Row(children: [Icon(icon, color: _blue, size: 28), const SizedBox(width: 12), Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(title, style: Theme.of(context).textTheme.bodySmall), Text(value, style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold))]))]))));
+}
+
+class StaffAdminPage extends StatefulWidget {
   const StaffAdminPage({super.key});
   @override
   State<StaffAdminPage> createState() => _StaffAdminPageState();
