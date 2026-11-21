@@ -74,6 +74,63 @@ exports.bootstrapMedLifeSuperAdmin = onCall(async (request) => {
 });
 
 // ============================================================
+// Secure staff directory (Super Admin only)
+// Uses Firebase Admin SDK so the dashboard does not need broad
+// client-side permission to list every user document.
+// ============================================================
+
+exports.listMedLifeAccounts = onCall(async (request) => {
+  if (!request.auth) {
+    throw new HttpsError("unauthenticated", "Authentication is required.");
+  }
+  if (request.auth.token.medlifeSuperAdmin !== true) {
+    throw new HttpsError("permission-denied", "Only the Super Admin can view staff accounts.");
+  }
+
+  try {
+    const accounts = [];
+    let pageToken;
+    do {
+      const page = await admin.auth().listUsers(1000, pageToken);
+      const profileRefs = page.users.map((user) =>
+        admin.firestore().collection("users").doc(user.uid)
+      );
+      const profiles = profileRefs.length
+        ? await admin.firestore().getAll(...profileRefs)
+        : [];
+
+      page.users.forEach((user, index) => {
+        if (user.uid === MEDLIFE_SUPER_ADMIN_UID) return;
+        const profile = profiles[index]?.data() || {};
+        const claims = user.customClaims || {};
+        accounts.push({
+          uid: user.uid,
+          email: user.email || "",
+          displayName: user.displayName || "",
+          phoneNumber: user.phoneNumber || "",
+          disabled: user.disabled === true,
+          role: claims.medlifeRole || profile.medlifeRole || profile.role || "user",
+          active: claims.medlifeRole === "staff"
+            ? claims.medlifeStaffActive === true
+            : profile.medlifeStaffActive === true,
+          permissions: Array.isArray(claims.medlifePermissions)
+            ? claims.medlifePermissions
+            : [],
+          name: profile.name || profile.fullName || user.displayName || "",
+          createdAt: profile.createdAt || null,
+        });
+      });
+      pageToken = page.pageToken;
+    } while (pageToken);
+
+    return { accounts };
+  } catch (error) {
+    console.error("listMedLifeAccounts failed:", error);
+    throw new HttpsError("internal", "Unable to load MedLife accounts.");
+  }
+});
+
+// ============================================================
 // Staff permission management (Super Admin only)
 // Custom claims are the authorization source; Firestore fields
 // below are staff-directory metadata only.
