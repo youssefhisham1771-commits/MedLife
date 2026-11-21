@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'orders_management_page.dart';
@@ -851,10 +852,7 @@ class _Kpi extends StatelessWidget {
   final String title, value;
   final IconData icon;
   @override
-  Widget build(BuildContext context) => SizedBox(width: 220, child: Card(child: Padding(padding: const EdgeInsets.all(18), child: Row(children: [Icon(icon, color: _blue, size: 28), const SizedBox(width: 12), Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(title, style: Theme.of(context).textTheme.bodySmall), Text(value, style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold))]))]))));
-}
-
-class StaffAdminPage extends StatefulWidget {
+  Widget build(BuildContext context) => SizedBox(width: 220, child: Card(child: Padding(padding: const EdgeInsets.all(18), child: Row(children: [Icon(icon, color: _blue, size: 28), const SizedBox(width: 12), Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(title, style: Theme.of(context).textTheme.bodySmall), Text(value, style: Theme.of(context).textTheme.titleLarclass StaffAdminPage extends StatefulWidget {
   const StaffAdminPage({super.key});
   @override
   State<StaffAdminPage> createState() => _StaffAdminPageState();
@@ -862,29 +860,47 @@ class StaffAdminPage extends StatefulWidget {
 
 class _StaffAdminPageState extends State<StaffAdminPage> {
   String search = '';
+  late Future<List<Map<String, dynamic>>> accountsFuture = _loadAccounts();
 
-  void _showStaffDetails(
-    BuildContext context,
-    QueryDocumentSnapshot<Map<String, dynamic>> doc,
-  ) {
-    final data = doc.data();
-    final name = (data['name'] ?? data['fullName'] ?? 'Administrator').toString();
+  Future<List<Map<String, dynamic>>> _loadAccounts() async {
+    final result = await FirebaseFunctions.instance
+        .httpsCallable('listMedLifeAccounts')
+        .call();
+    final data = Map<String, dynamic>.from(result.data as Map);
+    final rows = (data['accounts'] as List? ?? const [])
+        .map((item) => Map<String, dynamic>.from(item as Map))
+        .toList();
+    rows.sort((a, b) {
+      final aName = (a['name'] ?? a['email'] ?? a['uid'] ?? '').toString();
+      final bName = (b['name'] ?? b['email'] ?? b['uid'] ?? '').toString();
+      return aName.toLowerCase().compareTo(bName.toLowerCase());
+    });
+    return rows;
+  }
+
+  void _refresh() {
+    setState(() => accountsFuture = _loadAccounts());
+  }
+
+  void _showAccountDetails(Map<String, dynamic> data) {
+    final name = (data['name'] ?? data['displayName'] ?? data['email'] ?? 'Account').toString();
     showDialog<void>(
       context: context,
       builder: (dialogContext) => AlertDialog(
         title: Text(name),
         content: SizedBox(
-          width: 420,
+          width: 440,
           child: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 _staffDetail('Email', data['email'] ?? '—'),
-                _staffDetail('Phone', data['phone'] ?? '—'),
-                _staffDetail('Account ID', doc.id),
-                _staffDetail('Role', data['role'] ?? 'admin'),
-                _staffDetail('Created', _date(data['createdAt'])),
+                _staffDetail('Phone', data['phoneNumber'] ?? '—'),
+                _staffDetail('Account ID', data['uid'] ?? '—'),
+                _staffDetail('Role', data['role'] ?? 'user'),
+                _staffDetail('Status', data['disabled'] == true ? 'Authentication disabled' : (data['active'] == true ? 'Active staff' : 'Registered account')),
+                _staffDetail('Permissions', (data['permissions'] as List? ?? const []).join(', ').isEmpty ? 'None assigned' : (data['permissions'] as List).join(', ')),
               ],
             ),
           ),
@@ -914,34 +930,52 @@ class _StaffAdminPageState extends State<StaffAdminPage> {
   @override
   Widget build(BuildContext context) => _PageFrame(
     title: 'Staff & Permissions',
-    subtitle: 'Read-only directory of accounts currently marked as administrators. Permission editing is not enabled.',
-    child: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-      stream: _db.collection('users').where('role', isEqualTo: 'admin').snapshots(),
+    subtitle: 'Registered MedLife accounts. Select an account to inspect its current staff status and permissions.',
+    action: IconButton(
+      tooltip: 'Refresh accounts',
+      onPressed: _refresh,
+      icon: const Icon(Icons.refresh),
+    ),
+    child: FutureBuilder<List<Map<String, dynamic>>>(
+      future: accountsFuture,
       builder: (context, snap) {
         if (snap.hasError) {
-          return const Center(child: Text('Could not load admin accounts. Check Firestore access.'));
+          return Center(
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.cloud_off_outlined, size: 40, color: Colors.grey),
+                  const SizedBox(height: 12),
+                  const Text('Could not load accounts from the secure admin service.'),
+                  const SizedBox(height: 8),
+                  SelectableText(snap.error.toString(), textAlign: TextAlign.center),
+                  const SizedBox(height: 12),
+                  FilledButton.icon(onPressed: _refresh, icon: const Icon(Icons.refresh), label: const Text('Try again')),
+                ],
+              ),
+            ),
+          );
         }
         if (!snap.hasData) {
           return const Center(child: CircularProgressIndicator());
         }
 
-        final allStaff = snap.data!.docs;
-        final filtered = allStaff.where((doc) {
-          final data = doc.data();
+        final allAccounts = snap.data!;
+        final filtered = allAccounts.where((data) {
           final searchable = [
             data['name'],
-            data['fullName'],
+            data['displayName'],
             data['email'],
-            data['phone'],
-            doc.id,
+            data['phoneNumber'],
+            data['uid'],
+            data['role'],
           ].where((value) => value != null).join(' ').toLowerCase();
           return searchable.contains(search.trim().toLowerCase());
-        }).toList()
-          ..sort((a, b) {
-            final aName = (a.data()['name'] ?? a.data()['fullName'] ?? a.id).toString();
-            final bName = (b.data()['name'] ?? b.data()['fullName'] ?? b.id).toString();
-            return aName.toLowerCase().compareTo(bName.toLowerCase());
-          });
+        }).toList();
+        final staffCount = allAccounts.where((account) => account['role'] == 'staff').length;
+        final activeCount = allAccounts.where((account) => account['role'] == 'staff' && account['active'] == true).length;
 
         return Column(
           children: [
@@ -951,7 +985,9 @@ class _StaffAdminPageState extends State<StaffAdminPage> {
                 spacing: 12,
                 runSpacing: 8,
                 children: [
-                  _Kpi(title: 'Admin Accounts', value: allStaff.length.toString(), icon: Icons.admin_panel_settings_outlined),
+                  _Kpi(title: 'Registered Accounts', value: allAccounts.length.toString(), icon: Icons.people_outline),
+                  _Kpi(title: 'Staff Accounts', value: staffCount.toString(), icon: Icons.badge_outlined),
+                  _Kpi(title: 'Active Staff', value: activeCount.toString(), icon: Icons.verified_user_outlined),
                   _Kpi(title: 'Search Results', value: filtered.length.toString(), icon: Icons.manage_search),
                 ],
               ),
@@ -976,35 +1012,28 @@ class _StaffAdminPageState extends State<StaffAdminPage> {
             const SizedBox(height: 8),
             Expanded(
               child: filtered.isEmpty
-                ? Center(
-                    child: Text(allStaff.isEmpty
-                      ? 'No admin profiles found.'
-                      : 'No admin accounts match your search.'),
-                  )
+                ? Center(child: Text(allAccounts.isEmpty ? 'No registered accounts found.' : 'No accounts match your search.'))
                 : ListView.separated(
                     padding: const EdgeInsets.all(24),
                     itemCount: filtered.length,
                     separatorBuilder: (_, __) => const SizedBox(height: 8),
                     itemBuilder: (context, index) {
-                      final doc = filtered[index];
-                      final data = doc.data();
-                      final name = (data['name'] ?? data['fullName'] ?? 'Administrator').toString();
+                      final data = filtered[index];
+                      final name = (data['name'] ?? data['displayName'] ?? data['email'] ?? 'Unnamed account').toString();
                       final email = (data['email'] ?? 'No email recorded').toString();
-                      final phone = (data['phone'] ?? 'No phone recorded').toString();
+                      final phone = (data['phoneNumber'] ?? 'No phone recorded').toString();
+                      final isStaff = data['role'] == 'staff';
+                      final isActive = data['active'] == true;
                       return Card(
                         child: ListTile(
-                          leading: const CircleAvatar(
-                            child: Icon(Icons.admin_panel_settings_outlined),
+                          leading: CircleAvatar(
+                            child: Icon(isStaff ? Icons.badge_outlined : Icons.person_outline),
                           ),
                           title: Text(name, maxLines: 1, overflow: TextOverflow.ellipsis),
-                          subtitle: Text(
-                            '$email\n$phone',
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                          ),
+                          subtitle: Text('$email\\n$phone', maxLines: 2, overflow: TextOverflow.ellipsis),
                           isThreeLine: true,
-                          trailing: const Icon(Icons.chevron_right),
-                          onTap: () => _showStaffDetails(context, doc),
+                          trailing: Chip(label: Text(isStaff ? (isActive ? 'Active staff' : 'Inactive staff') : 'Customer')),
+                          onTap: () => _showAccountDetails(data),
                         ),
                       );
                     },
@@ -1012,16 +1041,22 @@ class _StaffAdminPageState extends State<StaffAdminPage> {
             ),
             Padding(
               padding: const EdgeInsets.fromLTRB(24, 0, 24, 16),
-              child: Card(
+              child: const Card(
                 child: ListTile(
-                  leading: const Icon(Icons.info_outline, color: _blue),
-                  title: const Text('Permissions are unchanged'),
-                  subtitle: const Text(
-                    'All listed accounts currently use the existing admin role. Fine-grained roles will only be enabled after secure backend and Firestore rule enforcement is implemented.',
-                  ),
+                  leading: Icon(Icons.info_outline, color: _blue),
+                  title: Text('Secure account directory'),
+                  subtitle: Text('Accounts are loaded through a Super Admin-only server function. Permission assignment controls will be added after this directory is verified on the emulator.'),
                 ),
               ),
             ),
+          ],
+        );
+      },
+    ),
+  );
+}
+
+    ),
           ],
         );
       },
