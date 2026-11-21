@@ -38,11 +38,12 @@ Future<void> createOrUpdateGoogleUser(User user) async {
     'email': user.email ?? '',
     'phone': user.phoneNumber ?? '',
     'photoUrl': user.photoURL ?? '',
-    'role': 'user',
   };
 
-  // Add createdAt ONLY for a new user.
+  // Set the default role and createdAt only for a new user.
+  // Preserve the role and staff metadata of existing accounts.
   if (!existingUser.exists) {
+    data['role'] = 'user';
     data['createdAt'] = FieldValue.serverTimestamp();
   }
 
