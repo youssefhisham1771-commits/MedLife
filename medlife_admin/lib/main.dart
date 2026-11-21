@@ -66,7 +66,7 @@ class AuthGate extends StatelessWidget {
       if (user == null) return const AdminLoginPage();
 
       return FutureBuilder<IdTokenResult>(
-        future: user.getIdTokenResult(),
+        future: user.getIdTokenResult(true),
         builder: (context, tokenSnapshot) {
           if (tokenSnapshot.connectionState == ConnectionState.waiting) {
             return const _Loading();
