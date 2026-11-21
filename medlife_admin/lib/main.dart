@@ -56,24 +56,88 @@ ThemeData _theme(Brightness brightness) {
 class AuthGate extends StatelessWidget {
   const AuthGate({super.key, required this.onThemeToggle});
   final VoidCallback onThemeToggle;
+
   @override
   Widget build(BuildContext context) => StreamBuilder<User?>(
     stream: FirebaseAuth.instance.authStateChanges(),
     builder: (context, auth) {
       if (auth.connectionState == ConnectionState.waiting) return const _Loading();
-      if (auth.data == null) return const AdminLoginPage();
-      return FutureBuilder<DocumentSnapshot<Map<String, dynamic>>>(
-        future: FirebaseFirestore.instance.collection('users').doc(auth.data!.uid).get(),
-        builder: (context, profile) {
-          if (profile.connectionState == ConnectionState.waiting) return const _Loading();
-          if (!profile.hasData || profile.data?.data()?['role'] != 'admin') {
-            FirebaseAuth.instance.signOut();
-            return const AdminLoginPage(message: 'This account does not have administrator access.');
+      final user = auth.data;
+      if (user == null) return const AdminLoginPage();
+
+      return FutureBuilder<IdTokenResult>(
+        future: user.getIdTokenResult(),
+        builder: (context, tokenSnapshot) {
+          if (tokenSnapshot.connectionState == ConnectionState.waiting) {
+            return const _Loading();
           }
-          return AdminShell(onThemeToggle: onThemeToggle);
+          if (tokenSnapshot.hasError || !tokenSnapshot.hasData) {
+            return const _AccessDenied(
+              message: 'Unable to verify this account permissions. Please sign in again.',
+            );
+          }
+
+          final claims = tokenSnapshot.data!.claims ?? const <String, dynamic>{};
+          final isSuperAdmin = claims['medlifeSuperAdmin'] == true;
+          final isActiveStaff = claims['medlifeRole'] == 'staff' &&
+              claims['medlifeStaffActive'] == true;
+          final rawPermissions = claims['medlifePermissions'];
+          final permissions = rawPermissions is List
+              ? rawPermissions.whereType<String>().toSet()
+              : <String>{};
+
+          if (!isSuperAdmin && !isActiveStaff) {
+            return const _AccessDenied(
+              message: 'This account is not an active MedLife administrator.',
+            );
+          }
+
+          return AdminShell(
+            onThemeToggle: onThemeToggle,
+            isSuperAdmin: isSuperAdmin,
+            permissions: permissions,
+          );
         },
       );
     },
+  );
+}
+
+class _AccessDenied extends StatelessWidget {
+  const _AccessDenied({required this.message});
+  final String message;
+
+  @override
+  Widget build(BuildContext context) => Scaffold(
+    body: Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 420),
+        child: Card(
+          child: Padding(
+            padding: const EdgeInsets.all(28),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.lock_outline, size: 44, color: Colors.redAccent),
+                const SizedBox(height: 14),
+                const Text(
+                  'Administrator access required',
+                  style: TextStyle(fontSize: 19, fontWeight: FontWeight.w800),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 10),
+                Text(message, textAlign: TextAlign.center),
+                const SizedBox(height: 20),
+                FilledButton(
+                  onPressed: () => FirebaseAuth.instance.signOut(),
+                  child: const Text('Sign out'),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    ),
   );
 }
 
@@ -156,29 +220,74 @@ const _nav = [
 ];
 
 class AdminShell extends StatefulWidget {
-  const AdminShell({super.key, required this.onThemeToggle});
+  const AdminShell({
+    super.key,
+    required this.onThemeToggle,
+    required this.isSuperAdmin,
+    required this.permissions,
+  });
+
   final VoidCallback onThemeToggle;
+  final bool isSuperAdmin;
+  final Set<String> permissions;
+
   @override
   State<AdminShell> createState() => _AdminShellState();
 }
 
 class _AdminShellState extends State<AdminShell> {
   int selected = 0;
+
+  static const _requiredPermission = <int, String>{
+    0: 'dashboard.view',
+    1: 'orders.view',
+    2: 'products.view',
+    3: 'inventory.view',
+    4: 'customers.view',
+    5: 'categories.manage',
+    6: 'marketing.manage',
+    7: 'reports_finance.view',
+    8: 'reports_finance.view',
+    9: 'staff.manage',
+    10: 'notifications.manage',
+    11: 'reports_finance.view',
+    12: 'settings.manage',
+    13: 'activity_log.view',
+    14: 'backup.manage',
+  };
+
+  List<int> get _visibleSections => List<int>.generate(_nav.length, (i) => i)
+      .where((i) => widget.isSuperAdmin ||
+          widget.permissions.contains(_requiredPermission[i]))
+      .toList();
+
   @override
   Widget build(BuildContext context) {
+    final visibleSections = _visibleSections;
+    final activeSection = visibleSections.contains(selected)
+        ? selected
+        : (visibleSections.isEmpty ? -1 : visibleSections.first);
     final wide = MediaQuery.sizeOf(context).width >= 1000;
+
     return Scaffold(
-      drawer: wide ? null : Drawer(child: _sidebar()),
+      drawer: wide ? null : Drawer(child: _sidebar(visibleSections, activeSection)),
       body: Row(children: [
-        if (wide) SizedBox(width: 248, child: _sidebar()),
+        if (wide) SizedBox(width: 248, child: _sidebar(visibleSections, activeSection)),
         Expanded(child: Column(children: [
-          _topbar(wide),
-          Expanded(child: selected == 0 ? const DashboardPage() : AdminModulePage(index: selected)),
+          _topbar(wide, visibleSections),
+          Expanded(
+            child: activeSection == -1
+                ? const _NoSectionAccess()
+                : activeSection == 0
+                    ? const DashboardPage()
+                    : AdminModulePage(index: activeSection),
+          ),
         ])),
       ]),
     );
   }
-  Widget _sidebar() => Container(
+
+  Widget _sidebar(List<int> visibleSections, int activeSection) => Container(
     color: const Color(0xFF101B3D),
     child: SafeArea(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       const Padding(padding: EdgeInsets.fromLTRB(22, 24, 16, 28), child: Row(children: [
@@ -190,36 +299,76 @@ class _AdminShellState extends State<AdminShell> {
         ]),
       ])),
       Expanded(child: ListView(padding: const EdgeInsets.symmetric(horizontal: 10), children: [
-        for (var i = 0; i < _nav.length; i++)
+        for (final i in visibleSections)
           Padding(padding: const EdgeInsets.only(bottom: 4), child: ListTile(
-            selected: selected == i,
+            selected: activeSection == i,
             selectedTileColor: const Color(0xFF1769E0),
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             leading: Icon(_nav[i].$2, color: Colors.white),
             title: Text(_nav[i].$1, style: const TextStyle(color: Colors.white, fontSize: 13)),
-            onTap: () => setState(() => selected = i),
+            onTap: () {
+              setState(() => selected = i);
+              if (Scaffold.of(context).isDrawerOpen) Navigator.pop(context);
+            },
           )),
       ])),
-      ListTile(leading: const Icon(Icons.logout, color: Colors.white70), title: const Text('Sign Out', style: TextStyle(color: Colors.white)), onTap: () => FirebaseAuth.instance.signOut()),
+      ListTile(
+        leading: const Icon(Icons.logout, color: Colors.white70),
+        title: const Text('Sign Out', style: TextStyle(color: Colors.white)),
+        onTap: () => FirebaseAuth.instance.signOut(),
+      ),
       const SizedBox(height: 10),
     ])),
   );
-  Widget _topbar(bool wide) => Container(
-    height: 76, padding: const EdgeInsets.symmetric(horizontal: 24),
-    decoration: BoxDecoration(color: Theme.of(context).cardColor, border: Border(bottom: BorderSide(color: Theme.of(context).dividerColor.withValues(alpha: .2)))),
+
+  Widget _topbar(bool wide, List<int> visibleSections) => Container(
+    height: 76,
+    padding: const EdgeInsets.symmetric(horizontal: 24),
+    decoration: BoxDecoration(
+      color: Theme.of(context).cardColor,
+      border: Border(bottom: BorderSide(color: Theme.of(context).dividerColor.withValues(alpha: .2))),
+    ),
     child: Row(children: [
-      if (!wide) Builder(builder: (context) => IconButton(icon: const Icon(Icons.menu), onPressed: () => Scaffold.of(context).openDrawer())),
-      Expanded(child: TextField(decoration: const InputDecoration(hintText: 'Search anything…  (Ctrl + K)', prefixIcon: Icon(Icons.search), isDense: true))),
+      if (!wide) Builder(builder: (context) => IconButton(
+        icon: const Icon(Icons.menu),
+        onPressed: () => Scaffold.of(context).openDrawer(),
+      )),
+      Expanded(child: TextField(
+        decoration: const InputDecoration(
+          hintText: 'Search anything…  (Ctrl + K)',
+          prefixIcon: Icon(Icons.search),
+          isDense: true,
+        ),
+      )),
       const SizedBox(width: 14),
       IconButton(onPressed: widget.onThemeToggle, icon: const Icon(Icons.dark_mode_outlined)),
-      IconButton(onPressed: () => setState(() => selected = 10), icon: const Icon(Icons.notifications_none)),
+      if (visibleSections.contains(10))
+        IconButton(onPressed: () => setState(() => selected = 10), icon: const Icon(Icons.notifications_none)),
       const SizedBox(width: 8),
       const CircleAvatar(backgroundColor: Color(0xFF1769E0), child: Icon(Icons.person, color: Colors.white)),
-      if (wide) const Padding(padding: EdgeInsets.only(left: 10), child: Column(mainAxisAlignment: MainAxisAlignment.center, crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text('Administrator', style: TextStyle(fontWeight: FontWeight.w700)),
-        Text('Super Admin', style: TextStyle(fontSize: 11, color: Colors.grey)),
-      ])),
+      if (wide) Padding(
+        padding: const EdgeInsets.only(left: 10),
+        child: Column(mainAxisAlignment: MainAxisAlignment.center, crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text(widget.isSuperAdmin ? 'Administrator' : 'Staff Member', style: const TextStyle(fontWeight: FontWeight.w700)),
+          Text(widget.isSuperAdmin ? 'Super Admin' : 'Staff', style: const TextStyle(fontSize: 11, color: Colors.grey)),
+        ]),
+      ),
     ]),
+  );
+}
+
+class _NoSectionAccess extends StatelessWidget {
+  const _NoSectionAccess();
+
+  @override
+  Widget build(BuildContext context) => const Center(
+    child: Padding(
+      padding: EdgeInsets.all(24),
+      child: Text(
+        'Your account is active, but no dashboard sections have been assigned yet. Contact the Super Admin.',
+        textAlign: TextAlign.center,
+      ),
+    ),
   );
 }
 
