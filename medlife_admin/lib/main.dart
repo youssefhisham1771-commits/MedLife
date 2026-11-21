@@ -270,9 +270,9 @@ class _AdminShellState extends State<AdminShell> {
     final wide = MediaQuery.sizeOf(context).width >= 1000;
 
     return Scaffold(
-      drawer: wide ? null : Drawer(child: _sidebar(visibleSections, activeSection)),
+      drawer: wide ? null : Drawer(child: _sidebar(visibleSections, activeSection, closeDrawer: true)),
       body: Row(children: [
-        if (wide) SizedBox(width: 248, child: _sidebar(visibleSections, activeSection)),
+        if (wide) SizedBox(width: 248, child: _sidebar(visibleSections, activeSection, closeDrawer: false)),
         Expanded(child: Column(children: [
           _topbar(wide, visibleSections),
           Expanded(
@@ -287,7 +287,7 @@ class _AdminShellState extends State<AdminShell> {
     );
   }
 
-  Widget _sidebar(List<int> visibleSections, int activeSection) => Container(
+  Widget _sidebar(List<int> visibleSections, int activeSection, {required bool closeDrawer}) => Container(
     color: const Color(0xFF101B3D),
     child: SafeArea(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       const Padding(padding: EdgeInsets.fromLTRB(22, 24, 16, 28), child: Row(children: [
@@ -308,7 +308,7 @@ class _AdminShellState extends State<AdminShell> {
             title: Text(_nav[i].$1, style: const TextStyle(color: Colors.white, fontSize: 13)),
             onTap: () {
               setState(() => selected = i);
-              if (Scaffold.of(context).isDrawerOpen) Navigator.pop(context);
+              if (closeDrawer) Navigator.pop(context);
             },
           )),
       ])),
