@@ -1,5 +1,6 @@
 const functions = require("firebase-functions");
 const admin = require("firebase-admin");
+const { FieldValue } = require("firebase-admin/firestore");
 
 admin.initializeApp();
 
@@ -150,10 +151,11 @@ exports.setMedLifeStaffPermissions = onCall(async (request) => {
     });
 
     await admin.firestore().collection("users").doc(targetUid).set({
+      role: FieldValue.delete(),
       medlifeRole: "staff",
       medlifePermissions: assignedPermissions,
       medlifeStaffActive: active,
-      staffPermissionsUpdatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      staffPermissionsUpdatedAt: FieldValue.serverTimestamp(),
       staffPermissionsUpdatedBy: request.auth.uid,
     }, { merge: true });
 
