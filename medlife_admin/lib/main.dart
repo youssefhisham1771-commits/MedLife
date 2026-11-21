@@ -250,7 +250,6 @@ class _AdminShellState extends State<AdminShell> {
     8: 'reports_finance.view',
     9: 'staff.manage',
     10: 'notifications.manage',
-    11: 'reports_finance.view',
     12: 'settings.manage',
     13: 'activity_log.view',
     14: 'backup.manage',
