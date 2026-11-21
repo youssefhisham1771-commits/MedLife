@@ -9,6 +9,16 @@ import 'admin_pages.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+
+  // Opt in to local Firebase emulators for safe development/testing.
+  // Production remains the default unless USE_FIREBASE_EMULATORS=true.
+  const useFirebaseEmulators =
+      bool.fromEnvironment('USE_FIREBASE_EMULATORS');
+  if (useFirebaseEmulators) {
+    FirebaseAuth.instance.useAuthEmulator('127.0.0.1', 9099);
+    FirebaseFirestore.instance.useFirestoreEmulator('127.0.0.1', 8080);
+  }
+
   runApp(const MedLifeAdminApp());
 }
 
