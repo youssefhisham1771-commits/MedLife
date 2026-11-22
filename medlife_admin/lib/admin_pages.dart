@@ -102,7 +102,7 @@ class _OrdersAdminPageState extends State<OrdersAdminPage> {
       Expanded(child: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
         stream: _db.collection('orders').orderBy('orderedAt', descending: true).snapshots(),
         builder: (context, snap) {
-          if (snap.hasError) return Center(child: Padding(padding: const EdgeInsets.all(24), child: SelectableText('Could not load orders: ${snap.error}', textAlign: TextAlign.center)));
+          if (snap.hasError) return const Center(child: Text('Could not load orders. Check your Firestore access.'));
           if (!snap.hasData) return const Center(child: CircularProgressIndicator());
           final docs = snap.data!.docs.where((d) {
             final x = d.data();
