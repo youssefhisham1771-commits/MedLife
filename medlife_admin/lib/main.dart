@@ -8,12 +8,35 @@ import 'admin_pages.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
-  // Opt in to local Firebase emulators for safe development/testing.
-  // Production remains the default unless USE_FIREBASE_EMULATORS=true.
+  // The emulator suite is started with --project demo-medlife. The Firebase
+  // app must use that same project ID or callable Functions / Firestore will
+  // target a different project namespace than the running emulators.
   const useFirebaseEmulators =
       bool.fromEnvironment('USE_FIREBASE_EMULATORS');
+  final configuredOptions = DefaultFirebaseOptions.currentPlatform;
+  final firebaseOptions = useFirebaseEmulators
+      ? FirebaseOptions(
+          apiKey: configuredOptions.apiKey,
+          appId: configuredOptions.appId,
+          messagingSenderId: configuredOptions.messagingSenderId,
+          projectId: 'demo-medlife',
+          authDomain: configuredOptions.authDomain,
+          databaseURL: configuredOptions.databaseURL,
+          storageBucket: configuredOptions.storageBucket,
+          measurementId: configuredOptions.measurementId,
+          trackingId: configuredOptions.trackingId,
+          deepLinkURLScheme: configuredOptions.deepLinkURLScheme,
+          androidClientId: configuredOptions.androidClientId,
+          iosClientId: configuredOptions.iosClientId,
+          iosBundleId: configuredOptions.iosBundleId,
+          appGroupId: configuredOptions.appGroupId,
+        )
+      : configuredOptions;
+
+  await Firebase.initializeApp(options: firebaseOptions);
+
+  // Production project configuration remains unchanged when emulator mode is off.
   if (useFirebaseEmulators) {
     FirebaseAuth.instance.useAuthEmulator('127.0.0.1', 9099);
     FirebaseFirestore.instance.useFirestoreEmulator('127.0.0.1', 8080);
