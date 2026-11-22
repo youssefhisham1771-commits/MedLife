@@ -290,8 +290,21 @@ class _AdminShellState extends State<AdminShell> {
   };
 
   List<int> get _visibleSections => List<int>.generate(_nav.length, (i) => i)
-      .where((i) => widget.isSuperAdmin ||
-          widget.permissions.contains(_requiredPermission[i]))
+      .where((i) {
+        if (widget.isSuperAdmin) return true;
+
+        // The Customers page reads both /users and /orders to calculate
+        // purchase history and customer spend. Require both permissions so
+        // the navigation never exposes a page that Firestore must reject.
+        if (i == 4) {
+          return widget.permissions.contains('customers.view') &&
+              widget.permissions.contains('orders.view');
+        }
+
+        final requiredPermission = _requiredPermission[i];
+        return requiredPermission != null &&
+            widget.permissions.contains(requiredPermission);
+      })
       .toList();
 
   @override
