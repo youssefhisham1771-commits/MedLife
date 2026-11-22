@@ -527,7 +527,10 @@ class _RecentOrdersCard extends StatelessWidget {
     StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
       stream: FirebaseFirestore.instance.collection('orders').orderBy('orderedAt', descending: true).limit(5).snapshots(),
       builder: (context, snapshot) {
-        if (snapshot.hasError) return const Text('Unable to load orders. Check Firestore access and the createdAt field.');
+        if (snapshot.hasError) {
+          debugPrint('RECENT ORDERS FIRESTORE ERROR: ${snapshot.error}');
+          return Text('Unable to load orders: ${snapshot.error}');
+        }
         if (!snapshot.hasData) return const LinearProgressIndicator();
         if (snapshot.data!.docs.isEmpty) return const Text('No orders found.');
         return Column(children: snapshot.data!.docs.map((doc) {
