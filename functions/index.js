@@ -77,6 +77,16 @@ const { onCall, HttpsError } = require("firebase-functions/v2/https");
 const MEDLIFE_SUPER_ADMIN_UID = "DmoPC05QspbB8QVKwir5Y0Zggcz1";
 
 exports.bootstrapMedLifeSuperAdmin = onCall(async (request) => {
+  // This bootstrap identity is an Auth Emulator fixture, not a production
+  // administrator. Production Super Admin provisioning must use a trusted
+  // one-time Admin SDK procedure and must never be self-service.
+  if (process.env.FUNCTIONS_EMULATOR !== "true") {
+    throw new HttpsError(
+      "failed-precondition",
+      "Super Admin bootstrap is disabled outside the Firebase Emulator."
+    );
+  }
+
   if (!request.auth) {
     throw new HttpsError("unauthenticated", "Sign in before bootstrapping the admin account.");
   }
