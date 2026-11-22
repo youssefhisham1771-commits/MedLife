@@ -239,10 +239,13 @@ class _OrdersManagementPageState extends State<OrdersManagementPage> {
             stream: orders.orderBy('orderedAt', descending: true).snapshots(),
             builder: (context, snapshot) {
               if (snapshot.hasError) {
-                return const Center(child: Padding(
-                  padding: EdgeInsets.all(24),
-                  child: Text('Unable to load orders. Check Firestore access and the orderedAt field.',
-                    textAlign: TextAlign.center),
+                debugPrint('ORDERS PAGE FIRESTORE ERROR: ${snapshot.error}');
+                return Center(child: Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: SelectableText(
+                    'Unable to load orders: ${snapshot.error}',
+                    textAlign: TextAlign.center,
+                  ),
                 ));
               }
               if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
