@@ -1,0 +1,10 @@
+{
+  "name": "MedLife Admin",
+  "short_name": "MedLife Admin",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#F3F6FC",
+  "theme_color": "#101B3D",
+  "description": "MedLife administration dashboard.",
+  "orientation": "any"
+}
