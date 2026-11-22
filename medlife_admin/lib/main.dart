@@ -487,18 +487,35 @@ class _MetricCard extends StatelessWidget {
 
 class _SalesCard extends StatelessWidget {
   const _SalesCard();
+
   @override
-  Widget build(BuildContext context) => Card(child: Padding(padding: const EdgeInsets.all(20), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-    Text('Revenue Analytics', style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800)),
-    const SizedBox(height: 18),
-    SizedBox(height: 210, child: LineChart(LineChartData(
-      gridData: const FlGridData(show: true, drawVerticalLine: false),
-      titlesData: const FlTitlesData(show: false),
-      borderData: FlBorderData(show: false),
-      lineBarsData: [LineChartBarData(isCurved: true, color: const Color(0xFF2589F5), barWidth: 4, belowBarData: BarAreaData(show: true, color: const Color(0xFF2589F5).withValues(alpha: .12)), spots: const [FlSpot(0, 2), FlSpot(1, 4), FlSpot(2, 3), FlSpot(3, 6), FlSpot(4, 5), FlSpot(5, 8), FlSpot(6, 7)])],
-    ))),
-    const Text('Connect verified order totals and timestamps to enable period-based revenue calculations.', style: TextStyle(fontSize: 12, color: Colors.grey)),
-  ])));
+  Widget build(BuildContext context) => Card(
+    child: Padding(
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Revenue Analytics',
+            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(height: 18),
+          const SizedBox(
+            height: 210,
+            child: Center(
+              child: Text(
+                'Revenue analytics will be available after verified order totals and timestamps are connected.',
+                textAlign: TextAlign.center,
+                style: TextStyle(color: Colors.grey),
+              ),
+            ),
+          ),
+        ],
+      ),
+    ),
+  );
 }
 
 class _RecentOrdersCard extends StatelessWidget {
