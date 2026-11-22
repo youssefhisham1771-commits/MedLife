@@ -864,200 +864,275 @@ class StaffAdminPage extends StatefulWidget {
 class _StaffAdminPageState extends State<StaffAdminPage> {
   String search = '';
   late Future<List<Map<String, dynamic>>> accountsFuture = _loadAccounts();
+  bool saving = false;
 
   Future<List<Map<String, dynamic>>> _loadAccounts() async {
-    final result = await FirebaseFunctions.instance
-        .httpsCallable('listMedLifeAccounts')
-        .call();
+    final result = await FirebaseFunctions.instance.httpsCallable('listMedLifeAccounts').call();
     final data = Map<String, dynamic>.from(result.data as Map);
     final rows = (data['accounts'] as List? ?? const [])
-        .map((item) => Map<String, dynamic>.from(item as Map))
-        .toList();
-    rows.sort((a, b) {
-      final aName = (a['name'] ?? a['email'] ?? a['uid'] ?? '').toString();
-      final bName = (b['name'] ?? b['email'] ?? b['uid'] ?? '').toString();
-      return aName.toLowerCase().compareTo(bName.toLowerCase());
-    });
+        .map((item) => Map<String, dynamic>.from(item as Map)).toList();
+    rows.sort((a, b) => (a['name'] ?? a['email'] ?? a['uid'] ?? '')
+        .toString().toLowerCase().compareTo(
+          (b['name'] ?? b['email'] ?? b['uid'] ?? '').toString().toLowerCase()));
     return rows;
   }
 
-  void _refresh() {
-    setState(() => accountsFuture = _loadAccounts());
+  void _refresh() => setState(() => accountsFuture = _loadAccounts());
+
+  Future<void> _manageAccount(Map<String, dynamic> data) async {
+    if (saving) return;
+    final uid = (data['uid'] ?? '').toString();
+    if (uid.isEmpty) {
+      _message(context, 'This account has no valid ID.');
+      return;
+    }
+    final existing = (data['permissions'] as List? ?? const []).whereType<String>().toSet();
+    final initialActive = data['role'] == 'staff' && data['active'] == true;
+    final result = await showDialog<Map<String, dynamic>>(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) {
+        final selected = {...existing};
+        var active = initialActive || data['role'] != 'staff';
+        var submitting = false;
+        return StatefulBuilder(builder: (context, setDialogState) => AlertDialog(
+          title: Text(data['role'] == 'staff' ? 'Manage staff access' : 'Grant staff access'),
+          content: SizedBox(
+            width: 560,
+            child: SingleChildScrollView(child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text((data['name'] ?? data['displayName'] ?? data['email'] ?? uid).toString(),
+                    style: Theme.of(context).textTheme.titleMedium),
+                Text((data['email'] ?? uid).toString(), style: Theme.of(context).textTheme.bodySmall),
+                const SizedBox(height: 12),
+                SwitchListTile.adaptive(
+                  contentPadding: EdgeInsets.zero,
+                  title: const Text('Staff account active'),
+                  subtitle: const Text('Inactive staff immediately lose dashboard permissions.'),
+                  value: active,
+                  onChanged: submitting ? null : (value) => setDialogState(() {
+                    active = value;
+                    if (!active) selected.clear();
+                  }),
+                ),
+                const Divider(),
+                Text('Assign permissions', style: Theme.of(context).textTheme.titleSmall),
+                const SizedBox(height: 4),
+                const Text('Grant only the access required for this person’s job. Firebase security rules and server functions enforce these permissions.',
+                    style: TextStyle(color: Colors.grey, fontSize: 12)),
+                const SizedBox(height: 8),
+                ..._staffPermissionGroups.entries.map((group) => ExpansionTile(
+                  initiallyExpanded: true,
+                  tilePadding: EdgeInsets.zero,
+                  title: Text(group.key, style: const TextStyle(fontWeight: FontWeight.w700)),
+                  children: group.value.map((permission) {
+                    final key = permission['key']!;
+                    return CheckboxListTile(
+                      dense: true,
+                      contentPadding: EdgeInsets.zero,
+                      controlAffinity: ListTileControlAffinity.leading,
+                      title: Text(permission['label']!),
+                      subtitle: Text(key, style: const TextStyle(fontSize: 11, color: Colors.grey)),
+                      value: selected.contains(key),
+                      onChanged: !active || submitting ? null : (checked) => setDialogState(() {
+                        if (checked == true) { selected.add(key); } else { selected.remove(key); }
+                      }),
+                    );
+                  }).toList(),
+                )),
+                if (!active) const Padding(
+                  padding: EdgeInsets.only(top: 8),
+                  child: Text('Enable the account to select permissions.', style: TextStyle(color: Colors.orange)),
+                ),
+              ],
+            )),
+          ),
+          actions: [
+            TextButton(onPressed: submitting ? null : () => Navigator.pop(dialogContext),
+                child: const Text('Cancel')),
+            FilledButton.icon(
+              onPressed: submitting ? null : () => Navigator.pop(dialogContext, {
+                'active': active, 'permissions': active ? selected.toList() : <String>[],
+              }),
+              icon: const Icon(Icons.save_outlined), label: const Text('Save access')),
+          ],
+        ));
+      },
+    );
+    if (result == null || !mounted) return;
+    setState(() => saving = true);
+    try {
+      await FirebaseFunctions.instance.httpsCallable('setMedLifeStaffPermissions').call({
+        'targetUid': uid,
+        'active': result['active'] == true,
+        'permissions': result['permissions'] as List<String>,
+      });
+      if (!mounted) return;
+      _message(context, result['active'] == true
+          ? 'Staff permissions saved. The user must sign in again or refresh their session.'
+          : 'Staff access deactivated and permissions cleared.');
+      _refresh();
+    } on FirebaseFunctionsException catch (e) {
+      if (mounted) _message(context, 'Could not update staff access (' + e.code + '): ' + (e.message ?? 'Unknown error'));
+    } catch (e) {
+      if (mounted) _message(context, 'Could not update staff access: ' + e.toString());
+    } finally {
+      if (mounted) setState(() => saving = false);
+    }
   }
 
   void _showAccountDetails(Map<String, dynamic> data) {
     final name = (data['name'] ?? data['displayName'] ?? data['email'] ?? 'Account').toString();
-    showDialog<void>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: Text(name),
-        content: SizedBox(
-          width: 440,
-          child: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _staffDetail('Email', data['email'] ?? '—'),
-                _staffDetail('Phone', data['phoneNumber'] ?? '—'),
-                _staffDetail('Account ID', data['uid'] ?? '—'),
-                _staffDetail('Role', data['role'] ?? 'user'),
-                _staffDetail('Status', data['disabled'] == true ? 'Authentication disabled' : (data['active'] == true ? 'Active staff' : 'Registered account')),
-                _staffDetail('Permissions', (data['permissions'] as List? ?? const []).join(', ').isEmpty ? 'None assigned' : (data['permissions'] as List).join(', ')),
-              ],
-            ),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext),
-            child: const Text('Close'),
-          ),
+    final permissions = (data['permissions'] as List? ?? const []).join(', ');
+    showDialog<void>(context: context, builder: (dialogContext) => AlertDialog(
+      title: Text(name),
+      content: SizedBox(width: 440, child: SingleChildScrollView(child: Column(
+        mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _staffDetail('Email', data['email'] ?? '—'),
+          _staffDetail('Phone', data['phoneNumber'] ?? '—'),
+          _staffDetail('Account ID', data['uid'] ?? '—'),
+          _staffDetail('Role', data['role'] ?? 'user'),
+          _staffDetail('Status', data['disabled'] == true ? 'Authentication disabled' :
+            (data['active'] == true ? 'Active staff' : (data['role'] == 'staff' ? 'Inactive staff' : 'Customer'))),
+          _staffDetail('Permissions', permissions.isEmpty ? 'None assigned' : permissions),
         ],
-      ),
-    );
+      ))),
+      actions: [TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('Close'))],
+    ));
   }
 
   Widget _staffDetail(String label, dynamic value) => Padding(
     padding: const EdgeInsets.only(bottom: 12),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(label, style: const TextStyle(color: Colors.grey, fontSize: 12)),
-        const SizedBox(height: 3),
-        SelectableText(value.toString()),
-      ],
-    ),
+    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Text(label, style: const TextStyle(color: Colors.grey, fontSize: 12)),
+      const SizedBox(height: 3), SelectableText(value.toString()),
+    ]),
   );
 
   @override
   Widget build(BuildContext context) => _PageFrame(
     title: 'Staff & Permissions',
-    subtitle: 'Registered MedLife accounts. Select an account to inspect its current staff status and permissions.',
-    action: IconButton(
-      tooltip: 'Refresh accounts',
-      onPressed: _refresh,
-      icon: const Icon(Icons.refresh),
-    ),
+    subtitle: 'Manage account access, assign least-privilege permissions and deactivate staff.',
+    action: IconButton(tooltip: 'Refresh accounts', onPressed: saving ? null : _refresh,
+        icon: const Icon(Icons.refresh)),
     child: FutureBuilder<List<Map<String, dynamic>>>(
       future: accountsFuture,
       builder: (context, snap) {
-        if (snap.hasError) {
-          return Center(
-            child: Padding(
-              padding: const EdgeInsets.all(24),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Icon(Icons.cloud_off_outlined, size: 40, color: Colors.grey),
-                  const SizedBox(height: 12),
-                  const Text('Could not load accounts from the secure admin service.'),
-                  const SizedBox(height: 8),
-                  SelectableText(snap.error.toString(), textAlign: TextAlign.center),
-                  const SizedBox(height: 12),
-                  FilledButton.icon(onPressed: _refresh, icon: const Icon(Icons.refresh), label: const Text('Try again')),
-                ],
-              ),
-            ),
-          );
-        }
-        if (!snap.hasData) {
-          return const Center(child: CircularProgressIndicator());
-        }
-
+        if (snap.hasError) return Center(child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+            const Icon(Icons.cloud_off_outlined, size: 40, color: Colors.grey),
+            const SizedBox(height: 12),
+            const Text('Could not load accounts from the secure admin service.'),
+            const SizedBox(height: 8),
+            SelectableText(snap.error.toString(), textAlign: TextAlign.center),
+            const SizedBox(height: 12),
+            FilledButton.icon(onPressed: _refresh, icon: const Icon(Icons.refresh), label: const Text('Try again')),
+          ]),
+        ));
+        if (!snap.hasData) return const Center(child: CircularProgressIndicator());
         final allAccounts = snap.data!;
         final filtered = allAccounts.where((data) {
-          final searchable = [
-            data['name'],
-            data['displayName'],
-            data['email'],
-            data['phoneNumber'],
-            data['uid'],
-            data['role'],
-          ].where((value) => value != null).join(' ').toLowerCase();
+          final searchable = [data['name'], data['displayName'], data['email'],
+            data['phoneNumber'], data['uid'], data['role']]
+            .where((value) => value != null).join(' ').toLowerCase();
           return searchable.contains(search.trim().toLowerCase());
         }).toList();
-        final staffCount = allAccounts.where((account) => account['role'] == 'staff').length;
-        final activeCount = allAccounts.where((account) => account['role'] == 'staff' && account['active'] == true).length;
-
-        return Column(
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(24, 8, 24, 12),
-              child: Wrap(
-                spacing: 12,
-                runSpacing: 8,
-                children: [
-                  _Kpi(title: 'Registered Accounts', value: allAccounts.length.toString(), icon: Icons.people_outline),
-                  _Kpi(title: 'Staff Accounts', value: staffCount.toString(), icon: Icons.badge_outlined),
-                  _Kpi(title: 'Active Staff', value: activeCount.toString(), icon: Icons.verified_user_outlined),
-                  _Kpi(title: 'Search Results', value: filtered.length.toString(), icon: Icons.manage_search),
-                ],
-              ),
+        final staffCount = allAccounts.where((a) => a['role'] == 'staff').length;
+        final activeCount = allAccounts.where((a) => a['role'] == 'staff' && a['active'] == true).length;
+        return Column(children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(24, 8, 24, 12),
+            child: Wrap(spacing: 12, runSpacing: 8, children: [
+              _Kpi(title: 'Registered Accounts', value: allAccounts.length.toString(), icon: Icons.people_outline),
+              _Kpi(title: 'Staff Accounts', value: staffCount.toString(), icon: Icons.badge_outlined),
+              _Kpi(title: 'Active Staff', value: activeCount.toString(), icon: Icons.verified_user_outlined),
+              _Kpi(title: 'Search Results', value: filtered.length.toString(), icon: Icons.manage_search),
+            ]),
+          ),
+          Padding(padding: const EdgeInsets.symmetric(horizontal: 24), child: TextField(
+            onChanged: (value) => setState(() => search = value),
+            decoration: InputDecoration(
+              prefixIcon: const Icon(Icons.search),
+              hintText: 'Search by name, email, phone or account ID',
+              suffixIcon: search.isEmpty ? null : IconButton(
+                tooltip: 'Clear search', onPressed: () => setState(() => search = ''),
+                icon: const Icon(Icons.close)),
             ),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24),
-              child: TextField(
-                onChanged: (value) => setState(() => search = value),
-                decoration: InputDecoration(
-                  prefixIcon: const Icon(Icons.search),
-                  hintText: 'Search by name, email, phone or account ID',
-                  suffixIcon: search.isEmpty
-                    ? null
-                    : IconButton(
-                        tooltip: 'Clear search',
-                        onPressed: () => setState(() => search = ''),
-                        icon: const Icon(Icons.close),
-                      ),
-                ),
-              ),
+          )),
+          const SizedBox(height: 8),
+          Expanded(child: filtered.isEmpty
+            ? Center(child: Text(allAccounts.isEmpty ? 'No registered accounts found.' : 'No accounts match your search.'))
+            : ListView.separated(
+              padding: const EdgeInsets.all(24), itemCount: filtered.length,
+              separatorBuilder: (_, __) => const SizedBox(height: 8),
+              itemBuilder: (context, index) {
+                final data = filtered[index];
+                final name = (data['name'] ?? data['displayName'] ?? data['email'] ?? 'Unnamed account').toString();
+                final email = (data['email'] ?? 'No email recorded').toString();
+                final phone = (data['phoneNumber'] ?? 'No phone recorded').toString();
+                final isStaff = data['role'] == 'staff', isActive = data['active'] == true;
+                return Card(child: ListTile(
+                  leading: CircleAvatar(child: Icon(isStaff ? Icons.badge_outlined : Icons.person_outline)),
+                  title: Text(name, maxLines: 1, overflow: TextOverflow.ellipsis),
+                  subtitle: Text(email + '\n' + phone, maxLines: 2, overflow: TextOverflow.ellipsis),
+                  isThreeLine: true,
+                  trailing: Wrap(crossAxisAlignment: WrapCrossAlignment.center, spacing: 4, children: [
+                    Chip(label: Text(isStaff ? (isActive ? 'Active staff' : 'Inactive staff') : 'Customer')),
+                    IconButton(tooltip: 'View account details', onPressed: () => _showAccountDetails(data),
+                        icon: const Icon(Icons.info_outline)),
+                    OutlinedButton(
+                      onPressed: saving || data['disabled'] == true ? null : () => _manageAccount(data),
+                      child: Text(isStaff ? 'Manage' : 'Grant access')),
+                  ]),
+                ));
+              },
             ),
-            const SizedBox(height: 8),
-            Expanded(
-              child: filtered.isEmpty
-                ? Center(child: Text(allAccounts.isEmpty ? 'No registered accounts found.' : 'No accounts match your search.'))
-                : ListView.separated(
-                    padding: const EdgeInsets.all(24),
-                    itemCount: filtered.length,
-                    separatorBuilder: (_, __) => const SizedBox(height: 8),
-                    itemBuilder: (context, index) {
-                      final data = filtered[index];
-                      final name = (data['name'] ?? data['displayName'] ?? data['email'] ?? 'Unnamed account').toString();
-                      final email = (data['email'] ?? 'No email recorded').toString();
-                      final phone = (data['phoneNumber'] ?? 'No phone recorded').toString();
-                      final isStaff = data['role'] == 'staff';
-                      final isActive = data['active'] == true;
-                      return Card(
-                        child: ListTile(
-                          leading: CircleAvatar(
-                            child: Icon(isStaff ? Icons.badge_outlined : Icons.person_outline),
-                          ),
-                          title: Text(name, maxLines: 1, overflow: TextOverflow.ellipsis),
-                          subtitle: Text('$email\\n$phone', maxLines: 2, overflow: TextOverflow.ellipsis),
-                          isThreeLine: true,
-                          trailing: Chip(label: Text(isStaff ? (isActive ? 'Active staff' : 'Inactive staff') : 'Customer')),
-                          onTap: () => _showAccountDetails(data),
-                        ),
-                      );
-                    },
-                  ),
+          ),
+          Padding(padding: const EdgeInsets.fromLTRB(24, 0, 24, 16), child: Card(
+            child: ListTile(
+              leading: const Icon(Icons.security_outlined, color: _blue),
+              title: const Text('Protected staff administration'),
+              subtitle: Text(saving ? 'Saving access changes…' :
+                'Only the Super Admin can assign permissions. Users must refresh their authentication session after a change.'),
             ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(24, 0, 24, 16),
-              child: const Card(
-                child: ListTile(
-                  leading: Icon(Icons.info_outline, color: _blue),
-                  title: Text('Secure account directory'),
-                  subtitle: Text('Accounts are loaded through a Super Admin-only server function. Permission assignment controls will be added after this directory is verified on the emulator.'),
-                ),
-              ),
-            ),
-          ],
-        );
+          )),
+        ]);
       },
     ),
   );
 }
+
+const Map<String, List<Map<String, String>>> _staffPermissionGroups = {
+  'Dashboard': [{'key': 'dashboard.view', 'label': 'View dashboard'}],
+  'Orders & Customers': [
+    {'key': 'orders.view', 'label': 'View orders'},
+    {'key': 'orders.update', 'label': 'Update order fulfillment status'},
+    {'key': 'customers.view', 'label': 'View customer profiles'},
+  ],
+  'Products & Inventory': [
+    {'key': 'products.view', 'label': 'View products'},
+    {'key': 'products.create', 'label': 'Create products'},
+    {'key': 'products.update', 'label': 'Edit products'},
+    {'key': 'products.delete', 'label': 'Delete products'},
+    {'key': 'inventory.view', 'label': 'View inventory'},
+    {'key': 'inventory.manage', 'label': 'Manage stock levels'},
+  ],
+  'Store Content': [
+    {'key': 'categories.manage', 'label': 'Manage categories'},
+    {'key': 'marketing.manage', 'label': 'Manage banners and promotions'},
+  ],
+  'Reports': [{'key': 'reports_finance.view', 'label': 'View analytics and finance reports'}],
+  'Operations': [
+    {'key': 'notifications.manage', 'label': 'Manage notifications'},
+    {'key': 'settings.manage', 'label': 'Manage system settings'},
+    {'key': 'activity_log.view', 'label': 'View activity log'},
+    {'key': 'backup.manage', 'label': 'Manage backups'},
+  ],
+};
 
 class NotificationsAdminPage extends StatelessWidget {
   const NotificationsAdminPage({super.key});
