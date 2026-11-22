@@ -153,8 +153,19 @@ exports.listMedLifeAccounts = onCall(async (request) => {
 
     return { accounts };
   } catch (error) {
-    console.error("listMedLifeAccounts failed:", error);
-    throw new HttpsError("internal", "Unable to load MedLife accounts.");
+    const diagnostic = {
+      code: error?.code || "unknown",
+      message: error?.message || String(error),
+    };
+    console.error("listMedLifeAccounts failed:", diagnostic, error?.stack || "");
+    const isEmulator = process.env.FUNCTIONS_EMULATOR === "true";
+    throw new HttpsError(
+      "internal",
+      isEmulator
+        ? `Unable to load MedLife accounts (${diagnostic.code}): ${diagnostic.message}`
+        : "Unable to load MedLife accounts.",
+      isEmulator ? diagnostic : undefined,
+    );
   }
 });
 
