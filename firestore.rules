@@ -3,41 +3,79 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // ============================================================
-    // Helpers
-    // ============================================================
-
+    // Authentication and role helpers. Super Admin authority is held only
+    // in Firebase Auth custom claims, never in a client-editable profile.
     function signedIn() {
       return request.auth != null;
     }
 
-    function isAdmin() {
+    function isSuperAdmin() {
       return signedIn()
+        && request.auth.token.medlifeSuperAdmin == true;
+    }
+
+    // Temporary backwards compatibility for existing legacy administrators.
+    // New MedLife staff must use custom claims and explicit permissions.
+    function isLegacyAdmin() {
+      return signedIn()
+        && exists(/databases/$(database)/documents/users/$(request.auth.uid))
         && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+
+    function isAdmin() {
+      return isSuperAdmin() || isLegacyAdmin();
+    }
+
+    function isActiveStaff() {
+      return signedIn()
+        && request.auth.token.medlifeRole == 'staff'
+        && request.auth.token.medlifeStaffActive == true
+        && request.auth.token.medlifePermissions is list;
+    }
+
+    function hasPermission(permission) {
+      return isAdmin()
+        || (
+          isActiveStaff()
+          && permission in request.auth.token.medlifePermissions
+        );
     }
 
     function isOwner(uid) {
       return signedIn() && request.auth.uid == uid;
     }
 
-    // ============================================================
-    // USERS
-    // ============================================================
+    function hasNoStaffFields(data) {
+      return !('medlifeSuperAdmin' in data)
+        && !('medlifeRole' in data)
+        && !('medlifePermissions' in data)
+        && !('medlifeStaffActive' in data)
+        && !('isAdmin' in data);
+    }
 
+    // USERS
     match /users/{userId} {
-      allow get: if isOwner(userId) || isAdmin();
-      allow list: if isAdmin();
+      allow get: if isOwner(userId) || isAdmin() || hasPermission('customers.view');
+      allow list: if hasPermission('customers.view');
 
       allow create: if isAdmin()
         || (
           isOwner(userId)
-          && request.resource.data.role == 'user'
+          && (!('role' in request.resource.data) || request.resource.data.role == 'user')
+          && hasNoStaffFields(request.resource.data)
         );
 
       allow update: if isAdmin()
         || (
           isOwner(userId)
           && request.resource.data.role == resource.data.role
+          && !request.resource.data.diff(resource.data).affectedKeys().hasAny([
+            'medlifeSuperAdmin',
+            'medlifeRole',
+            'medlifePermissions',
+            'medlifeStaffActive',
+            'isAdmin'
+          ])
         );
 
       allow delete: if isAdmin();
@@ -59,37 +97,44 @@ service cloud.firestore {
       }
     }
 
-    // ============================================================
-    // PRODUCTS
-    // ============================================================
-
+    // PRODUCTS. Storefront reads remain available to signed-in customers.
+    // Product catalog changes and stock changes have separate permissions.
     match /Products/{productId} {
       allow read: if signedIn();
-      allow create, update, delete: if isAdmin();
+      allow create: if hasPermission('products.create');
+      allow update: if hasPermission('products.update')
+        || (
+          hasPermission('inventory.manage')
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+            'stockBySize', 'lowStockThreshold', 'inventoryUpdatedAt'
+          ])
+        );
+      allow delete: if hasPermission('products.delete');
     }
 
     match /products/{productId} {
       allow read: if signedIn();
-      allow create, update, delete: if isAdmin();
+      allow create: if hasPermission('products.create');
+      allow update: if hasPermission('products.update')
+        || (
+          hasPermission('inventory.manage')
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+            'stockBySize', 'lowStockThreshold', 'inventoryUpdatedAt'
+          ])
+        );
+      allow delete: if hasPermission('products.delete');
     }
 
-    // ============================================================
     // CATEGORIES
-    // Categories are readable by signed-in customers; only admins
-    // can create, edit, or delete them.
-    // ============================================================
-
     match /categories/{categoryId} {
       allow read: if signedIn();
-      allow create, update, delete: if isAdmin();
+      allow create, update, delete: if hasPermission('categories.manage');
     }
 
-    // ============================================================
-    // ORDERS
-    // ============================================================
-
+    // ORDERS. Staff may update only fulfillment fields; financial and
+    // ownership fields remain immutable to staff.
     match /orders/{orderId} {
-      allow get, list: if isAdmin()
+      allow get, list: if hasPermission('orders.view')
         || (
           signedIn()
           && resource.data.userId == request.auth.uid
@@ -100,44 +145,38 @@ service cloud.firestore {
         && request.resource.data.status == 'pending'
         && request.resource.data.total is number;
 
-      allow update, delete: if isAdmin();
+      allow update: if hasPermission('orders.update')
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'status', 'deliveredAt', 'updatedAt'
+        ]);
+
+      allow update: if isAdmin();
+
+      allow delete: if isAdmin();
     }
 
-    // ============================================================
     // SALES / OFFERS
-    // ============================================================
-
     match /sales/{saleId} {
       allow read: if signedIn();
-      allow create, update, delete: if isAdmin();
+      allow create, update, delete: if hasPermission('marketing.manage');
     }
 
-    // ============================================================
     // BANNERS
-    // ============================================================
-
     match /banners/{bannerId} {
       allow read: if signedIn();
-      allow create, update, delete: if isAdmin();
+      allow create, update, delete: if hasPermission('marketing.manage');
     }
 
-    // ============================================================
     // PROMO CODES
-    // ============================================================
-
     match /promoCodes/{promoCodeId} {
       allow get: if signedIn();
-      allow list: if isAdmin();
-      allow create, update, delete: if isAdmin();
+      allow list: if hasPermission('marketing.manage');
+      allow create, update, delete: if hasPermission('marketing.manage');
     }
 
-    // ============================================================
     // REVIEWS
-    // ============================================================
-
     match /reviews/{reviewId} {
       allow read: if signedIn();
-
       allow create: if signedIn()
         && request.resource.data.userId == request.auth.uid;
 
@@ -155,30 +194,19 @@ service cloud.firestore {
         );
     }
 
-    // ============================================================
-    // NOTIFICATIONS
-    // ============================================================
-
+    // NOTIFICATIONS. Existing signed-in storefront reads are retained.
     match /notifications/{notificationId} {
       allow read: if signedIn();
-      allow create, update, delete: if isAdmin();
+      allow create, update, delete: if hasPermission('notifications.manage');
     }
 
-    // ============================================================
     // DELIVERY FEES
-    // Admin only.
-    // One document per governorate:
-    // deliveryFees/{governorate}
-    // ============================================================
-
     match /deliveryFees/{governorate} {
-      allow read, create, update, delete: if isAdmin();
+      allow read: if signedIn();
+      allow create, update, delete: if hasPermission('settings.manage');
     }
 
-    // ============================================================
-    // DENY EVERYTHING ELSE
-    // ============================================================
-
+    // Deny every collection not explicitly listed above.
     match /{document=**} {
       allow read, write: if false;
     }

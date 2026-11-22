@@ -5,35 +5,63 @@ const { FieldValue } = require("firebase-admin/firestore");
 admin.initializeApp();
 
 exports.sendNotificationToAllUsers = functions.https.onRequest(async (req, res) => {
+  if (req.method !== "POST") {
+    return res.status(405).json({ error: "Method not allowed." });
+  }
+
+  const authorization = req.get("Authorization") || "";
+  const match = authorization.match(/^Bearer (.+)$/i);
+  if (!match) {
+    return res.status(401).json({ error: "Authentication is required." });
+  }
+
+  let caller;
+  try {
+    caller = await admin.auth().verifyIdToken(match[1]);
+  } catch (error) {
+    return res.status(401).json({ error: "Invalid authentication token." });
+  }
+
+  const isSuperAdmin = caller.medlifeSuperAdmin === true;
+  const isAuthorizedStaff = caller.medlifeRole === "staff"
+    && caller.medlifeStaffActive === true
+    && Array.isArray(caller.medlifePermissions)
+    && caller.medlifePermissions.includes("notifications.manage");
+
+  if (!isSuperAdmin && !isAuthorizedStaff) {
+    return res.status(403).json({ error: "You are not allowed to send notifications." });
+  }
+
   try {
     const snapshot = await admin.firestore().collection("users").get();
-
     const tokens = [];
 
     snapshot.forEach((doc) => {
       const data = doc.data();
-
-      if (data.fcmToken) {
-        tokens.push(data.fcmToken);
+      if (typeof data.fcmToken === "string" && data.fcmToken.trim()) {
+        tokens.push(data.fcmToken.trim());
       }
     });
 
     if (tokens.length === 0) {
-      return res.send("No tokens found");
+      return res.status(200).json({ sent: 0, message: "No tokens found." });
     }
 
-    await admin.messaging().sendEachForMulticast({
-      tokens: tokens,
+    const result = await admin.messaging().sendEachForMulticast({
+      tokens,
       notification: {
-        title: "MY Store",
-        body: "Hello from Firebase Cloud Function",
+        title: "MedLife",
+        body: "You have a new notification from MedLife.",
       },
     });
 
-    res.send(`Notification sent to ${tokens.length} users`);
-  } catch (e) {
-    console.error(e);
-    res.status(500).send(e.toString());
+    return res.status(200).json({
+      sent: result.successCount,
+      failed: result.failureCount,
+    });
+  } catch (error) {
+    console.error("sendNotificationToAllUsers failed:", error);
+    return res.status(500).json({ error: "Unable to send notifications." });
   }
 });
 
