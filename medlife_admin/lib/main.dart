@@ -290,7 +290,10 @@ class _AdminShellState extends State<AdminShell> {
             child: activeSection == -1
                 ? const _NoSectionAccess()
                 : activeSection == 0
-                    ? const DashboardPage()
+                    ? DashboardPage(
+                        isSuperAdmin: widget.isSuperAdmin,
+                        permissions: widget.permissions,
+                      )
                     : AdminModulePage(index: activeSection),
           ),
         ])),
@@ -384,36 +387,81 @@ class _NoSectionAccess extends StatelessWidget {
 }
 
 class DashboardPage extends StatelessWidget {
-  const DashboardPage({super.key});
+  const DashboardPage({
+    super.key,
+    required this.isSuperAdmin,
+    required this.permissions,
+  });
+
+  final bool isSuperAdmin;
+  final Set<String> permissions;
+
+  bool _can(String permission) =>
+      isSuperAdmin || permissions.contains(permission);
+
   @override
   Widget build(BuildContext context) => LayoutBuilder(builder: (context, constraints) {
     final columns = constraints.maxWidth > 1100 ? 4 : constraints.maxWidth > 650 ? 2 : 1;
-    return SingleChildScrollView(padding: const EdgeInsets.all(24), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Text('Welcome back!', style: Theme.of(context).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.w800)),
-      const SizedBox(height: 4),
-      const Text("Here's what's happening with your MedLife store today."),
-      const SizedBox(height: 22),
-      GridView.count(shrinkWrap: true, physics: const NeverScrollableScrollPhysics(), crossAxisCount: columns, crossAxisSpacing: 14, mainAxisSpacing: 14, childAspectRatio: 2.5, children: [
-        _MetricCard(title: 'Total Orders', collection: 'orders', icon: Icons.shopping_bag, color: const Color(0xFF1687F8)),
-        _MetricCard(title: 'Total Products', collection: 'Products', icon: Icons.inventory_2, color: const Color(0xFFF2A51A)),
-        _MetricCard(title: 'Total Customers', collection: 'users', icon: Icons.people, color: const Color(0xFF8955E8)),
-        _MetricCard(title: 'Categories', collection: 'categories', icon: Icons.category, color: const Color(0xFF16B98A)),
-      ]),
-      const SizedBox(height: 20),
-      if (constraints.maxWidth > 850)
-        Row(crossAxisAlignment: CrossAxisAlignment.start, children: const [
-          Expanded(flex: 3, child: _SalesCard()),
-          SizedBox(width: 16),
-          Expanded(flex: 2, child: _RecentOrdersCard()),
-        ])
-      else ...[
-        const _SalesCard(),
-        const SizedBox(height: 16),
-        const _RecentOrdersCard(),
-      ],
-      const SizedBox(height: 18),
-      const _AssistantTeaser(),
-    ]));
+    final metrics = <Widget>[
+      if (_can('orders.view'))
+        const _MetricCard(title: 'Total Orders', collection: 'orders', icon: Icons.shopping_bag, color: Color(0xFF1687F8)),
+      if (_can('products.view'))
+        const _MetricCard(title: 'Total Products', collection: 'Products', icon: Icons.inventory_2, color: Color(0xFFF2A51A)),
+      if (_can('customers.view'))
+        const _MetricCard(title: 'Total Customers', collection: 'users', icon: Icons.people, color: Color(0xFF8955E8)),
+      if (_can('categories.manage'))
+        const _MetricCard(title: 'Categories', collection: 'categories', icon: Icons.category, color: Color(0xFF16B98A)),
+    ];
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('Welcome back!', style: Theme.of(context).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.w800)),
+          const SizedBox(height: 4),
+          const Text("Here's what's happening with your MedLife store today."),
+          const SizedBox(height: 22),
+          if (metrics.isNotEmpty)
+            GridView.count(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              crossAxisCount: columns,
+              crossAxisSpacing: 14,
+              mainAxisSpacing: 14,
+              childAspectRatio: 2.5,
+              children: metrics,
+            ),
+          if (metrics.isEmpty)
+            const Text('Your dashboard access is active. Additional data cards appear when the Super Admin grants the relevant module permissions.'),
+          if (_can('reports_finance.view') || _can('orders.view')) ...[
+            const SizedBox(height: 20),
+            if (constraints.maxWidth > 850)
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (_can('reports_finance.view'))
+                    const Expanded(flex: 3, child: _SalesCard()),
+                  if (_can('reports_finance.view') && _can('orders.view'))
+                    const SizedBox(width: 16),
+                  if (_can('orders.view'))
+                    const Expanded(flex: 2, child: _RecentOrdersCard()),
+                ],
+              )
+            else ...[
+              if (_can('reports_finance.view')) const _SalesCard(),
+              if (_can('reports_finance.view') && _can('orders.view'))
+                const SizedBox(height: 16),
+              if (_can('orders.view')) const _RecentOrdersCard(),
+            ],
+          ],
+          if (isSuperAdmin) ...[
+            const SizedBox(height: 18),
+            const _AssistantTeaser(),
+          ],
+        ],
+      ),
+    );
   });
 }
 
