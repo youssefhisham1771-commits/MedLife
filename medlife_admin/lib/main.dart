@@ -282,7 +282,6 @@ class _AdminShellState extends State<AdminShell> {
     6: 'marketing.manage',
     7: 'reports_finance.view',
     8: 'reports_finance.view',
-    9: 'staff.manage',
     10: 'notifications.manage',
     12: 'settings.manage',
     13: 'activity_log.view',
