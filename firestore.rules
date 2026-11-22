@@ -148,7 +148,18 @@ service cloud.firestore {
       allow update: if hasPermission('orders.update')
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
           'status', 'deliveredAt', 'updatedAt'
-        ]);
+        ])
+        && request.resource.data.status in [
+          'pending', 'processing', 'shipped', 'delivered', 'cancelled'
+        ]
+        && (
+          !('deliveredAt' in request.resource.data)
+          || request.resource.data.deliveredAt is timestamp
+        )
+        && (
+          !('updatedAt' in request.resource.data)
+          || request.resource.data.updatedAt is timestamp
+        );
 
       allow update: if isAdmin();
 
