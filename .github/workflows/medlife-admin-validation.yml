@@ -2,7 +2,7 @@ name: MedLife Admin Validation
 
 on:
   pull_request:
-    branches: [main]
+    branches: [main, security/firestore-role-permissions]
   push:
     branches:
       - security/firestore-role-permissions
