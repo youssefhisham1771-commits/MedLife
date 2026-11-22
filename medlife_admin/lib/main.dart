@@ -5,6 +5,7 @@ import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter/material.dart';
 import 'firebase_options.dart';
 import 'admin_pages.dart';
+import 'admin_access_policy.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -272,42 +273,12 @@ class AdminShell extends StatefulWidget {
 class _AdminShellState extends State<AdminShell> {
   int selected = 0;
 
-  static const _requiredPermission = <int, String>{
-    0: 'dashboard.view',
-    1: 'orders.view',
-    2: 'products.view',
-    3: 'inventory.view',
-    4: 'customers.view',
-    5: 'categories.manage',
-    6: 'marketing.manage',
-    7: 'reports_finance.view',
-    8: 'reports_finance.view',
-    10: 'notifications.manage',
-    12: 'settings.manage',
-    13: 'activity_log.view',
-    14: 'backup.manage',
-  };
-
   List<int> get _visibleSections => List<int>.generate(_nav.length, (i) => i)
-      .where((i) {
-        if (widget.isSuperAdmin) return true;
-
-        // Pages that perform writes are exposed only when the staff member
-        // has the permissions required by every action currently shown there.
-        // This avoids presenting controls that Firestore will reject.
-        final requiredPermissions = switch (i) {
-          1 => const ['orders.view', 'orders.update'],
-          2 => const ['products.view', 'products.create', 'products.update', 'products.delete'],
-          3 => const ['inventory.view', 'inventory.manage'],
-          // Customers reads both /users and /orders for purchase history.
-          4 => const ['customers.view', 'orders.view'],
-          _ => <String>[
-              if (_requiredPermission[i] != null) _requiredPermission[i]!,
-            ],
-        };
-        return requiredPermissions.isNotEmpty &&
-            requiredPermissions.every(widget.permissions.contains);
-      })
+      .where((i) => canAccessAdminSection(
+            sectionIndex: i,
+            isSuperAdmin: widget.isSuperAdmin,
+            permissions: widget.permissions,
+          ))
       .toList();
 
   @override
