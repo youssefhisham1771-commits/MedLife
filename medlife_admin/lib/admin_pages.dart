@@ -894,7 +894,6 @@ class _StaffAdminPageState extends State<StaffAdminPage> {
       builder: (dialogContext) {
         final selected = {...existing};
         var active = initialActive || data['role'] != 'staff';
-        var submitting = false;
         return StatefulBuilder(builder: (context, setDialogState) => AlertDialog(
           title: Text(data['role'] == 'staff' ? 'Manage staff access' : 'Grant staff access'),
           content: SizedBox(
@@ -912,7 +911,7 @@ class _StaffAdminPageState extends State<StaffAdminPage> {
                   title: const Text('Staff account active'),
                   subtitle: const Text('Inactive staff immediately lose dashboard permissions.'),
                   value: active,
-                  onChanged: submitting ? null : (value) => setDialogState(() {
+                  onChanged: (value) => setDialogState(() {
                     active = value;
                     if (!active) selected.clear();
                   }),
@@ -936,7 +935,7 @@ class _StaffAdminPageState extends State<StaffAdminPage> {
                       title: Text(permission['label']!),
                       subtitle: Text(key, style: const TextStyle(fontSize: 11, color: Colors.grey)),
                       value: selected.contains(key),
-                      onChanged: !active || submitting ? null : (checked) => setDialogState(() {
+                      onChanged: !active ? null : (checked) => setDialogState(() {
                         if (checked == true) { selected.add(key); } else { selected.remove(key); }
                       }),
                     );
@@ -950,10 +949,10 @@ class _StaffAdminPageState extends State<StaffAdminPage> {
             )),
           ),
           actions: [
-            TextButton(onPressed: submitting ? null : () => Navigator.pop(dialogContext),
+            TextButton(onPressed: () => Navigator.pop(dialogContext),
                 child: const Text('Cancel')),
             FilledButton.icon(
-              onPressed: submitting ? null : () => Navigator.pop(dialogContext, {
+              onPressed: () => Navigator.pop(dialogContext, {
                 'active': active, 'permissions': active ? selected.toList() : <String>[],
               }),
               icon: const Icon(Icons.save_outlined), label: const Text('Save access')),
