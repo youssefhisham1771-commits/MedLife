@@ -293,17 +293,21 @@ class _AdminShellState extends State<AdminShell> {
       .where((i) {
         if (widget.isSuperAdmin) return true;
 
-        // The Customers page reads both /users and /orders to calculate
-        // purchase history and customer spend. Require both permissions so
-        // the navigation never exposes a page that Firestore must reject.
-        if (i == 4) {
-          return widget.permissions.contains('customers.view') &&
-              widget.permissions.contains('orders.view');
-        }
-
-        final requiredPermission = _requiredPermission[i];
-        return requiredPermission != null &&
-            widget.permissions.contains(requiredPermission);
+        // Pages that perform writes are exposed only when the staff member
+        // has the permissions required by every action currently shown there.
+        // This avoids presenting controls that Firestore will reject.
+        final requiredPermissions = switch (i) {
+          1 => const ['orders.view', 'orders.update'],
+          2 => const ['products.view', 'products.create', 'products.update', 'products.delete'],
+          3 => const ['inventory.view', 'inventory.manage'],
+          // Customers reads both /users and /orders for purchase history.
+          4 => const ['customers.view', 'orders.view'],
+          _ => <String>[
+              if (_requiredPermission[i] != null) _requiredPermission[i]!,
+            ],
+        };
+        return requiredPermissions.isNotEmpty &&
+            requiredPermissions.every(widget.permissions.contains);
       })
       .toList();
 
