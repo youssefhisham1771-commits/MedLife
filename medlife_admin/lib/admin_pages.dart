@@ -234,7 +234,7 @@ class _ProductsAdminPageState extends State<ProductsAdminPage> {
             });
           if (docs.isEmpty) return const Center(child: Text('No products found.'));
           return ListView.separated(padding: const EdgeInsets.all(24), itemCount: docs.length, separatorBuilder: (_, __) => const SizedBox(height: 8), itemBuilder: (context, i) {
-            final doc = docs[i]; final d = doc.data(); final images = (d['images'] as List?) ?? []; final image = images.isNotEmpty ? images.first.toString() : (d['image'] ?? '').toString();
+            final doc = docs[i]; final d = doc.data(); final images = d['images'] is List ? d['images'] as List : const []; final image = images.isNotEmpty ? images.first.toString() : (d['image'] ?? '').toString();
             return Card(child: ListTile(
               leading: ClipRRect(borderRadius: BorderRadius.circular(10), child: image.startsWith('http') ? Image.network(image, width: 52, height: 58, fit: BoxFit.cover, errorBuilder: (_, __, ___) => const SizedBox(width: 52, child: Icon(Icons.image_not_supported))) : const SizedBox(width: 52, child: Icon(Icons.inventory_2))),
               title: Text((d['name'] ?? 'Unnamed product').toString(), maxLines: 1, overflow: TextOverflow.ellipsis),
@@ -353,7 +353,8 @@ class _ProductEditorState extends State<_ProductEditor> {
         break;
       }
     }
-    if (categoryDoc == null) {
+    final selectedCategory = categoryDoc;
+    if (selectedCategory == null) {
       _message(context, 'Select an existing category before saving this product.');
       return;
     }
@@ -381,14 +382,14 @@ class _ProductEditorState extends State<_ProductEditor> {
         .toList();
     setState(() => saving = true);
     try {
-      final categoryName = (categoryDoc.data()['name'] ?? '').toString().trim();
+      final categoryName = (selectedCategory.data()['name'] ?? '').toString().trim();
       final data = <String, dynamic>{
         'name': name.text.trim(),
         'price': parsedPrice,
         'description': description.text.trim(),
         'deliveryText': delivery.text.trim(),
         'category': categoryName,
-        'categoryId': categoryDoc.id,
+        'categoryId': selectedCategory.id,
         'images': images,
         'image': images.isEmpty ? '' : images.first,
         'sizes': productSizes,
