@@ -34,10 +34,17 @@ class _OrdersManagementPageState extends State<OrdersManagementPage> {
       'EGP ' + NumberFormat('#,##0.00').format(number(value));
 
   String date(dynamic value) {
+    DateTime? parsed;
     if (value is Timestamp) {
-      return DateFormat('dd MMM yyyy • hh:mm a').format(value.toDate());
+      parsed = value.toDate();
+    } else if (value is DateTime) {
+      parsed = value;
+    } else if (value is String) {
+      parsed = DateTime.tryParse(value);
     }
-    return 'Date unavailable';
+    return parsed == null
+        ? 'Date unavailable'
+        : DateFormat('dd MMM yyyy • hh:mm a').format(parsed);
   }
 
   List<Map<String, dynamic>> itemsOf(dynamic value) {
@@ -130,6 +137,13 @@ class _OrdersManagementPageState extends State<OrdersManagementPage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 detailLine('Customer', (data['name'] ?? 'Unknown').toString()),
+                if ((data['email'] ?? '').toString().trim().isNotEmpty)
+                  detailLine('Email', data['email'].toString(),
+                    trailing: IconButton(
+                      tooltip: 'Copy email',
+                      onPressed: () => copyText(data['email'].toString(), 'Email'),
+                      icon: const Icon(Icons.copy_outlined),
+                    )),
                 detailLine('Phone', (data['phone'] ?? 'Not provided').toString(),
                   trailing: IconButton(
                     tooltip: 'Copy phone',
@@ -138,7 +152,12 @@ class _OrdersManagementPageState extends State<OrdersManagementPage> {
                   )),
                 detailLine('Order date', date(data['orderedAt'])),
                 detailLine('Status', (data['status'] ?? 'pending').toString().toUpperCase()),
-                detailLine('Address', address.isEmpty ? 'Not provided' : address),
+                detailLine('Address', address.isEmpty ? 'Not provided' : address,
+                  trailing: IconButton(
+                    tooltip: 'Copy delivery address',
+                    onPressed: () => copyText(address, 'Delivery address'),
+                    icon: const Icon(Icons.copy_outlined),
+                  )),
                 const Divider(height: 28),
                 Text('Items (' + items.length.toString() + ')',
                   style: Theme.of(dialogContext).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
