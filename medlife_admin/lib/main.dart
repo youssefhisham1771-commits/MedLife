@@ -303,7 +303,11 @@ class _AdminShellState extends State<AdminShell> {
                         isSuperAdmin: widget.isSuperAdmin,
                         permissions: widget.permissions,
                       )
-                    : AdminModulePage(index: activeSection),
+                    : AdminModulePage(
+                        index: activeSection,
+                        isSuperAdmin: widget.isSuperAdmin,
+                        permissions: widget.permissions,
+                      ),
           ),
         ])),
       ]),
