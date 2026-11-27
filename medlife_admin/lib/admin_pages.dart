@@ -540,32 +540,423 @@ class _ProductEditorState extends State<_ProductEditor> {
       );
 }
 
-class CategoriesAdminPage extends StatelessWidget {
+class CategoriesAdminPage extends StatefulWidget {
   const CategoriesAdminPage({super.key});
-  Future<void> _edit(BuildContext context, [QueryDocumentSnapshot<Map<String, dynamic>>? doc]) async {
-    final c = TextEditingController(text: doc?.data()['name']?.toString() ?? '');
-    final ok = await showDialog<bool>(context: context, builder: (ctx) => AlertDialog(title: Text(doc == null ? 'Add Category' : 'Edit Category'), content: TextField(controller: c, autofocus: true, decoration: const InputDecoration(labelText: 'Category name')), actions: [TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')), FilledButton(onPressed: () => Navigator.pop(ctx, c.text.trim().isNotEmpty), child: const Text('Save'))]));
-    if (ok == true) {
-      try {
-        if (doc == null) { await _db.collection('categories').add({'name': c.text.trim(), 'createdAt': FieldValue.serverTimestamp(), 'updatedAt': FieldValue.serverTimestamp()}); }
-        else { await doc.reference.update({'name': c.text.trim(), 'updatedAt': FieldValue.serverTimestamp()}); }
-        if (context.mounted) _message(context, 'Category saved.');
-      } catch (e) { if (context.mounted) _message(context, 'Could not save category: $e'); }
-    }
-    c.dispose();
-  }
+
   @override
-  Widget build(BuildContext context) => _PageFrame(title: 'Categories', subtitle: 'Manage the categories shared with the MedLife storefront.', action: FilledButton.icon(onPressed: () => _edit(context), icon: const Icon(Icons.add), label: const Text('Add Category')), child: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(stream: _db.collection('categories').snapshots(), builder: (context, snap) {
-    if (snap.hasError) return const Center(child: Text('Could not load categories.'));
-    if (!snap.hasData) return const Center(child: CircularProgressIndicator());
-    if (snap.data!.docs.isEmpty) return const Center(child: Text('No categories yet.'));
-    return ListView(padding: const EdgeInsets.all(24), children: snap.data!.docs.map((doc) => Card(child: ListTile(leading: const CircleAvatar(child: Icon(Icons.category_outlined)), title: Text((doc.data()['name'] ?? 'Unnamed').toString()), subtitle: Text('ID: ${doc.id}'), trailing: Wrap(children: [
-      IconButton(onPressed: () => _edit(context, doc), icon: const Icon(Icons.edit_outlined)),
-      IconButton(onPressed: () async { final yes = await showDialog<bool>(context: context, builder: (c) => AlertDialog(title: const Text('Delete category?'), content: const Text('Products already assigned to this category will not be deleted, but may retain the old category name.'), actions: [TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('Cancel')), FilledButton(onPressed: () => Navigator.pop(c, true), child: const Text('Delete'))])); if (yes == true) { try { await doc.reference.delete(); if (context.mounted) _message(context, 'Category deleted.'); } catch (e) { if (context.mounted) _message(context, 'Delete failed: $e'); } } }, icon: const Icon(Icons.delete_outline, color: Colors.red)),
-    ])))).toList());
-  }));
+  State<CategoriesAdminPage> createState() => _CategoriesAdminPageState();
 }
 
+class _CategoriesAdminPageState extends State<CategoriesAdminPage> {
+  static const List<IconData> _categoryIcons = [
+    Icons.category_outlined,
+    Icons.checkroom_rounded,
+    Icons.medical_services_outlined,
+    Icons.medical_information_outlined,
+    Icons.construction_rounded,
+    Icons.shopping_bag_outlined,
+    Icons.sell_outlined,
+    Icons.health_and_safety_outlined,
+    Icons.science_outlined,
+    Icons.workspace_premium_outlined,
+    Icons.local_hospital_outlined,
+    Icons.inventory_2_outlined,
+    Icons.cleaning_services_outlined,
+    Icons.biotech_outlined,
+    Icons.assignment_outlined,
+    Icons.dental_services_outlined,
+  ];
+
+  Future<void> _edit(
+    BuildContext context, {
+    QueryDocumentSnapshot<Map<String, dynamic>>? doc,
+  }) async {
+    final data = doc?.data() ?? <String, dynamic>{};
+    final name = TextEditingController(text: data['name']?.toString() ?? '');
+    final imageUrl = TextEditingController(
+      text: data['imageUrl']?.toString() ?? '',
+    );
+    var iconCodePoint = data['iconCodePoint'] is num
+        ? (data['iconCodePoint'] as num).toInt()
+        : Icons.category_outlined.codePoint;
+    var saving = false;
+
+    final saved = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (dialogContext, setDialogState) => AlertDialog(
+          title: Text(doc == null ? 'Add Category' : 'Edit Category'),
+          content: SizedBox(
+            width: 480,
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  TextField(
+                    controller: name,
+                    autofocus: true,
+                    textCapitalization: TextCapitalization.words,
+                    decoration: const InputDecoration(
+                      labelText: 'Category name',
+                      hintText: 'e.g. Scrubs',
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  const Text('Category icon'),
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: _categoryIcons.map((icon) {
+                      final selected = icon.codePoint == iconCodePoint;
+                      return InkWell(
+                        borderRadius: BorderRadius.circular(10),
+                        onTap: () => setDialogState(
+                          () => iconCodePoint = icon.codePoint,
+                        ),
+                        child: Container(
+                          width: 42,
+                          height: 42,
+                          decoration: BoxDecoration(
+                            color: selected
+                                ? _blue.withValues(alpha: .14)
+                                : Theme.of(dialogContext).colorScheme.surface,
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(
+                              color: selected
+                                  ? _blue
+                                  : Theme.of(dialogContext).dividerColor,
+                            ),
+                          ),
+                          child: Icon(
+                            icon,
+                            color: selected ? _blue : null,
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: imageUrl,
+                    keyboardType: TextInputType.url,
+                    decoration: const InputDecoration(
+                      labelText: 'Image URL (optional)',
+                      hintText: 'https://...',
+                      helperText:
+                          'When provided, the storefront displays this image instead of the icon.',
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: saving
+                  ? null
+                  : () => Navigator.pop(dialogContext, false),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: saving
+                  ? null
+                  : () async {
+                      final categoryName = name.text.trim();
+                      if (categoryName.isEmpty) {
+                        _message(dialogContext, 'Enter a category name.');
+                        return;
+                      }
+                      setDialogState(() => saving = true);
+                      try {
+                        final collection = _db.collection('categories');
+                        final duplicate = await collection
+                            .where('name', isEqualTo: categoryName)
+                            .get();
+                        if (duplicate.docs.any((item) => item.id != doc?.id)) {
+                          throw StateError(
+                            'A category with this name already exists.',
+                          );
+                        }
+
+                        final payload = <String, dynamic>{
+                          'name': categoryName,
+                          'iconCodePoint': iconCodePoint,
+                          'iconFontFamily': 'MaterialIcons',
+                          'imageUrl': imageUrl.text.trim(),
+                          'updatedAt': FieldValue.serverTimestamp(),
+                        };
+
+                        if (doc == null) {
+                          final existing = await collection.get();
+                          var highestOrder = -1;
+                          for (final item in existing.docs) {
+                            final value = item.data()['sortOrder'];
+                            if (value is num && value.toInt() > highestOrder) {
+                              highestOrder = value.toInt();
+                            }
+                          }
+                          payload['sortOrder'] = highestOrder + 1;
+                          payload['createdAt'] = FieldValue.serverTimestamp();
+                          await collection.add(payload);
+                        } else {
+                          await doc.reference.update(payload);
+                        }
+
+                        if (dialogContext.mounted) {
+                          Navigator.pop(dialogContext, true);
+                        }
+                      } catch (error) {
+                        if (dialogContext.mounted) {
+                          _message(
+                            dialogContext,
+                            'Could not save category: ' + error.toString(),
+                          );
+                          setDialogState(() => saving = false);
+                        }
+                      }
+                    },
+              child: saving
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Text('Save Category'),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    name.dispose();
+    imageUrl.dispose();
+    if (saved == true && context.mounted) {
+      _message(context, doc == null ? 'Category added.' : 'Category updated.');
+    }
+  }
+
+  Future<void> _move(
+    BuildContext context,
+    List<QueryDocumentSnapshot<Map<String, dynamic>>> docs,
+    int index,
+    int direction,
+  ) async {
+    final target = index + direction;
+    if (target < 0 || target >= docs.length) return;
+
+    final reordered = List<QueryDocumentSnapshot<Map<String, dynamic>>>.from(
+      docs,
+    );
+    final moved = reordered.removeAt(index);
+    reordered.insert(target, moved);
+
+    try {
+      final batch = _db.batch();
+      for (var i = 0; i < reordered.length; i++) {
+        batch.update(reordered[i].reference, {'sortOrder': i});
+      }
+      await batch.commit();
+      if (context.mounted) _message(context, 'Category order updated.');
+    } catch (error) {
+      if (context.mounted) {
+        _message(context, 'Could not reorder categories: ' + error.toString());
+      }
+    }
+  }
+
+  Future<void> _delete(
+    BuildContext context,
+    QueryDocumentSnapshot<Map<String, dynamic>> doc,
+  ) async {
+    final categoryName = (doc.data()['name'] ?? 'this category').toString();
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Delete category?'),
+        content: Text(
+          'Delete "' + categoryName + '"? Existing products will not be deleted. '
+          'Their saved category text may remain until those products are edited.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: Colors.red),
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+
+    try {
+      await doc.reference.delete();
+      if (context.mounted) _message(context, 'Category deleted.');
+    } catch (error) {
+      if (context.mounted) {
+        _message(context, 'Could not delete category: ' + error.toString());
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) => _PageFrame(
+        title: 'Categories',
+        subtitle:
+            'Manage the same categories used by the MedLife storefront, including icons, images and display order.',
+        action: FilledButton.icon(
+          onPressed: () => _edit(context),
+          icon: const Icon(Icons.add),
+          label: const Text('Add Category'),
+        ),
+        child: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+          stream: _db.collection('categories').snapshots(),
+          builder: (context, snapshot) {
+            if (snapshot.hasError) {
+              return const Center(child: Text('Could not load categories.'));
+            }
+            if (!snapshot.hasData) {
+              return const Center(child: CircularProgressIndicator());
+            }
+
+            final docs = snapshot.data!.docs.toList()
+              ..sort((a, b) {
+                final orderA = (a.data()['sortOrder'] as num?)?.toInt() ??
+                    1 << 30;
+                final orderB = (b.data()['sortOrder'] as num?)?.toInt() ??
+                    1 << 30;
+                final byOrder = orderA.compareTo(orderB);
+                if (byOrder != 0) return byOrder;
+                return (a.data()['name'] ?? '')
+                    .toString()
+                    .toLowerCase()
+                    .compareTo(
+                      (b.data()['name'] ?? '').toString().toLowerCase(),
+                    );
+              });
+
+            if (docs.isEmpty) {
+              return Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.category_outlined,
+                      size: 52,
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
+                    const SizedBox(height: 12),
+                    const Text('No categories yet.'),
+                    const SizedBox(height: 12),
+                    FilledButton.icon(
+                      onPressed: () => _edit(context),
+                      icon: const Icon(Icons.add),
+                      label: const Text('Create first category'),
+                    ),
+                  ],
+                ),
+              );
+            }
+
+            return ListView.separated(
+              padding: const EdgeInsets.all(24),
+              itemCount: docs.length,
+              separatorBuilder: (_, __) => const SizedBox(height: 8),
+              itemBuilder: (context, index) {
+                final doc = docs[index];
+                final data = doc.data();
+                final image = (data['imageUrl'] ?? '').toString();
+                final iconCodePoint =
+                    (data['iconCodePoint'] as num?)?.toInt() ??
+                        Icons.category_outlined.codePoint;
+                final icon = IconData(
+                  iconCodePoint,
+                  fontFamily:
+                      data['iconFontFamily']?.toString() ?? 'MaterialIcons',
+                );
+
+                return Card(
+                  child: ListTile(
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 6,
+                    ),
+                    leading: ClipRRect(
+                      borderRadius: BorderRadius.circular(10),
+                      child: SizedBox(
+                        width: 52,
+                        height: 52,
+                        child: image.startsWith('http')
+                            ? Image.network(
+                                image,
+                                fit: BoxFit.cover,
+                                errorBuilder: (_, __, ___) => Icon(
+                                  icon,
+                                  color: _blue,
+                                  size: 30,
+                                ),
+                              )
+                            : Icon(icon, color: _blue, size: 30),
+                      ),
+                    ),
+                    title: Text(
+                      (data['name'] ?? 'Unnamed category').toString(),
+                      style: const TextStyle(fontWeight: FontWeight.w700),
+                    ),
+                    subtitle: Text(
+                      'Order: ' +
+                          (data['sortOrder'] ?? '—').toString() +
+                          '  •  ID: ' +
+                          doc.id,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    trailing: Wrap(
+                      spacing: 2,
+                      children: [
+                        IconButton(
+                          tooltip: 'Move up',
+                          onPressed: index == 0
+                              ? null
+                              : () => _move(context, docs, index, -1),
+                          icon: const Icon(Icons.arrow_upward),
+                        ),
+                        IconButton(
+                          tooltip: 'Move down',
+                          onPressed: index == docs.length - 1
+                              ? null
+                              : () => _move(context, docs, index, 1),
+                          icon: const Icon(Icons.arrow_downward),
+                        ),
+                        IconButton(
+                          tooltip: 'Edit category',
+                          onPressed: () => _edit(context, doc: doc),
+                          icon: const Icon(Icons.edit_outlined),
+                        ),
+                        IconButton(
+                          tooltip: 'Delete category',
+                          onPressed: () => _delete(context, doc),
+                          icon: const Icon(
+                            Icons.delete_outline,
+                            color: Colors.red,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            );
+          },
+        ),
+      );
+}
 class CustomersAdminPage extends StatefulWidget {
   const CustomersAdminPage({super.key});
   @override
