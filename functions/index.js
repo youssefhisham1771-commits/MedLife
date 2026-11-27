@@ -306,3 +306,83 @@ exports.setMedLifeStaffPermissions = onCall(async (request) => {
   }
 });
 
+// ============================================================
+// Configurable notification broadcast (authorized staff/Super Admin)
+// The callable validates content, sends in FCM-safe batches, and
+// stores a server-authored history record for the admin dashboard.
+// ============================================================
+
+exports.sendMedLifeNotification = onCall({ timeoutSeconds: 120 }, async (request) => {
+  if (!request.auth) {
+    throw new HttpsError("unauthenticated", "Authentication is required.");
+  }
+
+  const claims = request.auth.token;
+  const isSuperAdmin = claims.medlifeSuperAdmin === true;
+  const isAuthorizedStaff = claims.medlifeRole === "staff"
+    && claims.medlifeStaffActive === true
+    && Array.isArray(claims.medlifePermissions)
+    && claims.medlifePermissions.includes("notifications.manage");
+
+  if (!isSuperAdmin && !isAuthorizedStaff) {
+    throw new HttpsError("permission-denied", "You are not allowed to send notifications.");
+  }
+
+  const title = typeof request.data?.title === "string" ? request.data.title.trim() : "";
+  const body = typeof request.data?.body === "string" ? request.data.body.trim() : "";
+
+  if (!title || title.length > 80) {
+    throw new HttpsError("invalid-argument", "Title is required and must be 80 characters or fewer.");
+  }
+  if (!body || body.length > 240) {
+    throw new HttpsError("invalid-argument", "Message is required and must be 240 characters or fewer.");
+  }
+
+  try {
+    const snapshot = await admin.firestore().collection("users").get();
+    const tokens = [...new Set(snapshot.docs
+      .map((doc) => doc.data().fcmToken)
+      .filter((token) => typeof token === "string" && token.trim())
+      .map((token) => token.trim()))];
+
+    let sent = 0;
+    let failed = 0;
+    for (let offset = 0; offset < tokens.length; offset += 500) {
+      const batch = tokens.slice(offset, offset + 500);
+      const result = await admin.messaging().sendEachForMulticast({
+        tokens: batch,
+        notification: { title, body },
+      });
+      sent += result.successCount;
+      failed += result.failureCount;
+    }
+
+    const notificationRef = await admin.firestore().collection("notifications").add({
+      title,
+      body,
+      createdAt: FieldValue.serverTimestamp(),
+      createdBy: request.auth.uid,
+      recipientCount: tokens.length,
+      sent,
+      failed,
+      channel: "push",
+    });
+
+    await recordMedLifeActivity({
+      actorUid: request.auth.uid,
+      action: "notifications.broadcast_sent",
+      details: { sent, failed, recipientCount: tokens.length, notificationId: notificationRef.id },
+    });
+
+    return {
+      success: true,
+      notificationId: notificationRef.id,
+      recipientCount: tokens.length,
+      sent,
+      failed,
+    };
+  } catch (error) {
+    console.error("sendMedLifeNotification failed:", error);
+    throw new HttpsError("internal", "Unable to send the notification broadcast.");
+  }
+});
