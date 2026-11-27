@@ -992,10 +992,46 @@ class _CustomersAdminPageState extends State<CustomersAdminPage> {
   ]));
 }
 
-class InventoryAdminPage extends StatelessWidget {
+class InventoryAdminPage extends StatefulWidget {
   const InventoryAdminPage({super.key, required this.canManage});
 
   final bool canManage;
+
+  @override
+  State<InventoryAdminPage> createState() => _InventoryAdminPageState();
+}
+
+class _InventoryAdminPageState extends State<InventoryAdminPage> {
+  String search = '';
+  String filter = 'all';
+
+  bool _matchesFilter(Map<String, dynamic> data) {
+    final sizes = data['sizes'] is List
+        ? (data['sizes'] as List).map((value) => value.toString()).toList()
+        : <String>[];
+    final stock = data['stockBySize'] is Map
+        ? Map<String, dynamic>.from(data['stockBySize'] as Map)
+        : <String, dynamic>{};
+    final threshold = (data['lowStockThreshold'] as num?)?.toInt() ?? 5;
+    final counts = sizes.map((size) => stock[size] is num
+        ? (stock[size] as num).toInt()
+        : null).toList();
+    final unconfigured = sizes.isEmpty || counts.any((count) => count == null);
+    final hasLow = counts.any((count) =>
+        count != null && count > 0 && count <= threshold);
+    final hasOut = counts.any((count) => count == 0);
+
+    switch (filter) {
+      case 'low':
+        return hasLow;
+      case 'out':
+        return hasOut;
+      case 'unconfigured':
+        return unconfigured;
+      default:
+        return true;
+    }
+  }
 
   @override
   Widget build(BuildContext context) => _PageFrame(
@@ -1004,8 +1040,13 @@ class InventoryAdminPage extends StatelessWidget {
         child: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
           stream: _db.collection('Products').snapshots(),
           builder: (context, snapshot) {
-            if (snapshot.hasError) return const Center(child: Text('Could not load products.'));
-            if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
+            if (snapshot.hasError) {
+              return const Center(child: Text('Could not load products.'));
+            }
+            if (!snapshot.hasData) {
+              return const Center(child: CircularProgressIndicator());
+            }
+
             final docs = snapshot.data!.docs;
             var configured = 0;
             var units = 0;
@@ -1014,13 +1055,15 @@ class InventoryAdminPage extends StatelessWidget {
             for (final doc in docs) {
               final data = doc.data();
               final sizes = data['sizes'] is List
-                  ? (data['sizes'] as List).map((e) => e.toString()).toList()
+                  ? (data['sizes'] as List).map((value) => value.toString()).toList()
                   : <String>[];
               final stock = data['stockBySize'] is Map
                   ? Map<String, dynamic>.from(data['stockBySize'] as Map)
                   : <String, dynamic>{};
               final limit = (data['lowStockThreshold'] as num?)?.toInt() ?? 5;
-              if (sizes.isNotEmpty && sizes.every((s) => stock[s] is num)) configured++;
+              if (sizes.isNotEmpty && sizes.every((size) => stock[size] is num)) {
+                configured++;
+              }
               for (final size in sizes) {
                 final count = (stock[size] as num?)?.toInt();
                 if (count == null) continue;
@@ -1032,53 +1075,121 @@ class InventoryAdminPage extends StatelessWidget {
                 }
               }
             }
-            return ListView(
-              padding: const EdgeInsets.fromLTRB(24, 4, 24, 24),
+
+            final visibleDocs = docs.where((doc) {
+              final data = doc.data();
+              final searchable = [
+                data['name'] ?? '',
+                data['category'] ?? '',
+                doc.id,
+              ].join(' ').toLowerCase();
+              return searchable.contains(search) && _matchesFilter(data);
+            }).toList()
+              ..sort((a, b) {
+                final aName = (a.data()['name'] ?? '').toString().toLowerCase();
+                final bName = (b.data()['name'] ?? '').toString().toLowerCase();
+                return aName.compareTo(bName);
+              });
+
+            return Column(
               children: [
-                Wrap(
-                  spacing: 12,
-                  runSpacing: 12,
-                  children: [
-                    _Kpi(title: 'Products', value: docs.length.toString(), icon: Icons.inventory_2_outlined),
-                    _Kpi(title: 'Configured', value: configured.toString(), icon: Icons.fact_check_outlined),
-                    _Kpi(title: 'Total units', value: units.toString(), icon: Icons.stacked_bar_chart),
-                    _Kpi(title: 'Low / out sizes', value: '$low / $out', icon: Icons.warning_amber_outlined),
-                  ],
-                ),
-                const SizedBox(height: 14),
-                const Card(
-                  child: Padding(
-                    padding: EdgeInsets.all(16),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Icon(Icons.info_outline, color: _blue),
-                        SizedBox(width: 12),
-                        Expanded(
-                          child: Text(
-                            'Stock is stored in Products.stockBySize. Existing quantities are not guessed; products begin as Not configured. This milestone adds admin stock entry and monitoring only. Checkout blocking and automatic deduction require a separate trusted server-side order workflow.',
-                          ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(24, 16, 24, 8),
+                  child: LayoutBuilder(
+                    builder: (context, constraints) {
+                      final compact = constraints.maxWidth < 620;
+                      final searchField = TextField(
+                        onChanged: (value) => setState(() => search = value.trim().toLowerCase()),
+                        decoration: const InputDecoration(
+                          prefixIcon: Icon(Icons.search),
+                          hintText: 'Search product, category or ID',
                         ),
-                      ],
-                    ),
+                      );
+                      final filterField = DropdownButtonFormField<String>(
+                        value: filter,
+                        decoration: const InputDecoration(labelText: 'Stock status'),
+                        items: const [
+                          DropdownMenuItem(value: 'all', child: Text('All products')),
+                          DropdownMenuItem(value: 'low', child: Text('Low stock')),
+                          DropdownMenuItem(value: 'out', child: Text('Out of stock')),
+                          DropdownMenuItem(value: 'unconfigured', child: Text('Not configured')),
+                        ],
+                        onChanged: (value) => setState(() => filter = value ?? 'all'),
+                      );
+                      if (compact) {
+                        return Column(
+                          children: [
+                            searchField,
+                            const SizedBox(height: 10),
+                            filterField,
+                          ],
+                        );
+                      }
+                      return Row(
+                        children: [
+                          Expanded(flex: 3, child: searchField),
+                          const SizedBox(width: 12),
+                          Expanded(flex: 2, child: filterField),
+                        ],
+                      );
+                    },
                   ),
                 ),
-                const SizedBox(height: 12),
-                if (docs.isEmpty)
-                  const Center(child: Padding(padding: EdgeInsets.all(32), child: Text('No products found.')))
-                else
-                  ...docs.map((doc) => _InventoryProductCard(
-                      productId: doc.id,
-                      data: doc.data(),
-                      canManage: canManage,
-                    )),
+                Expanded(
+                  child: ListView(
+                    padding: const EdgeInsets.fromLTRB(24, 8, 24, 24),
+                    children: [
+                      Wrap(
+                        spacing: 12,
+                        runSpacing: 12,
+                        children: [
+                          _Kpi(title: 'Products', value: docs.length.toString(), icon: Icons.inventory_2_outlined),
+                          _Kpi(title: 'Configured', value: configured.toString(), icon: Icons.fact_check_outlined),
+                          _Kpi(title: 'Total units', value: units.toString(), icon: Icons.stacked_bar_chart),
+                          _Kpi(title: 'Low / out sizes', value: '$low / $out', icon: Icons.warning_amber_outlined),
+                        ],
+                      ),
+                      const SizedBox(height: 14),
+                      const Card(
+                        child: Padding(
+                          padding: EdgeInsets.all(16),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Icon(Icons.info_outline, color: _blue),
+                              SizedBox(width: 12),
+                              Expanded(
+                                child: Text(
+                                  'Stock is stored in Products.stockBySize. Existing quantities are not guessed; products begin as Not configured. Checkout blocking and automatic deduction require a separate trusted server-side order workflow.',
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      if (visibleDocs.isEmpty)
+                        const Center(
+                          child: Padding(
+                            padding: EdgeInsets.all(32),
+                            child: Text('No products match this search or stock filter.'),
+                          ),
+                        )
+                      else
+                        ...visibleDocs.map((doc) => _InventoryProductCard(
+                              productId: doc.id,
+                              data: doc.data(),
+                              canManage: widget.canManage,
+                            )),
+                    ],
+                  ),
+                ),
               ],
             );
           },
         ),
       );
 }
-
 class _InventoryProductCard extends StatelessWidget {
   const _InventoryProductCard({
     required this.productId,
@@ -1101,7 +1212,10 @@ class _InventoryProductCard extends StatelessWidget {
     final threshold = (data['lowStockThreshold'] as num?)?.toInt() ?? 5;
     final configured = sizes.isNotEmpty && sizes.every((s) => stock[s] is num);
     final total = sizes.fold<int>(0, (sum, s) => sum + ((stock[s] as num?)?.toInt() ?? 0));
-    final imageUrl = (data['image'] ?? '').toString();
+    final gallery = data['images'] is List ? data['images'] as List : const [];
+    final imageUrl = gallery.isNotEmpty
+        ? gallery.first.toString()
+        : (data['image'] ?? '').toString();
 
     return Card(
       margin: const EdgeInsets.only(bottom: 10),
