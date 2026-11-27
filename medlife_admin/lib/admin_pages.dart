@@ -216,11 +216,22 @@ class _ProductsAdminPageState extends State<ProductsAdminPage> {
       Padding(padding: const EdgeInsets.symmetric(horizontal: 24), child: TextField(onChanged: (v) => setState(() => search = v.toLowerCase()), decoration: const InputDecoration(prefixIcon: Icon(Icons.search), hintText: 'Search products by name or category'))),
       const SizedBox(height: 12),
       Expanded(child: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-        stream: _db.collection('Products').orderBy('createdAt', descending: true).snapshots(),
+        stream: _db.collection('Products').snapshots(),
         builder: (context, snap) {
           if (snap.hasError) return const Center(child: Text('Could not load Products collection.'));
           if (!snap.hasData) return const Center(child: CircularProgressIndicator());
-          final docs = snap.data!.docs.where((d) => d.data().toString().toLowerCase().contains(search)).toList();
+          final docs = snap.data!.docs.where((d) => d.data().toString().toLowerCase().contains(search)).toList()
+            ..sort((a, b) {
+              final aDate = a.data()['createdAt'];
+              final bDate = b.data()['createdAt'];
+              DateTime? dateOf(dynamic value) {
+                if (value is Timestamp) return value.toDate();
+                if (value is DateTime) return value;
+                return null;
+              }
+              return (dateOf(bDate) ?? DateTime.fromMillisecondsSinceEpoch(0))
+                  .compareTo(dateOf(aDate) ?? DateTime.fromMillisecondsSinceEpoch(0));
+            });
           if (docs.isEmpty) return const Center(child: Text('No products found.'));
           return ListView.separated(padding: const EdgeInsets.all(24), itemCount: docs.length, separatorBuilder: (_, __) => const SizedBox(height: 8), itemBuilder: (context, i) {
             final doc = docs[i]; final d = doc.data(); final images = (d['images'] as List?) ?? []; final image = images.isNotEmpty ? images.first.toString() : (d['image'] ?? '').toString();
@@ -305,9 +316,6 @@ class _ProductEditorState extends State<_ProductEditor> {
         ? (widget.initial!['images'] as List).join(', ')
         : widget.initial?['image']?.toString() ?? '',
   );
-  late final category = TextEditingController(
-    text: widget.initial?['category']?.toString() ?? '',
-  );
   late final sizes = TextEditingController(
     text: widget.initial?['sizes'] is List
         ? (widget.initial!['sizes'] as List).join(', ')
@@ -323,7 +331,7 @@ class _ProductEditorState extends State<_ProductEditor> {
     selectedCategoryId = widget.initial?['categoryId']?.toString();
   }
 
-  Future<void> save() async {
+  Future<void> save(List<QueryDocumentSnapshot<Map<String, dynamic>>> categories) async {
     final parsedPrice = double.tryParse(price.text.trim());
     if (name.text.trim().isEmpty ||
         parsedPrice == null ||
@@ -333,67 +341,57 @@ class _ProductEditorState extends State<_ProductEditor> {
       return;
     }
 
-    if (category.text.trim().isEmpty) {
-      _message(context, 'Choose or enter a product category.');
+    final categoryDoc = categories.where((doc) {
+      if (selectedCategoryId != null) return doc.id == selectedCategoryId;
+      return (doc.data()['name'] ?? '').toString().trim().toLowerCase() ==
+          (widget.initial?['category'] ?? '').toString().trim().toLowerCase();
+    }).firstOrNull;
+    if (categoryDoc == null) {
+      _message(context, 'Select an existing category before saving this product.');
+      return;
+    }
+
+    final images = image.text
+        .split(',')
+        .map((value) => value.trim())
+        .where((value) => value.isNotEmpty)
+        .toList();
+    for (final value in images) {
+      final uri = Uri.tryParse(value);
+      if (uri == null ||
+          (uri.scheme != 'https' && uri.scheme != 'http') ||
+          uri.host.isEmpty) {
+        _message(context, 'Each product image must be a valid HTTP or HTTPS URL.');
+        return;
+      }
+    }
+
+    final productSizes = sizes.text
+        .split(',')
+        .map((value) => value.trim())
+        .where((value) => value.isNotEmpty)
+        .toSet()
+        .toList();
+    if (productSizes.isEmpty) {
+      _message(context, 'Add at least one available size for this product.');
       return;
     }
 
     setState(() => saving = true);
     try {
-      final images = image.text
-          .split(',')
-          .map((value) => value.trim())
-          .where((value) => value.isNotEmpty)
-          .toList();
-      final productSizes = sizes.text
-          .split(',')
-          .map((value) => value.trim())
-          .where((value) => value.isNotEmpty)
-          .toSet()
-          .toList();
-
-      String? categoryId = selectedCategoryId;
-      if (categoryId != null) {
-        final categoryDoc =
-            await _db.collection('categories').doc(categoryId).get();
-        if (!categoryDoc.exists) {
-          throw StateError('The selected category no longer exists.');
-        }
-        category.text = categoryDoc.data()?['name']?.toString() ??
-            category.text.trim();
-      } else {
-        final matchingCategories = await _db
-            .collection('categories')
-            .where('name', isEqualTo: category.text.trim())
-            .limit(1)
-            .get();
-        if (matchingCategories.docs.isNotEmpty) {
-          categoryId = matchingCategories.docs.first.id;
-        }
-      }
-
-      if (widget.initial == null && categoryId == null) {
-        throw StateError(
-          'Select an existing category before adding a new product.',
-        );
-      }
-
+      final categoryName = (categoryDoc.data()['name'] ?? '').toString().trim();
       final data = <String, dynamic>{
         'name': name.text.trim(),
-        // ProductModel reads price as a number, not a string.
         'price': parsedPrice,
         'description': description.text.trim(),
         'deliveryText': delivery.text.trim(),
-        'category': category.text.trim(),
+        'category': categoryName,
+        'categoryId': categoryDoc.id,
         'images': images,
-        // Keep the legacy singular image field used by ProductModel.
         'image': images.isEmpty ? '' : images.first,
         'sizes': productSizes,
         'updatedAt': FieldValue.serverTimestamp(),
       };
-      if (categoryId != null) {
-        data['categoryId'] = categoryId;
-      }
 
       if (widget.initial == null) {
         data['createdAt'] = FieldValue.serverTimestamp();
@@ -403,8 +401,8 @@ class _ProductEditorState extends State<_ProductEditor> {
       }
 
       if (mounted) Navigator.pop(context, true);
-    } catch (e) {
-      if (mounted) _message(context, 'Could not save product: $e');
+    } catch (error) {
+      if (mounted) _message(context, 'Could not save product: $error');
     } finally {
       if (mounted) setState(() => saving = false);
     }
@@ -417,129 +415,143 @@ class _ProductEditorState extends State<_ProductEditor> {
     description.dispose();
     delivery.dispose();
     image.dispose();
-    category.dispose();
     sizes.dispose();
     super.dispose();
   }
 
   @override
-  Widget build(BuildContext context) => AlertDialog(
-        title: Text(widget.initial == null ? 'Add Product' : 'Edit Product'),
-        content: SizedBox(
-          width: 520,
-          child: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextField(
-                  controller: name,
-                  decoration: const InputDecoration(labelText: 'Product name'),
-                ),
-                const SizedBox(height: 10),
-                TextField(
-                  controller: price,
-                  keyboardType:
-                      const TextInputType.numberWithOptions(decimal: true),
-                  decoration: const InputDecoration(labelText: 'Price (EGP)'),
-                ),
-                const SizedBox(height: 10),
-                StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-                  stream: _db.collection('categories').snapshots(),
-                  builder: (context, snapshot) {
-                    final docs = snapshot.data?.docs ?? [];
-                    final hasSelected =
-                        docs.any((doc) => doc.id == selectedCategoryId);
-                    return Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        DropdownButtonFormField<String>(
-                          value: hasSelected ? selectedCategoryId : null,
-                          decoration: const InputDecoration(
-                            labelText: 'Choose existing category',
-                          ),
-                          items: docs
-                              .map(
-                                (doc) => DropdownMenuItem<String>(
-                                  value: doc.id,
-                                  child: Text(
-                                    (doc.data()['name'] ?? 'Unnamed').toString(),
-                                  ),
-                                ),
-                              )
-                              .toList(),
-                          onChanged: saving
-                              ? null
-                              : (value) {
-                                  if (value == null) return;
-                                  final selected =
-                                      docs.firstWhere((doc) => doc.id == value);
-                                  setState(() {
-                                    selectedCategoryId = value;
-                                    category.text =
-                                        (selected.data()['name'] ?? '')
-                                            .toString();
-                                  });
-                                },
+  Widget build(BuildContext context) => StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+        stream: _db.collection('categories').snapshots(),
+        builder: (context, snapshot) {
+          final categories = snapshot.data?.docs ?? [];
+          String? dropdownValue = selectedCategoryId;
+          if (dropdownValue == null) {
+            for (final doc in categories) {
+              if ((doc.data()['name'] ?? '').toString().trim().toLowerCase() ==
+                  (widget.initial?['category'] ?? '').toString().trim().toLowerCase()) {
+                dropdownValue = doc.id;
+                break;
+              }
+            }
+          }
+          if (dropdownValue != null &&
+              !categories.any((doc) => doc.id == dropdownValue)) {
+            dropdownValue = null;
+          }
+
+          return AlertDialog(
+            title: Text(widget.initial == null ? 'Add Product' : 'Edit Product'),
+            content: SizedBox(
+              width: 520,
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    TextField(
+                      controller: name,
+                      enabled: !saving,
+                      decoration: const InputDecoration(labelText: 'Product name'),
+                    ),
+                    const SizedBox(height: 10),
+                    TextField(
+                      controller: price,
+                      enabled: !saving,
+                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                      decoration: const InputDecoration(
+                        labelText: 'Price (EGP)',
+                        prefixText: 'EGP ',
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    if (snapshot.hasError)
+                      const Align(
+                        alignment: Alignment.centerLeft,
+                        child: Text('Could not load categories. Check your access and connection.'),
+                      )
+                    else if (!snapshot.hasData)
+                      const LinearProgressIndicator()
+                    else if (categories.isEmpty)
+                      const Align(
+                        alignment: Alignment.centerLeft,
+                        child: Text('Create a category first from the Categories page.'),
+                      )
+                    else
+                      DropdownButtonFormField<String>(
+                        value: dropdownValue,
+                        decoration: const InputDecoration(
+                          labelText: 'Product category',
+                          helperText: 'Choose one of the categories managed in the Categories page.',
                         ),
-                        const SizedBox(height: 8),
-                        TextField(
-                          controller: category,
-                          decoration: const InputDecoration(
-                            labelText: 'Category name',
-                            helperText:
-                                'Selecting a category above also saves its category ID.',
-                          ),
+                        items: categories.map((doc) => DropdownMenuItem<String>(
+                          value: doc.id,
+                          child: Text((doc.data()['name'] ?? 'Unnamed').toString()),
+                        )).toList(),
+                        onChanged: saving ? null : (value) {
+                          setState(() => selectedCategoryId = value);
+                        },
+                      ),
+                    const SizedBox(height: 10),
+                    TextField(
+                      controller: sizes,
+                      enabled: !saving,
+                      decoration: const InputDecoration(
+                        labelText: 'Available sizes',
+                        helperText: 'Separate sizes with commas, e.g. S, M, L, XL.',
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    TextField(
+                      controller: description,
+                      enabled: !saving,
+                      maxLines: 3,
+                      decoration: const InputDecoration(labelText: 'Description'),
+                    ),
+                    const SizedBox(height: 10),
+                    TextField(
+                      controller: delivery,
+                      enabled: !saving,
+                      decoration: const InputDecoration(labelText: 'Delivery text'),
+                    ),
+                    const SizedBox(height: 10),
+                    TextField(
+                      controller: image,
+                      enabled: !saving,
+                      maxLines: 3,
+                      decoration: const InputDecoration(
+                        labelText: 'Product image URL(s)',
+                        helperText: 'Use full HTTP/HTTPS URLs. Separate multiple images with commas.',
+                      ),
+                    ),
+                    if (image.text.trim().startsWith('https://')) ...[
+                      const SizedBox(height: 10),
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          'Image preview is shown in the product list after saving.',
+                          style: Theme.of(context).textTheme.bodySmall,
                         ),
-                      ],
-                    );
-                  },
+                      ),
+                    ],
+                  ],
                 ),
-                const SizedBox(height: 10),
-                TextField(
-                  controller: sizes,
-                  decoration: const InputDecoration(
-                    labelText: 'Available sizes',
-                    helperText: 'Separate sizes with commas, e.g. S, M, L, XL.',
-                  ),
-                ),
-                const SizedBox(height: 10),
-                TextField(
-                  controller: description,
-                  maxLines: 3,
-                  decoration: const InputDecoration(labelText: 'Description'),
-                ),
-                const SizedBox(height: 10),
-                TextField(
-                  controller: delivery,
-                  decoration: const InputDecoration(labelText: 'Delivery text'),
-                ),
-                const SizedBox(height: 10),
-                TextField(
-                  controller: image,
-                  maxLines: 2,
-                  decoration: const InputDecoration(
-                    labelText: 'Image URL(s)',
-                    helperText:
-                        'Separate multiple image URLs with commas. The first URL is also saved to the legacy image field.',
-                  ),
-                ),
-              ],
+              ),
             ),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: saving ? null : () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            onPressed: saving ? null : save,
-            child: Text(saving ? 'Saving…' : 'Save Product'),
-          ),
-        ],
+            actions: [
+              TextButton(
+                onPressed: saving ? null : () => Navigator.pop(context, false),
+                child: const Text('Cancel'),
+              ),
+              FilledButton(
+                onPressed: saving || !snapshot.hasData || categories.isEmpty
+                    ? null
+                    : () => save(categories),
+                child: Text(saving ? 'Saving…' : 'Save Product'),
+              ),
+            ],
+          );
+        },
       );
 }
-
 class CategoriesAdminPage extends StatefulWidget {
   const CategoriesAdminPage({super.key});
 
