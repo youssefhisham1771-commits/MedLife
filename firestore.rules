@@ -220,6 +220,12 @@ service cloud.firestore {
       allow create, update, delete: if hasPermission('settings.manage');
     }
 
+    // AUDIT LOGS. Only trusted Cloud Functions write through Admin SDK.
+    match /activityLogs/{activityId} {
+      allow get, list: if hasPermission('activity_log.view');
+      allow create, update, delete: if false;
+    }
+
     // Deny every collection not explicitly listed above.
     match /{document=**} {
       allow read, write: if false;
