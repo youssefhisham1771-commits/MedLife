@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:fl_chart/fl_chart.dart';
 import 'orders_management_page.dart';
 import 'customers_management_page.dart';
 import 'finance_reports_page.dart';
@@ -902,27 +903,386 @@ class BannersAdminPage extends StatelessWidget {
 
 class AnalyticsAdminPage extends StatelessWidget {
   const AnalyticsAdminPage({super.key});
-  @override
-  Widget build(BuildContext context) => _PageFrame(title: 'Analytics', subtitle: 'Live order-based business indicators.', child: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(stream: _db.collection('orders').snapshots(), builder: (context, snap) {
-    if (snap.hasError) return const Center(child: Text('Could not load analytics.'));
-    if (!snap.hasData) return const Center(child: CircularProgressIndicator());
-    final docs = snap.data!.docs;
-    final revenue = docs.where((d) => (d.data()['status'] ?? '') != 'cancelled').fold<double>(0, (sum, d) => sum + (double.tryParse(d.data()['total']?.toString() ?? '') ?? 0));
-    final delivered = docs.where((d) => d.data()['status'] == 'delivered').length;
-    final pending = docs.where((d) => d.data()['status'] == 'pending').length;
-    return ListView(padding: const EdgeInsets.all(24), children: [
-      Wrap(spacing: 12, runSpacing: 12, children: [
-        _Kpi(title: 'All Orders', value: docs.length.toString(), icon: Icons.shopping_bag_outlined),
-        _Kpi(title: 'Gross Order Value*', value: _money(revenue), icon: Icons.payments_outlined),
-        _Kpi(title: 'Delivered', value: delivered.toString(), icon: Icons.check_circle_outline),
-        _Kpi(title: 'Pending', value: pending.toString(), icon: Icons.pending_actions),
-      ]),
-      const SizedBox(height: 14),
-      const Text('*Sum of non-cancelled order totals; this is not accounting net revenue and may include shipping.'),
-    ]);
-  }));
-}
 
+  double _amount(dynamic value) {
+    if (value is num) return value.toDouble();
+    return double.tryParse(value?.toString() ?? '') ?? 0;
+  }
+
+  DateTime? _orderDate(dynamic value) {
+    if (value is Timestamp) return value.toDate();
+    if (value is DateTime) return value;
+    return null;
+  }
+
+  @override
+  Widget build(BuildContext context) => _PageFrame(
+        title: 'Analytics',
+        subtitle: 'Live order, sales trend and product performance indicators.',
+        child: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+          stream: _db.collection('orders').snapshots(),
+          builder: (context, snap) {
+            if (snap.hasError) {
+              return Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: SelectableText('Could not load analytics: ${snap.error}'),
+                ),
+              );
+            }
+            if (!snap.hasData) {
+              return const Center(child: CircularProgressIndicator());
+            }
+
+            final docs = snap.data!.docs;
+            final activeDocs = docs.where((doc) =>
+                (doc.data()['status'] ?? 'pending').toString().toLowerCase() !=
+                'cancelled').toList();
+            final orderValue = activeDocs.fold<double>(
+              0,
+              (sum, doc) => sum + _amount(doc.data()['total']),
+            );
+            final delivered = docs.where((doc) =>
+                (doc.data()['status'] ?? '').toString().toLowerCase() ==
+                'delivered').length;
+            final pending = docs.where((doc) =>
+                (doc.data()['status'] ?? 'pending').toString().toLowerCase() ==
+                'pending').length;
+            final averageOrder = activeDocs.isEmpty ? 0.0 : orderValue / activeDocs.length;
+
+            const statusNames = [
+              'pending',
+              'processing',
+              'shipped',
+              'delivered',
+              'cancelled',
+            ];
+            const statusColors = [
+              Color(0xFFF59E0B),
+              Color(0xFF8B5CF6),
+              Color(0xFF3B82F6),
+              Color(0xFF16A34A),
+              Color(0xFFDC2626),
+            ];
+            final statusCounts = <String, int>{
+              for (final status in statusNames)
+                status: docs.where((doc) =>
+                    (doc.data()['status'] ?? 'pending')
+                        .toString()
+                        .toLowerCase() == status).length,
+            };
+
+            final now = DateTime.now();
+            final firstMonth = DateTime(now.year, now.month - 5, 1);
+            final monthlyTotals = List<double>.filled(6, 0);
+            for (final doc in activeDocs) {
+              final date = _orderDate(doc.data()['orderedAt']);
+              if (date == null) continue;
+              final index = (date.year - firstMonth.year) * 12 +
+                  date.month - firstMonth.month;
+              if (index >= 0 && index < monthlyTotals.length) {
+                monthlyTotals[index] += _amount(doc.data()['total']);
+              }
+            }
+            final maxMonthly = monthlyTotals.fold<double>(
+              0,
+              (largest, value) => value > largest ? value : largest,
+            );
+            final monthLabels = List<String>.generate(6, (index) {
+              final month = DateTime(firstMonth.year, firstMonth.month + index, 1);
+              return DateFormat('MMM').format(month);
+            });
+
+            final productTotals = <String, double>{};
+            for (final doc in activeDocs) {
+              final items = doc.data()['items'];
+              if (items is! List) continue;
+              for (final rawItem in items) {
+                if (rawItem is! Map) continue;
+                final item = Map<String, dynamic>.from(rawItem);
+                final name = (item['name'] ?? 'Unnamed product').toString();
+                final quantity = _amount(item['quantity'] ?? 1);
+                productTotals[name] = (productTotals[name] ?? 0) +
+                    _amount(item['price']) * quantity;
+              }
+            }
+            final topProducts = productTotals.entries.toList()
+              ..sort((a, b) => b.value.compareTo(a.value));
+            final visibleProducts = topProducts.take(5).toList();
+            final maxProductValue = visibleProducts.isEmpty
+                ? 0.0
+                : visibleProducts.first.value;
+
+            return ListView(
+              padding: const EdgeInsets.all(24),
+              children: [
+                Wrap(
+                  spacing: 12,
+                  runSpacing: 12,
+                  children: [
+                    _Kpi(
+                      title: 'All Orders',
+                      value: docs.length.toString(),
+                      icon: Icons.shopping_bag_outlined,
+                    ),
+                    _Kpi(
+                      title: 'Gross Order Value*',
+                      value: _money(orderValue),
+                      icon: Icons.payments_outlined,
+                    ),
+                    _Kpi(
+                      title: 'Delivered',
+                      value: delivered.toString(),
+                      icon: Icons.check_circle_outline,
+                    ),
+                    _Kpi(
+                      title: 'Pending',
+                      value: pending.toString(),
+                      icon: Icons.pending_actions,
+                    ),
+                    _Kpi(
+                      title: 'Average Active Order',
+                      value: _money(averageOrder),
+                      icon: Icons.receipt_long_outlined,
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 18),
+                Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(18),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Monthly order value',
+                          style: Theme.of(context).textTheme.titleMedium
+                              ?.copyWith(fontWeight: FontWeight.w800),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'Last six calendar months, excluding cancelled orders.',
+                          style: Theme.of(context).textTheme.bodySmall,
+                        ),
+                        const SizedBox(height: 18),
+                        SizedBox(
+                          height: 230,
+                          child: BarChart(
+                            BarChartData(
+                              alignment: BarChartAlignment.spaceAround,
+                              maxY: maxMonthly <= 0 ? 10 : maxMonthly * 1.2,
+                              barTouchData: BarTouchData(enabled: true),
+                              gridData: const FlGridData(
+                                show: true,
+                                drawVerticalLine: false,
+                              ),
+                              borderData: FlBorderData(show: false),
+                              titlesData: FlTitlesData(
+                                topTitles: const AxisTitles(
+                                  sideTitles: SideTitles(showTitles: false),
+                                ),
+                                rightTitles: const AxisTitles(
+                                  sideTitles: SideTitles(showTitles: false),
+                                ),
+                                leftTitles: AxisTitles(
+                                  sideTitles: SideTitles(
+                                    showTitles: true,
+                                    reservedSize: 54,
+                                    getTitlesWidget: (value, meta) => Text(
+                                      NumberFormat.compact().format(value),
+                                      style: Theme.of(context).textTheme.bodySmall,
+                                    ),
+                                  ),
+                                ),
+                                bottomTitles: AxisTitles(
+                                  sideTitles: SideTitles(
+                                    showTitles: true,
+                                    getTitlesWidget: (value, meta) {
+                                      final index = value.toInt();
+                                      if (index < 0 || index >= monthLabels.length) {
+                                        return const SizedBox.shrink();
+                                      }
+                                      return Padding(
+                                        padding: const EdgeInsets.only(top: 8),
+                                        child: Text(
+                                          monthLabels[index],
+                                          style: Theme.of(context).textTheme.bodySmall,
+                                        ),
+                                      );
+                                    },
+                                  ),
+                                ),
+                              ),
+                              barGroups: [
+                                for (var index = 0; index < monthlyTotals.length; index++)
+                                  BarChartGroupData(
+                                    x: index,
+                                    barRods: [
+                                      BarChartRodData(
+                                        toY: monthlyTotals[index],
+                                        width: 20,
+                                        borderRadius: BorderRadius.circular(5),
+                                        color: _blue,
+                                      ),
+                                    ],
+                                  ),
+                              ],
+                            ),
+                          ),
+                        ),
+                        if (activeDocs.isEmpty)
+                          const Center(child: Text('Monthly sales data will appear when orders arrive.')),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 14),
+                Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(18),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Order status breakdown',
+                          style: Theme.of(context).textTheme.titleMedium
+                              ?.copyWith(fontWeight: FontWeight.w800),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'Distribution of all orders by their current status.',
+                          style: Theme.of(context).textTheme.bodySmall,
+                        ),
+                        const SizedBox(height: 12),
+                        if (docs.isEmpty)
+                          const Padding(
+                            padding: EdgeInsets.all(24),
+                            child: Center(child: Text('No order status data yet.')),
+                          )
+                        else
+                          Column(
+                            children: [
+                              SizedBox(
+                                width: 170,
+                                height: 170,
+                                child: PieChart(
+                                  PieChartData(
+                                    sectionsSpace: 2,
+                                    centerSpaceRadius: 34,
+                                    sections: [
+                                      for (var index = 0; index < statusNames.length; index++)
+                                        if (statusCounts[statusNames[index]]! > 0)
+                                          PieChartSectionData(
+                                            value: statusCounts[statusNames[index]]!.toDouble(),
+                                            color: statusColors[index],
+                                            title: statusCounts[statusNames[index]].toString(),
+                                            radius: 42,
+                                            titleStyle: const TextStyle(
+                                              color: Colors.white,
+                                              fontSize: 11,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 14),
+                              Wrap(
+                                spacing: 14,
+                                runSpacing: 10,
+                                children: [
+                                  for (var index = 0; index < statusNames.length; index++)
+                                    Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Container(
+                                          width: 10,
+                                          height: 10,
+                                          decoration: BoxDecoration(
+                                            color: statusColors[index],
+                                            shape: BoxShape.circle,
+                                          ),
+                                        ),
+                                        const SizedBox(width: 6),
+                                        Text(
+                                          '${toBeginningOfSentenceCase(statusNames[index])}: ${statusCounts[statusNames[index]]}',
+                                          style: Theme.of(context).textTheme.bodySmall,
+                                        ),
+                                      ],
+                                    ),
+                                ],
+                              ),
+                            ],
+                          ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 14),
+                Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(18),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Top products by order value',
+                          style: Theme.of(context).textTheme.titleMedium
+                              ?.copyWith(fontWeight: FontWeight.w800),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'Based on item price multiplied by quantity in non-cancelled orders.',
+                          style: Theme.of(context).textTheme.bodySmall,
+                        ),
+                        const SizedBox(height: 14),
+                        if (visibleProducts.isEmpty)
+                          const Text('Product performance will appear when orders include item details.')
+                        else
+                          ...visibleProducts.map((entry) {
+                            final progress = maxProductValue <= 0
+                                ? 0.0
+                                : (entry.value / maxProductValue).clamp(0.0, 1.0).toDouble();
+                            return Padding(
+                              padding: const EdgeInsets.only(bottom: 14),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    children: [
+                                      Expanded(
+                                        child: Text(
+                                          entry.key,
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: const TextStyle(fontWeight: FontWeight.w600),
+                                        ),
+                                      ),
+                                      const SizedBox(width: 12),
+                                      Text(_money(entry.value)),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 6),
+                                  LinearProgressIndicator(value: progress),
+                                ],
+                              ),
+                            );
+                          }),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 10),
+                const Text(
+                  '*Gross order value is the sum of non-cancelled order totals. It may include shipping and is not accounting net revenue.',
+                ),
+              ],
+            );
+          },
+        ),
+      );
+}
 class ReportsAdminPage extends StatelessWidget {
   const ReportsAdminPage({super.key});
   @override
