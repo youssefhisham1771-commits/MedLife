@@ -2144,25 +2144,224 @@ const Map<String, List<Map<String, String>>> _staffPermissionGroups = {
   ],
 };
 
-class NotificationsAdminPage extends StatelessWidget {
+class NotificationsAdminPage extends StatefulWidget {
   const NotificationsAdminPage({super.key});
+
   @override
-  Widget build(BuildContext context) => _PageFrame(title: 'Notifications', subtitle: 'Notification records currently stored in Firestore.', child: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(stream: _db.collection('notifications').snapshots(), builder: (context, snap) {
-    if (snap.hasError) return const Center(child: Text('Could not load notifications.'));
-    if (!snap.hasData) return const Center(child: CircularProgressIndicator());
-    if (snap.data!.docs.isEmpty) return const Center(child: Text('No notification records found.'));
-    return ListView(
-      padding: const EdgeInsets.all(24),
-      children: snap.data!.docs.map((d) => Card(
-        child: ListTile(
-          leading: const Icon(Icons.notifications_none),
-          title: Text((d.data()['title'] ?? 'Notification').toString()),
-          subtitle: Text((d.data()['body'] ?? d.data()['message'] ?? '').toString()),
-          trailing: Text(_date(d.data()['createdAt'])),
+  State<NotificationsAdminPage> createState() => _NotificationsAdminPageState();
+}
+
+class _NotificationsAdminPageState extends State<NotificationsAdminPage> {
+  final titleController = TextEditingController();
+  final bodyController = TextEditingController();
+  final formKey = GlobalKey<FormState>();
+  bool sending = false;
+
+  @override
+  void dispose() {
+    titleController.dispose();
+    bodyController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _sendBroadcast() async {
+    if (sending || !(formKey.currentState?.validate() ?? false)) return;
+    final title = titleController.text.trim();
+    final body = bodyController.text.trim();
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Confirm notification broadcast'),
+        content: const Text(
+          'This will send a push notification to every registered device with a saved notification token. Continue?',
         ),
-      )).toList(),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton.icon(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            icon: const Icon(Icons.send_outlined),
+            label: const Text('Send to all'),
+          ),
+        ],
+      ),
     );
-  }));
+
+    if (confirmed != true || !mounted) return;
+    setState(() => sending = true);
+    try {
+      final response = await FirebaseFunctions.instance
+          .httpsCallable('sendMedLifeNotification')
+          .call({'title': title, 'body': body});
+      final data = Map<String, dynamic>.from(response.data as Map);
+      if (!mounted) return;
+      final sent = data['sent'] ?? 0;
+      final failed = data['failed'] ?? 0;
+      final recipients = data['recipientCount'] ?? 0;
+      _message(
+        context,
+        'Broadcast processed: $sent sent, $failed failed, $recipients device token(s) found.',
+      );
+      titleController.clear();
+      bodyController.clear();
+    } on FirebaseFunctionsException catch (error) {
+      if (mounted) {
+        _message(
+          context,
+          'Notification failed (${error.code}): ${error.message ?? 'Unknown error'}',
+        );
+      }
+    } catch (error) {
+      if (mounted) _message(context, 'Notification failed: $error');
+    } finally {
+      if (mounted) setState(() => sending = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) => _PageFrame(
+    title: 'Notifications',
+    subtitle: 'Compose and send a push notification, then review broadcast history.',
+    child: Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(24, 0, 24, 16),
+          child: Card(
+            child: Padding(
+              padding: const EdgeInsets.all(20),
+              child: Form(
+                key: formKey,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'New broadcast',
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    const Text(
+                      'The message is sent to devices that have a registered push token. It does not create an in-app inbox message.',
+                      style: TextStyle(color: Colors.grey),
+                    ),
+                    const SizedBox(height: 16),
+                    TextFormField(
+                      controller: titleController,
+                      maxLength: 80,
+                      textCapitalization: TextCapitalization.sentences,
+                      decoration: const InputDecoration(
+                        labelText: 'Notification title',
+                        hintText: 'e.g. New collection available',
+                        border: OutlineInputBorder(),
+                      ),
+                      validator: (value) {
+                        final text = value?.trim() ?? '';
+                        if (text.isEmpty) return 'Enter a notification title.';
+                        if (text.length > 80) return 'Use 80 characters or fewer.';
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 8),
+                    TextFormField(
+                      controller: bodyController,
+                      maxLength: 240,
+                      minLines: 2,
+                      maxLines: 4,
+                      textCapitalization: TextCapitalization.sentences,
+                      decoration: const InputDecoration(
+                        labelText: 'Message',
+                        hintText: 'Write the message customers will receive',
+                        alignLabelWithHint: true,
+                        border: OutlineInputBorder(),
+                      ),
+                      validator: (value) {
+                        final text = value?.trim() ?? '';
+                        if (text.isEmpty) return 'Enter a message.';
+                        if (text.length > 240) return 'Use 240 characters or fewer.';
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 8),
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: FilledButton.icon(
+                        onPressed: sending ? null : _sendBroadcast,
+                        icon: sending
+                            ? const SizedBox(
+                                width: 16,
+                                height: 16,
+                                child: CircularProgressIndicator(strokeWidth: 2),
+                              )
+                            : const Icon(Icons.send_outlined),
+                        label: Text(sending ? 'Sending…' : 'Review and send'),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+        const Divider(height: 1),
+        Expanded(
+          child: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+            stream: _db.collection('notifications')
+                .orderBy('createdAt', descending: true)
+                .limit(50)
+                .snapshots(),
+            builder: (context, snap) {
+              if (snap.hasError) {
+                return const Center(child: Text('Could not load notification history.'));
+              }
+              if (!snap.hasData) {
+                return const Center(child: CircularProgressIndicator());
+              }
+              if (snap.data!.docs.isEmpty) {
+                return const Center(child: Text('No notification records found.'));
+              }
+              return ListView.separated(
+                padding: const EdgeInsets.all(24),
+                itemCount: snap.data!.docs.length,
+                separatorBuilder: (_, __) => const SizedBox(height: 8),
+                itemBuilder: (context, index) {
+                  final data = snap.data!.docs[index].data();
+                  final sent = data['sent'];
+                  final failed = data['failed'];
+                  final recipients = data['recipientCount'];
+                  return Card(
+                    child: ListTile(
+                      leading: const Icon(Icons.notifications_active_outlined),
+                      title: Text((data['title'] ?? 'Notification').toString()),
+                      subtitle: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text((data['body'] ?? data['message'] ?? '').toString()),
+                          if (sent is num || failed is num || recipients is num)
+                            Padding(
+                              padding: const EdgeInsets.only(top: 6),
+                              child: Text(
+                                '${sent ?? 0} sent • ${failed ?? 0} failed • ${recipients ?? 0} token(s)',
+                                style: Theme.of(context).textTheme.bodySmall,
+                              ),
+                            ),
+                        ],
+                      ),
+                      trailing: Text(_date(data['createdAt'])),
+                      isThreeLine: true,
+                    ),
+                  );
+                },
+              );
+            },
+          ),
+        ),
+      ],
+    ),
+  );
 }
 
 class AssistantAdminPage extends StatelessWidget {
