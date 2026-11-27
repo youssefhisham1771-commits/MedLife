@@ -615,7 +615,7 @@ class _CategoriesAdminPageState extends State<CategoriesAdminPage> {
     Icons.cleaning_services_outlined,
     Icons.biotech_outlined,
     Icons.assignment_outlined,
-    Icons.dental_services_outlined,
+    Icons.medication_outlined,
   ];
 
   Future<void> _edit(
@@ -926,10 +926,9 @@ class _CategoriesAdminPageState extends State<CategoriesAdminPage> {
                 final iconCodePoint =
                     (data['iconCodePoint'] as num?)?.toInt() ??
                         Icons.category_outlined.codePoint;
-                final icon = IconData(
-                  iconCodePoint,
-                  fontFamily:
-                      data['iconFontFamily']?.toString() ?? 'MaterialIcons',
+                final icon = _categoryIcons.firstWhere(
+                  (candidate) => candidate.codePoint == iconCodePoint,
+                  orElse: () => Icons.category_outlined,
                 );
 
                 return Card(
