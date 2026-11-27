@@ -4,7 +4,9 @@ import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 
 class OrdersManagementPage extends StatefulWidget {
-  const OrdersManagementPage({super.key});
+  const OrdersManagementPage({super.key, required this.canUpdate});
+
+  final bool canUpdate;
 
   @override
   State<OrdersManagementPage> createState() => _OrdersManagementPageState();
@@ -64,6 +66,7 @@ class _OrdersManagementPageState extends State<OrdersManagementPage> {
     QueryDocumentSnapshot<Map<String, dynamic>> order,
     String next,
   ) async {
+    if (!widget.canUpdate) return;
     final current = (order.data()['status'] ?? 'pending').toString().toLowerCase();
     if (current == next) return;
 
@@ -306,16 +309,17 @@ class _OrdersManagementPageState extends State<OrdersManagementPage> {
                                         Expanded(child: Text(number,
                                           style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800))),
                                         statusPill(status),
-                                        PopupMenuButton<String>(
-                                          tooltip: 'Change status',
-                                          onSelected: (value) => changeStatus(order, value),
-                                          itemBuilder: (_) => statuses.map((value) =>
-                                            PopupMenuItem<String>(
-                                              value: value,
-                                              enabled: value != status,
-                                              child: Text('Set ' + value.toUpperCase()),
-                                            )).toList(),
-                                        ),
+                                        if (widget.canUpdate)
+                                          PopupMenuButton<String>(
+                                            tooltip: 'Change status',
+                                            onSelected: (value) => changeStatus(order, value),
+                                            itemBuilder: (_) => statuses.map((value) =>
+                                              PopupMenuItem<String>(
+                                                value: value,
+                                                enabled: value != status,
+                                                child: Text('Set ' + value.toUpperCase()),
+                                              )).toList(),
+                                          ),
                                       ],
                                     ),
                                     const SizedBox(height: 8),
