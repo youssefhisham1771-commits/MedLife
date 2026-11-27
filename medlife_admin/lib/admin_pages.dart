@@ -2309,7 +2309,7 @@ class _NotificationsAdminPageState extends State<NotificationsAdminPage> {
         const Divider(height: 1),
         Expanded(
           child: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-            stream: _db.collection('notifications')
+            stream: _db.collection('notificationBroadcasts')
                 .orderBy('createdAt', descending: true)
                 .limit(50)
                 .snapshots(),
