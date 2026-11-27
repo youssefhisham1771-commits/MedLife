@@ -55,6 +55,15 @@ exports.sendNotificationToAllUsers = functions.https.onRequest(async (req, res) 
       },
     });
 
+    await recordMedLifeActivity({
+      actorUid: caller.uid,
+      action: "notifications.broadcast_sent",
+      details: {
+        sent: result.successCount,
+        failed: result.failureCount,
+      },
+    });
+
     return res.status(200).json({
       sent: result.successCount,
       failed: result.failureCount,
