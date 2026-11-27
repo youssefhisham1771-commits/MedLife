@@ -214,6 +214,13 @@ service cloud.firestore {
       allow create, update, delete: if hasPermission('notifications.manage');
     }
 
+    // ADMIN-ONLY BROADCAST HISTORY. Customer-facing notification records
+    // remain separate in /notifications.
+    match /notificationBroadcasts/{broadcastId} {
+      allow get, list: if hasPermission('notifications.manage');
+      allow create, update, delete: if false;
+    }
+
     // DELIVERY FEES
     match /deliveryFees/{governorate} {
       allow read: if signedIn();
