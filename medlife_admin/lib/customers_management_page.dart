@@ -22,6 +22,18 @@ class _CustomersManagementPageState extends State<CustomersManagementPage> {
   String normalizedEmail(dynamic value) =>
       (value ?? '').toString().trim().toLowerCase();
 
+  bool isCustomerProfile(Map<String, dynamic> data) {
+    final role = (data['role'] ?? '').toString().toLowerCase();
+    final medlifeRole = (data['medlifeRole'] ?? '').toString().toLowerCase();
+    return role != 'admin' &&
+        role != 'super_admin' &&
+        medlifeRole != 'admin' &&
+        medlifeRole != 'super_admin' &&
+        medlifeRole != 'staff' &&
+        data['medlifeSuperAdmin'] != true &&
+        data['isAdmin'] != true;
+  }
+
   String shortId(String value) => value.length <= 12
       ? value
       : value.substring(0, 8) + '…' + value.substring(value.length - 4);
@@ -97,8 +109,7 @@ class _CustomersManagementPageState extends State<CustomersManagementPage> {
 
                   final customers = usersSnapshot.data!.docs.where((doc) {
                     final data = doc.data();
-                    final role = (data['role'] ?? 'user').toString().toLowerCase();
-                    if (role == 'admin') return false;
+                    if (!isCustomerProfile(data)) return false;
                     final searchable = [
                       doc.id,
                       data['name'],
@@ -121,7 +132,7 @@ class _CustomersManagementPageState extends State<CustomersManagementPage> {
                   var totalOrderValue = 0.0;
                   for (final doc in usersSnapshot.data!.docs) {
                     final data = doc.data();
-                    if ((data['role'] ?? 'user').toString().toLowerCase() == 'admin') continue;
+                    if (!isCustomerProfile(data)) continue;
                     totalCustomers++;
                     final customerOrders = ordersByCustomer[doc.id] ?? [];
                     if (customerOrders.isNotEmpty) customersWithOrders++;
@@ -187,9 +198,7 @@ class _CustomersManagementPageState extends State<CustomersManagementPage> {
                                       : usersSnapshot.data!.docs.where((other) {
                                           if (other.id == customer.id) return false;
                                           final otherData = other.data();
-                                          if ((otherData['role'] ?? 'user').toString().toLowerCase() == 'admin') {
-                                            return false;
-                                          }
+                                          if (!isCustomerProfile(otherData)) return false;
                                           return normalizedEmail(otherData['email']) == emailKey;
                                         }).toList();
 
