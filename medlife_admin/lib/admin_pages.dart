@@ -1920,7 +1920,7 @@ class _StaffAdminPageState extends State<StaffAdminPage> {
                 SwitchListTile.adaptive(
                   contentPadding: EdgeInsets.zero,
                   title: const Text('Staff account active'),
-                  subtitle: const Text('Inactive staff immediately lose dashboard permissions.'),
+                  subtitle: const Text('Access changes take effect after the staff member refreshes their sign-in session.'),
                   value: active,
                   onChanged: (value) => setDialogState(() {
                     active = value;
