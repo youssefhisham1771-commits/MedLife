@@ -76,6 +76,23 @@ const { onCall, HttpsError } = require("firebase-functions/v2/https");
 
 const MEDLIFE_SUPER_ADMIN_UID = "DmoPC05QspbB8QVKwir5Y0Zggcz1";
 
+// Audit events are written only by trusted Cloud Functions using Admin SDK.
+async function recordMedLifeActivity({ actorUid, action, targetUid = "", details = {} }) {
+  try {
+    await admin.firestore().collection("activityLogs").add({
+      actorUid,
+      action,
+      targetUid,
+      details,
+      createdAt: FieldValue.serverTimestamp(),
+    });
+  } catch (error) {
+    // Audit logging failures must be visible to operators without undoing
+    // an already completed administrative action.
+    console.error("recordMedLifeActivity failed:", error);
+  }
+}
+
 exports.bootstrapMedLifeSuperAdmin = onCall(async (request) => {
   // This bootstrap identity is an Auth Emulator fixture, not a production
   // administrator. Production Super Admin provisioning must use a trusted
@@ -264,6 +281,13 @@ exports.setMedLifeStaffPermissions = onCall(async (request) => {
       staffPermissionsUpdatedAt: FieldValue.serverTimestamp(),
       staffPermissionsUpdatedBy: request.auth.uid,
     }, { merge: true });
+
+    await recordMedLifeActivity({
+      actorUid: request.auth.uid,
+      action: active ? "staff.permissions_updated" : "staff.deactivated",
+      targetUid,
+      details: { active, permissions: assignedPermissions },
+    });
 
     return { success: true, targetUid, active, permissions: assignedPermissions };
   } catch (error) {
