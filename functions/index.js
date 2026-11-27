@@ -357,7 +357,7 @@ exports.sendMedLifeNotification = onCall({ timeoutSeconds: 120 }, async (request
       failed += result.failureCount;
     }
 
-    const notificationRef = await admin.firestore().collection("notifications").add({
+    const notificationRef = await admin.firestore().collection("notificationBroadcasts").add({
       title,
       body,
       createdAt: FieldValue.serverTimestamp(),
