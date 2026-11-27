@@ -134,7 +134,10 @@ service cloud.firestore {
     // ORDERS. Staff may update only fulfillment fields; financial and
     // ownership fields remain immutable to staff.
     match /orders/{orderId} {
+      // Customer managers may read order records to display each
+      // customer's purchase history. This does not grant order update rights.
       allow get, list: if hasPermission('orders.view')
+        || hasPermission('customers.view')
         || (
           signedIn()
           && resource.data.userId == request.auth.uid
