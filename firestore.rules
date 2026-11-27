@@ -138,6 +138,7 @@ service cloud.firestore {
       // customer's purchase history. This does not grant order update rights.
       allow get, list: if hasPermission('orders.view')
         || hasPermission('customers.view')
+        || hasPermission('reports_finance.view')
         || (
           signedIn()
           && resource.data.userId == request.auth.uid
