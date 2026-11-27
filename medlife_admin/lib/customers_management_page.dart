@@ -135,13 +135,15 @@ class _CustomersManagementPageState extends State<CustomersManagementPage> {
                     if (!isCustomerProfile(data)) continue;
                     totalCustomers++;
                     final customerOrders = ordersByCustomer[doc.id] ?? [];
-                    if (customerOrders.isNotEmpty) customersWithOrders++;
+                    var hasNonCancelledOrder = false;
                     for (final order in customerOrders) {
                       final orderData = order.data();
                       if ((orderData['status'] ?? '').toString().toLowerCase() != 'cancelled') {
+                        hasNonCancelledOrder = true;
                         totalOrderValue += amount(orderData['total']);
                       }
                     }
+                    if (hasNonCancelledOrder) customersWithOrders++;
                   }
 
                   return Column(
