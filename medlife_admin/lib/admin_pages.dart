@@ -197,6 +197,8 @@ class ProductsAdminPage extends StatefulWidget {
 }
 class _ProductsAdminPageState extends State<ProductsAdminPage> {
   String search = '';
+  String categoryFilter = 'all';
+  String? categoryFilterName;
   Future<void> editProduct([QueryDocumentSnapshot<Map<String, dynamic>>? doc]) async {
     final result = await showDialog<bool>(context: context, builder: (_) => _ProductEditor(initial: doc?.data(), documentId: doc?.id));
     if (result == true && mounted) _message(context, doc == null ? 'Product added.' : 'Product updated.');
@@ -213,14 +215,48 @@ class _ProductsAdminPageState extends State<ProductsAdminPage> {
           )
         : null,
     child: Column(children: [
-      Padding(padding: const EdgeInsets.symmetric(horizontal: 24), child: TextField(onChanged: (v) => setState(() => search = v.toLowerCase()), decoration: const InputDecoration(prefixIcon: Icon(Icons.search), hintText: 'Search products by name or category'))),
+      Padding(padding: const EdgeInsets.fromLTRB(24, 0, 24, 10), child: TextField(onChanged: (v) => setState(() => search = v.trim().toLowerCase()), decoration: const InputDecoration(prefixIcon: Icon(Icons.search), hintText: 'Search products by name or category'))),
+      Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 24),
+        child: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+          stream: _db.collection('categories').snapshots(),
+          builder: (context, categorySnap) {
+            final categories = categorySnap.data?.docs.toList() ?? [];
+            categories.sort((a, b) => (a.data()['name'] ?? '').toString().toLowerCase().compareTo((b.data()['name'] ?? '').toString().toLowerCase()));
+            final validFilter = categoryFilter == 'all' || categories.any((doc) => doc.id == categoryFilter) ? categoryFilter : 'all';
+            return DropdownButtonFormField<String>(
+              value: validFilter,
+              decoration: const InputDecoration(labelText: 'Filter by category', prefixIcon: Icon(Icons.category_outlined)),
+              items: [
+                const DropdownMenuItem(value: 'all', child: Text('All categories')),
+                ...categories.map((doc) => DropdownMenuItem(value: doc.id, child: Text((doc.data()['name'] ?? 'Unnamed').toString()))),
+              ],
+              onChanged: (value) {
+                final selected = categories.where((doc) => doc.id == value);
+                setState(() {
+                  categoryFilter = value ?? 'all';
+                  categoryFilterName = selected.isEmpty ? null : (selected.first.data()['name'] ?? '').toString();
+                });
+              },
+            );
+          },
+        ),
+      ),
       const SizedBox(height: 12),
       Expanded(child: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
         stream: _db.collection('Products').snapshots(),
         builder: (context, snap) {
           if (snap.hasError) return const Center(child: Text('Could not load Products collection.'));
           if (!snap.hasData) return const Center(child: CircularProgressIndicator());
-          final docs = snap.data!.docs.where((d) => d.data().toString().toLowerCase().contains(search)).toList()
+          final docs = snap.data!.docs.where((d) {
+            final data = d.data();
+            final matchesSearch = data.toString().toLowerCase().contains(search);
+            final matchesCategory = categoryFilter == 'all' ||
+                data['categoryId']?.toString() == categoryFilter ||
+                (categoryFilterName != null &&
+                    (data['category'] ?? '').toString().trim().toLowerCase() == categoryFilterName!.trim().toLowerCase());
+            return matchesSearch && matchesCategory;
+          }).toList()
             ..sort((a, b) {
               final aDate = a.data()['createdAt'];
               final bDate = b.data()['createdAt'];
