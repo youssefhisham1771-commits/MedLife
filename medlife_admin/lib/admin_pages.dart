@@ -21,26 +21,57 @@ void _message(BuildContext context, String text) {
 }
 
 class AdminModulePage extends StatelessWidget {
-  const AdminModulePage({super.key, required this.index});
+  const AdminModulePage({
+    super.key,
+    required this.index,
+    required this.isSuperAdmin,
+    required this.permissions,
+  });
+
   final int index;
+  final bool isSuperAdmin;
+  final Set<String> permissions;
+
+  bool can(String permission) =>
+      isSuperAdmin || permissions.contains(permission);
+
   @override
   Widget build(BuildContext context) {
     switch (index) {
-      case 1: return const OrdersManagementPage();
-      case 2: return const ProductsAdminPage();
-      case 3: return const InventoryAdminPage();
-      case 4: return const CustomersManagementPage();
-      case 5: return const CategoriesAdminPage();
-      case 6: return const BannersAdminPage();
-      case 7: return const AnalyticsAdminPage();
-      case 8: return const FinanceReportsPage();
-      case 9: return const StaffAdminPage();
-      case 10: return const NotificationsAdminPage();
-      case 11: return const AssistantAdminPage();
-      case 12: return const SettingsAdminPage();
-      case 13: return const ActivityAdminPage();
-      case 14: return const BackupAdminPage();
-      default: return const Center(child: Text('Select a module'));
+      case 1:
+        return OrdersManagementPage(canUpdate: can('orders.update'));
+      case 2:
+        return ProductsAdminPage(
+          canCreate: can('products.create'),
+          canUpdate: can('products.update'),
+          canDelete: can('products.delete'),
+        );
+      case 3:
+        return InventoryAdminPage(canManage: can('inventory.manage'));
+      case 4:
+        return const CustomersManagementPage();
+      case 5:
+        return const CategoriesAdminPage();
+      case 6:
+        return const BannersAdminPage();
+      case 7:
+        return const AnalyticsAdminPage();
+      case 8:
+        return const FinanceReportsPage();
+      case 9:
+        return const StaffAdminPage();
+      case 10:
+        return const NotificationsAdminPage();
+      case 11:
+        return const AssistantAdminPage();
+      case 12:
+        return const SettingsAdminPage();
+      case 13:
+        return const ActivityAdminPage();
+      case 14:
+        return const BackupAdminPage();
+      default:
+        return const Center(child: Text('Select a module'));
     }
   }
 }
@@ -149,7 +180,17 @@ class _StatusPill extends StatelessWidget {
 }
 
 class ProductsAdminPage extends StatefulWidget {
-  const ProductsAdminPage({super.key});
+  const ProductsAdminPage({
+    super.key,
+    required this.canCreate,
+    required this.canUpdate,
+    required this.canDelete,
+  });
+
+  final bool canCreate;
+  final bool canUpdate;
+  final bool canDelete;
+
   @override
   State<ProductsAdminPage> createState() => _ProductsAdminPageState();
 }
@@ -163,7 +204,13 @@ class _ProductsAdminPageState extends State<ProductsAdminPage> {
   Widget build(BuildContext context) => _PageFrame(
     title: 'Products',
     subtitle: 'Manage the products displayed in the existing MedLife store.',
-    action: FilledButton.icon(onPressed: () => editProduct(), icon: const Icon(Icons.add), label: const Text('Add Product')),
+    action: widget.canCreate
+        ? FilledButton.icon(
+            onPressed: () => editProduct(),
+            icon: const Icon(Icons.add),
+            label: const Text('Add Product'),
+          )
+        : null,
     child: Column(children: [
       Padding(padding: const EdgeInsets.symmetric(horizontal: 24), child: TextField(onChanged: (v) => setState(() => search = v.toLowerCase()), decoration: const InputDecoration(prefixIcon: Icon(Icons.search), hintText: 'Search products by name or category'))),
       const SizedBox(height: 12),
@@ -180,13 +227,48 @@ class _ProductsAdminPageState extends State<ProductsAdminPage> {
               leading: ClipRRect(borderRadius: BorderRadius.circular(10), child: image.startsWith('http') ? Image.network(image, width: 52, height: 58, fit: BoxFit.cover, errorBuilder: (_, __, ___) => const SizedBox(width: 52, child: Icon(Icons.image_not_supported))) : const SizedBox(width: 52, child: Icon(Icons.inventory_2))),
               title: Text((d['name'] ?? 'Unnamed product').toString(), maxLines: 1, overflow: TextOverflow.ellipsis),
               subtitle: Text('${_money(d['price'])} • ${d['category'] ?? 'Uncategorized'}'),
-              trailing: PopupMenuButton<String>(onSelected: (v) async {
-                if (v == 'edit') { await editProduct(doc); }
-                if (v == 'delete') {
-                  final yes = await showDialog<bool>(context: context, builder: (c) => AlertDialog(title: const Text('Delete product?'), content: Text('Delete ${d['name'] ?? 'this product'} from the store?'), actions: [TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('Cancel')), FilledButton(onPressed: () => Navigator.pop(c, true), child: const Text('Delete'))]));
-                  if (yes == true) { try { await doc.reference.delete(); if (context.mounted) _message(context, 'Product deleted.'); } catch (e) { if (context.mounted) _message(context, 'Delete failed: $e'); } }
-                }
-              }, itemBuilder: (_) => const [PopupMenuItem(value: 'edit', child: Text('Edit')), PopupMenuItem(value: 'delete', child: Text('Delete'))]),
+              trailing: (widget.canUpdate || widget.canDelete)
+                  ? PopupMenuButton<String>(
+                      onSelected: (v) async {
+                        if (v == 'edit' && widget.canUpdate) {
+                          await editProduct(doc);
+                        }
+                        if (v == 'delete' && widget.canDelete) {
+                          final yes = await showDialog<bool>(
+                            context: context,
+                            builder: (c) => AlertDialog(
+                              title: const Text('Delete product?'),
+                              content: Text('Delete ${d['name'] ?? 'this product'} from the store?'),
+                              actions: [
+                                TextButton(
+                                  onPressed: () => Navigator.pop(c, false),
+                                  child: const Text('Cancel'),
+                                ),
+                                FilledButton(
+                                  onPressed: () => Navigator.pop(c, true),
+                                  child: const Text('Delete'),
+                                ),
+                              ],
+                            ),
+                          );
+                          if (yes == true) {
+                            try {
+                              await doc.reference.delete();
+                              if (context.mounted) _message(context, 'Product deleted.');
+                            } catch (e) {
+                              if (context.mounted) _message(context, 'Delete failed: $e');
+                            }
+                          }
+                        }
+                      },
+                      itemBuilder: (_) => [
+                        if (widget.canUpdate)
+                          const PopupMenuItem(value: 'edit', child: Text('Edit')),
+                        if (widget.canDelete)
+                          const PopupMenuItem(value: 'delete', child: Text('Delete')),
+                      ],
+                    )
+                  : null,
             ));
           });
         },
@@ -505,7 +587,9 @@ class _CustomersAdminPageState extends State<CustomersAdminPage> {
 }
 
 class InventoryAdminPage extends StatelessWidget {
-  const InventoryAdminPage({super.key});
+  const InventoryAdminPage({super.key, required this.canManage});
+
+  final bool canManage;
 
   @override
   Widget build(BuildContext context) => _PageFrame(
@@ -577,7 +661,11 @@ class InventoryAdminPage extends StatelessWidget {
                 if (docs.isEmpty)
                   const Center(child: Padding(padding: EdgeInsets.all(32), child: Text('No products found.')))
                 else
-                  ...docs.map((doc) => _InventoryProductCard(productId: doc.id, data: doc.data())),
+                  ...docs.map((doc) => _InventoryProductCard(
+                      productId: doc.id,
+                      data: doc.data(),
+                      canManage: canManage,
+                    )),
               ],
             );
           },
@@ -586,9 +674,15 @@ class InventoryAdminPage extends StatelessWidget {
 }
 
 class _InventoryProductCard extends StatelessWidget {
-  const _InventoryProductCard({required this.productId, required this.data});
+  const _InventoryProductCard({
+    required this.productId,
+    required this.data,
+    required this.canManage,
+  });
+
   final String productId;
   final Map<String, dynamic> data;
+  final bool canManage;
 
   @override
   Widget build(BuildContext context) {
@@ -661,8 +755,9 @@ class _InventoryProductCard extends StatelessWidget {
                   child: Text(configured ? 'Low-stock alert: $threshold per size' : 'Enter the real quantity for each size',
                       style: Theme.of(context).textTheme.bodySmall),
                 ),
-                FilledButton.tonalIcon(
-                  onPressed: sizes.isEmpty ? null : () async {
+                if (canManage)
+                  FilledButton.tonalIcon(
+                    onPressed: sizes.isEmpty ? null : () async {
                     final result = await showDialog<Map<String, dynamic>>(
                       context: context,
                       builder: (_) => _InventoryEditorDialog(
