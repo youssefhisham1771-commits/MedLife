@@ -341,11 +341,18 @@ class _ProductEditorState extends State<_ProductEditor> {
       return;
     }
 
-    final categoryDoc = categories.where((doc) {
-      if (selectedCategoryId != null) return doc.id == selectedCategoryId;
-      return (doc.data()['name'] ?? '').toString().trim().toLowerCase() ==
-          (widget.initial?['category'] ?? '').toString().trim().toLowerCase();
-    }).firstOrNull;
+    QueryDocumentSnapshot<Map<String, dynamic>>? categoryDoc;
+    for (final doc in categories) {
+      final matchesSelectedId =
+          selectedCategoryId != null && doc.id == selectedCategoryId;
+      final matchesLegacyName = selectedCategoryId == null &&
+          (doc.data()['name'] ?? '').toString().trim().toLowerCase() ==
+              (widget.initial?['category'] ?? '').toString().trim().toLowerCase();
+      if (matchesSelectedId || matchesLegacyName) {
+        categoryDoc = doc;
+        break;
+      }
+    }
     if (categoryDoc == null) {
       _message(context, 'Select an existing category before saving this product.');
       return;
@@ -372,11 +379,6 @@ class _ProductEditorState extends State<_ProductEditor> {
         .where((value) => value.isNotEmpty)
         .toSet()
         .toList();
-    if (productSizes.isEmpty) {
-      _message(context, 'Add at least one available size for this product.');
-      return;
-    }
-
     setState(() => saving = true);
     try {
       final categoryName = (categoryDoc.data()['name'] ?? '').toString().trim();
