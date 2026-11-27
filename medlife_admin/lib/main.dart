@@ -2,19 +2,42 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:cloud_functions/cloud_functions.dart';
-import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'firebase_options.dart';
 import 'admin_pages.dart';
+import 'admin_access_policy.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
-  // Opt in to local Firebase emulators for safe development/testing.
-  // Production remains the default unless USE_FIREBASE_EMULATORS=true.
+  // The emulator suite is started with --project demo-medlife. The Firebase
+  // app must use that same project ID or callable Functions / Firestore will
+  // target a different project namespace than the running emulators.
   const useFirebaseEmulators =
       bool.fromEnvironment('USE_FIREBASE_EMULATORS');
+  final configuredOptions = DefaultFirebaseOptions.currentPlatform;
+  final firebaseOptions = useFirebaseEmulators
+      ? FirebaseOptions(
+          apiKey: configuredOptions.apiKey,
+          appId: configuredOptions.appId,
+          messagingSenderId: configuredOptions.messagingSenderId,
+          projectId: 'demo-medlife',
+          authDomain: configuredOptions.authDomain,
+          databaseURL: configuredOptions.databaseURL,
+          storageBucket: configuredOptions.storageBucket,
+          measurementId: configuredOptions.measurementId,
+          trackingId: configuredOptions.trackingId,
+          deepLinkURLScheme: configuredOptions.deepLinkURLScheme,
+          androidClientId: configuredOptions.androidClientId,
+          iosClientId: configuredOptions.iosClientId,
+          iosBundleId: configuredOptions.iosBundleId,
+          appGroupId: configuredOptions.appGroupId,
+        )
+      : configuredOptions;
+
+  await Firebase.initializeApp(options: firebaseOptions);
+
+  // Production project configuration remains unchanged when emulator mode is off.
   if (useFirebaseEmulators) {
     FirebaseAuth.instance.useAuthEmulator('127.0.0.1', 9099);
     FirebaseFirestore.instance.useFirestoreEmulator('127.0.0.1', 8080);
@@ -250,26 +273,12 @@ class AdminShell extends StatefulWidget {
 class _AdminShellState extends State<AdminShell> {
   int selected = 0;
 
-  static const _requiredPermission = <int, String>{
-    0: 'dashboard.view',
-    1: 'orders.view',
-    2: 'products.view',
-    3: 'inventory.view',
-    4: 'customers.view',
-    5: 'categories.manage',
-    6: 'marketing.manage',
-    7: 'reports_finance.view',
-    8: 'reports_finance.view',
-    9: 'staff.manage',
-    10: 'notifications.manage',
-    12: 'settings.manage',
-    13: 'activity_log.view',
-    14: 'backup.manage',
-  };
-
   List<int> get _visibleSections => List<int>.generate(_nav.length, (i) => i)
-      .where((i) => widget.isSuperAdmin ||
-          widget.permissions.contains(_requiredPermission[i]))
+      .where((i) => canAccessAdminSection(
+            sectionIndex: i,
+            isSuperAdmin: widget.isSuperAdmin,
+            permissions: widget.permissions,
+          ))
       .toList();
 
   @override
@@ -294,7 +303,11 @@ class _AdminShellState extends State<AdminShell> {
                         isSuperAdmin: widget.isSuperAdmin,
                         permissions: widget.permissions,
                       )
-                    : AdminModulePage(index: activeSection),
+                    : AdminModulePage(
+                        index: activeSection,
+                        isSuperAdmin: widget.isSuperAdmin,
+                        permissions: widget.permissions,
+                      ),
           ),
         ])),
       ]),
@@ -527,7 +540,10 @@ class _RecentOrdersCard extends StatelessWidget {
     StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
       stream: FirebaseFirestore.instance.collection('orders').orderBy('orderedAt', descending: true).limit(5).snapshots(),
       builder: (context, snapshot) {
-        if (snapshot.hasError) return const Text('Unable to load orders. Check Firestore access and the createdAt field.');
+        if (snapshot.hasError) {
+          debugPrint('RECENT ORDERS FIRESTORE ERROR: ${snapshot.error}');
+          return Text('Unable to load orders: ${snapshot.error}');
+        }
         if (!snapshot.hasData) return const LinearProgressIndicator();
         if (snapshot.data!.docs.isEmpty) return const Text('No orders found.');
         return Column(children: snapshot.data!.docs.map((doc) {

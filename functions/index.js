@@ -55,6 +55,15 @@ exports.sendNotificationToAllUsers = functions.https.onRequest(async (req, res) 
       },
     });
 
+    await recordMedLifeActivity({
+      actorUid: caller.uid,
+      action: "notifications.broadcast_sent",
+      details: {
+        sent: result.successCount,
+        failed: result.failureCount,
+      },
+    });
+
     return res.status(200).json({
       sent: result.successCount,
       failed: result.failureCount,
@@ -76,7 +85,34 @@ const { onCall, HttpsError } = require("firebase-functions/v2/https");
 
 const MEDLIFE_SUPER_ADMIN_UID = "DmoPC05QspbB8QVKwir5Y0Zggcz1";
 
+// Audit events are written only by trusted Cloud Functions using Admin SDK.
+async function recordMedLifeActivity({ actorUid, action, targetUid = "", details = {} }) {
+  try {
+    await admin.firestore().collection("activityLogs").add({
+      actorUid,
+      action,
+      targetUid,
+      details,
+      createdAt: FieldValue.serverTimestamp(),
+    });
+  } catch (error) {
+    // Audit logging failures must be visible to operators without undoing
+    // an already completed administrative action.
+    console.error("recordMedLifeActivity failed:", error);
+  }
+}
+
 exports.bootstrapMedLifeSuperAdmin = onCall(async (request) => {
+  // This bootstrap identity is an Auth Emulator fixture, not a production
+  // administrator. Production Super Admin provisioning must use a trusted
+  // one-time Admin SDK procedure and must never be self-service.
+  if (process.env.FUNCTIONS_EMULATOR !== "true") {
+    throw new HttpsError(
+      "failed-precondition",
+      "Super Admin bootstrap is disabled outside the Firebase Emulator."
+    );
+  }
+
   if (!request.auth) {
     throw new HttpsError("unauthenticated", "Sign in before bootstrapping the admin account.");
   }
@@ -153,8 +189,19 @@ exports.listMedLifeAccounts = onCall(async (request) => {
 
     return { accounts };
   } catch (error) {
-    console.error("listMedLifeAccounts failed:", error);
-    throw new HttpsError("internal", "Unable to load MedLife accounts.");
+    const diagnostic = {
+      code: error?.code || "unknown",
+      message: error?.message || String(error),
+    };
+    console.error("listMedLifeAccounts failed:", diagnostic, error?.stack || "");
+    const isEmulator = process.env.FUNCTIONS_EMULATOR === "true";
+    throw new HttpsError(
+      "internal",
+      isEmulator
+        ? `Unable to load MedLife accounts (${diagnostic.code}): ${diagnostic.message}`
+        : "Unable to load MedLife accounts.",
+      isEmulator ? diagnostic : undefined,
+    );
   }
 });
 
@@ -244,6 +291,13 @@ exports.setMedLifeStaffPermissions = onCall(async (request) => {
       staffPermissionsUpdatedBy: request.auth.uid,
     }, { merge: true });
 
+    await recordMedLifeActivity({
+      actorUid: request.auth.uid,
+      action: active ? "staff.permissions_updated" : "staff.deactivated",
+      targetUid,
+      details: { active, permissions: assignedPermissions },
+    });
+
     return { success: true, targetUid, active, permissions: assignedPermissions };
   } catch (error) {
     if (error instanceof HttpsError) throw error;
@@ -252,3 +306,83 @@ exports.setMedLifeStaffPermissions = onCall(async (request) => {
   }
 });
 
+// ============================================================
+// Configurable notification broadcast (authorized staff/Super Admin)
+// The callable validates content, sends in FCM-safe batches, and
+// stores a server-authored history record for the admin dashboard.
+// ============================================================
+
+exports.sendMedLifeNotification = onCall({ timeoutSeconds: 120 }, async (request) => {
+  if (!request.auth) {
+    throw new HttpsError("unauthenticated", "Authentication is required.");
+  }
+
+  const claims = request.auth.token;
+  const isSuperAdmin = claims.medlifeSuperAdmin === true;
+  const isAuthorizedStaff = claims.medlifeRole === "staff"
+    && claims.medlifeStaffActive === true
+    && Array.isArray(claims.medlifePermissions)
+    && claims.medlifePermissions.includes("notifications.manage");
+
+  if (!isSuperAdmin && !isAuthorizedStaff) {
+    throw new HttpsError("permission-denied", "You are not allowed to send notifications.");
+  }
+
+  const title = typeof request.data?.title === "string" ? request.data.title.trim() : "";
+  const body = typeof request.data?.body === "string" ? request.data.body.trim() : "";
+
+  if (!title || title.length > 80) {
+    throw new HttpsError("invalid-argument", "Title is required and must be 80 characters or fewer.");
+  }
+  if (!body || body.length > 240) {
+    throw new HttpsError("invalid-argument", "Message is required and must be 240 characters or fewer.");
+  }
+
+  try {
+    const snapshot = await admin.firestore().collection("users").get();
+    const tokens = [...new Set(snapshot.docs
+      .map((doc) => doc.data().fcmToken)
+      .filter((token) => typeof token === "string" && token.trim())
+      .map((token) => token.trim()))];
+
+    let sent = 0;
+    let failed = 0;
+    for (let offset = 0; offset < tokens.length; offset += 500) {
+      const batch = tokens.slice(offset, offset + 500);
+      const result = await admin.messaging().sendEachForMulticast({
+        tokens: batch,
+        notification: { title, body },
+      });
+      sent += result.successCount;
+      failed += result.failureCount;
+    }
+
+    const notificationRef = await admin.firestore().collection("notificationBroadcasts").add({
+      title,
+      body,
+      createdAt: FieldValue.serverTimestamp(),
+      createdBy: request.auth.uid,
+      recipientCount: tokens.length,
+      sent,
+      failed,
+      channel: "push",
+    });
+
+    await recordMedLifeActivity({
+      actorUid: request.auth.uid,
+      action: "notifications.broadcast_sent",
+      details: { sent, failed, recipientCount: tokens.length, notificationId: notificationRef.id },
+    });
+
+    return {
+      success: true,
+      notificationId: notificationRef.id,
+      recipientCount: tokens.length,
+      sent,
+      failed,
+    };
+  } catch (error) {
+    console.error("sendMedLifeNotification failed:", error);
+    throw new HttpsError("internal", "Unable to send the notification broadcast.");
+  }
+});

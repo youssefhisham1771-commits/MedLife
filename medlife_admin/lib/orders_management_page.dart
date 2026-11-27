@@ -4,7 +4,9 @@ import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 
 class OrdersManagementPage extends StatefulWidget {
-  const OrdersManagementPage({super.key});
+  const OrdersManagementPage({super.key, required this.canUpdate});
+
+  final bool canUpdate;
 
   @override
   State<OrdersManagementPage> createState() => _OrdersManagementPageState();
@@ -32,10 +34,17 @@ class _OrdersManagementPageState extends State<OrdersManagementPage> {
       'EGP ' + NumberFormat('#,##0.00').format(number(value));
 
   String date(dynamic value) {
+    DateTime? parsed;
     if (value is Timestamp) {
-      return DateFormat('dd MMM yyyy • hh:mm a').format(value.toDate());
+      parsed = value.toDate();
+    } else if (value is DateTime) {
+      parsed = value;
+    } else if (value is String) {
+      parsed = DateTime.tryParse(value);
     }
-    return 'Date unavailable';
+    return parsed == null
+        ? 'Date unavailable'
+        : DateFormat('dd MMM yyyy • hh:mm a').format(parsed);
   }
 
   List<Map<String, dynamic>> itemsOf(dynamic value) {
@@ -64,6 +73,7 @@ class _OrdersManagementPageState extends State<OrdersManagementPage> {
     QueryDocumentSnapshot<Map<String, dynamic>> order,
     String next,
   ) async {
+    if (!widget.canUpdate) return;
     final current = (order.data()['status'] ?? 'pending').toString().toLowerCase();
     if (current == next) return;
 
@@ -127,6 +137,13 @@ class _OrdersManagementPageState extends State<OrdersManagementPage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 detailLine('Customer', (data['name'] ?? 'Unknown').toString()),
+                if ((data['email'] ?? '').toString().trim().isNotEmpty)
+                  detailLine('Email', data['email'].toString(),
+                    trailing: IconButton(
+                      tooltip: 'Copy email',
+                      onPressed: () => copyText(data['email'].toString(), 'Email'),
+                      icon: const Icon(Icons.copy_outlined),
+                    )),
                 detailLine('Phone', (data['phone'] ?? 'Not provided').toString(),
                   trailing: IconButton(
                     tooltip: 'Copy phone',
@@ -135,7 +152,12 @@ class _OrdersManagementPageState extends State<OrdersManagementPage> {
                   )),
                 detailLine('Order date', date(data['orderedAt'])),
                 detailLine('Status', (data['status'] ?? 'pending').toString().toUpperCase()),
-                detailLine('Address', address.isEmpty ? 'Not provided' : address),
+                detailLine('Address', address.isEmpty ? 'Not provided' : address,
+                  trailing: IconButton(
+                    tooltip: 'Copy delivery address',
+                    onPressed: () => copyText(address, 'Delivery address'),
+                    icon: const Icon(Icons.copy_outlined),
+                  )),
                 const Divider(height: 28),
                 Text('Items (' + items.length.toString() + ')',
                   style: Theme.of(dialogContext).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
@@ -239,10 +261,13 @@ class _OrdersManagementPageState extends State<OrdersManagementPage> {
             stream: orders.orderBy('orderedAt', descending: true).snapshots(),
             builder: (context, snapshot) {
               if (snapshot.hasError) {
-                return const Center(child: Padding(
-                  padding: EdgeInsets.all(24),
-                  child: Text('Unable to load orders. Check Firestore access and the orderedAt field.',
-                    textAlign: TextAlign.center),
+                debugPrint('ORDERS PAGE FIRESTORE ERROR: ${snapshot.error}');
+                return Center(child: Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: SelectableText(
+                    'Unable to load orders: ${snapshot.error}',
+                    textAlign: TextAlign.center,
+                  ),
                 ));
               }
               if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
@@ -303,16 +328,17 @@ class _OrdersManagementPageState extends State<OrdersManagementPage> {
                                         Expanded(child: Text(number,
                                           style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800))),
                                         statusPill(status),
-                                        PopupMenuButton<String>(
-                                          tooltip: 'Change status',
-                                          onSelected: (value) => changeStatus(order, value),
-                                          itemBuilder: (_) => statuses.map((value) =>
-                                            PopupMenuItem<String>(
-                                              value: value,
-                                              enabled: value != status,
-                                              child: Text('Set ' + value.toUpperCase()),
-                                            )).toList(),
-                                        ),
+                                        if (widget.canUpdate)
+                                          PopupMenuButton<String>(
+                                            tooltip: 'Change status',
+                                            onSelected: (value) => changeStatus(order, value),
+                                            itemBuilder: (_) => statuses.map((value) =>
+                                              PopupMenuItem<String>(
+                                                value: value,
+                                                enabled: value != status,
+                                                child: Text('Set ' + value.toUpperCase()),
+                                              )).toList(),
+                                          ),
                                       ],
                                     ),
                                     const SizedBox(height: 8),

@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:fl_chart/fl_chart.dart';
 import 'orders_management_page.dart';
 import 'customers_management_page.dart';
 import 'finance_reports_page.dart';
@@ -21,26 +22,57 @@ void _message(BuildContext context, String text) {
 }
 
 class AdminModulePage extends StatelessWidget {
-  const AdminModulePage({super.key, required this.index});
+  const AdminModulePage({
+    super.key,
+    required this.index,
+    required this.isSuperAdmin,
+    required this.permissions,
+  });
+
   final int index;
+  final bool isSuperAdmin;
+  final Set<String> permissions;
+
+  bool can(String permission) =>
+      isSuperAdmin || permissions.contains(permission);
+
   @override
   Widget build(BuildContext context) {
     switch (index) {
-      case 1: return const OrdersManagementPage();
-      case 2: return const ProductsAdminPage();
-      case 3: return const InventoryAdminPage();
-      case 4: return const CustomersManagementPage();
-      case 5: return const CategoriesAdminPage();
-      case 6: return const BannersAdminPage();
-      case 7: return const AnalyticsAdminPage();
-      case 8: return const FinanceReportsPage();
-      case 9: return const StaffAdminPage();
-      case 10: return const NotificationsAdminPage();
-      case 11: return const AssistantAdminPage();
-      case 12: return const SettingsAdminPage();
-      case 13: return const ActivityAdminPage();
-      case 14: return const BackupAdminPage();
-      default: return const Center(child: Text('Select a module'));
+      case 1:
+        return OrdersManagementPage(canUpdate: can('orders.update'));
+      case 2:
+        return ProductsAdminPage(
+          canCreate: can('products.create'),
+          canUpdate: can('products.update'),
+          canDelete: can('products.delete'),
+        );
+      case 3:
+        return InventoryAdminPage(canManage: can('inventory.manage'));
+      case 4:
+        return const CustomersManagementPage();
+      case 5:
+        return const CategoriesAdminPage();
+      case 6:
+        return const BannersAdminPage();
+      case 7:
+        return const AnalyticsAdminPage();
+      case 8:
+        return const FinanceReportsPage();
+      case 9:
+        return const StaffAdminPage();
+      case 10:
+        return const NotificationsAdminPage();
+      case 11:
+        return const AssistantAdminPage();
+      case 12:
+        return const SettingsAdminPage();
+      case 13:
+        return const ActivityAdminPage();
+      case 14:
+        return const BackupAdminPage();
+      default:
+        return const Center(child: Text('Select a module'));
     }
   }
 }
@@ -149,12 +181,24 @@ class _StatusPill extends StatelessWidget {
 }
 
 class ProductsAdminPage extends StatefulWidget {
-  const ProductsAdminPage({super.key});
+  const ProductsAdminPage({
+    super.key,
+    required this.canCreate,
+    required this.canUpdate,
+    required this.canDelete,
+  });
+
+  final bool canCreate;
+  final bool canUpdate;
+  final bool canDelete;
+
   @override
   State<ProductsAdminPage> createState() => _ProductsAdminPageState();
 }
 class _ProductsAdminPageState extends State<ProductsAdminPage> {
   String search = '';
+  String categoryFilter = 'all';
+  String? categoryFilterName;
   Future<void> editProduct([QueryDocumentSnapshot<Map<String, dynamic>>? doc]) async {
     final result = await showDialog<bool>(context: context, builder: (_) => _ProductEditor(initial: doc?.data(), documentId: doc?.id));
     if (result == true && mounted) _message(context, doc == null ? 'Product added.' : 'Product updated.');
@@ -163,30 +207,116 @@ class _ProductsAdminPageState extends State<ProductsAdminPage> {
   Widget build(BuildContext context) => _PageFrame(
     title: 'Products',
     subtitle: 'Manage the products displayed in the existing MedLife store.',
-    action: FilledButton.icon(onPressed: () => editProduct(), icon: const Icon(Icons.add), label: const Text('Add Product')),
+    action: widget.canCreate
+        ? FilledButton.icon(
+            onPressed: () => editProduct(),
+            icon: const Icon(Icons.add),
+            label: const Text('Add Product'),
+          )
+        : null,
     child: Column(children: [
-      Padding(padding: const EdgeInsets.symmetric(horizontal: 24), child: TextField(onChanged: (v) => setState(() => search = v.toLowerCase()), decoration: const InputDecoration(prefixIcon: Icon(Icons.search), hintText: 'Search products by name or category'))),
+      Padding(padding: const EdgeInsets.fromLTRB(24, 0, 24, 10), child: TextField(onChanged: (v) => setState(() => search = v.trim().toLowerCase()), decoration: const InputDecoration(prefixIcon: Icon(Icons.search), hintText: 'Search products by name or category'))),
+      Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 24),
+        child: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+          stream: _db.collection('categories').snapshots(),
+          builder: (context, categorySnap) {
+            final categories = categorySnap.data?.docs.toList() ?? [];
+            categories.sort((a, b) => (a.data()['name'] ?? '').toString().toLowerCase().compareTo((b.data()['name'] ?? '').toString().toLowerCase()));
+            final validFilter = categoryFilter == 'all' || categories.any((doc) => doc.id == categoryFilter) ? categoryFilter : 'all';
+            return DropdownButtonFormField<String>(
+              value: validFilter,
+              decoration: const InputDecoration(labelText: 'Filter by category', prefixIcon: Icon(Icons.category_outlined)),
+              items: [
+                const DropdownMenuItem(value: 'all', child: Text('All categories')),
+                ...categories.map((doc) => DropdownMenuItem(value: doc.id, child: Text((doc.data()['name'] ?? 'Unnamed').toString()))),
+              ],
+              onChanged: (value) {
+                final selected = categories.where((doc) => doc.id == value);
+                setState(() {
+                  categoryFilter = value ?? 'all';
+                  categoryFilterName = selected.isEmpty ? null : (selected.first.data()['name'] ?? '').toString();
+                });
+              },
+            );
+          },
+        ),
+      ),
       const SizedBox(height: 12),
       Expanded(child: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-        stream: _db.collection('Products').orderBy('createdAt', descending: true).snapshots(),
+        stream: _db.collection('Products').snapshots(),
         builder: (context, snap) {
           if (snap.hasError) return const Center(child: Text('Could not load Products collection.'));
           if (!snap.hasData) return const Center(child: CircularProgressIndicator());
-          final docs = snap.data!.docs.where((d) => d.data().toString().toLowerCase().contains(search)).toList();
+          final docs = snap.data!.docs.where((d) {
+            final data = d.data();
+            final matchesSearch = data.toString().toLowerCase().contains(search);
+            final matchesCategory = categoryFilter == 'all' ||
+                data['categoryId']?.toString() == categoryFilter ||
+                (categoryFilterName != null &&
+                    (data['category'] ?? '').toString().trim().toLowerCase() == categoryFilterName!.trim().toLowerCase());
+            return matchesSearch && matchesCategory;
+          }).toList()
+            ..sort((a, b) {
+              final aDate = a.data()['createdAt'];
+              final bDate = b.data()['createdAt'];
+              DateTime? dateOf(dynamic value) {
+                if (value is Timestamp) return value.toDate();
+                if (value is DateTime) return value;
+                return null;
+              }
+              return (dateOf(bDate) ?? DateTime.fromMillisecondsSinceEpoch(0))
+                  .compareTo(dateOf(aDate) ?? DateTime.fromMillisecondsSinceEpoch(0));
+            });
           if (docs.isEmpty) return const Center(child: Text('No products found.'));
           return ListView.separated(padding: const EdgeInsets.all(24), itemCount: docs.length, separatorBuilder: (_, __) => const SizedBox(height: 8), itemBuilder: (context, i) {
-            final doc = docs[i]; final d = doc.data(); final images = (d['images'] as List?) ?? []; final image = images.isNotEmpty ? images.first.toString() : (d['image'] ?? '').toString();
+            final doc = docs[i]; final d = doc.data(); final images = d['images'] is List ? d['images'] as List : const []; final image = images.isNotEmpty ? images.first.toString() : (d['image'] ?? '').toString();
             return Card(child: ListTile(
               leading: ClipRRect(borderRadius: BorderRadius.circular(10), child: image.startsWith('http') ? Image.network(image, width: 52, height: 58, fit: BoxFit.cover, errorBuilder: (_, __, ___) => const SizedBox(width: 52, child: Icon(Icons.image_not_supported))) : const SizedBox(width: 52, child: Icon(Icons.inventory_2))),
               title: Text((d['name'] ?? 'Unnamed product').toString(), maxLines: 1, overflow: TextOverflow.ellipsis),
               subtitle: Text('${_money(d['price'])} • ${d['category'] ?? 'Uncategorized'}'),
-              trailing: PopupMenuButton<String>(onSelected: (v) async {
-                if (v == 'edit') { await editProduct(doc); }
-                if (v == 'delete') {
-                  final yes = await showDialog<bool>(context: context, builder: (c) => AlertDialog(title: const Text('Delete product?'), content: Text('Delete ${d['name'] ?? 'this product'} from the store?'), actions: [TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('Cancel')), FilledButton(onPressed: () => Navigator.pop(c, true), child: const Text('Delete'))]));
-                  if (yes == true) { try { await doc.reference.delete(); if (context.mounted) _message(context, 'Product deleted.'); } catch (e) { if (context.mounted) _message(context, 'Delete failed: $e'); } }
-                }
-              }, itemBuilder: (_) => const [PopupMenuItem(value: 'edit', child: Text('Edit')), PopupMenuItem(value: 'delete', child: Text('Delete'))]),
+              trailing: (widget.canUpdate || widget.canDelete)
+                  ? PopupMenuButton<String>(
+                      onSelected: (v) async {
+                        if (v == 'edit' && widget.canUpdate) {
+                          await editProduct(doc);
+                        }
+                        if (v == 'delete' && widget.canDelete) {
+                          final yes = await showDialog<bool>(
+                            context: context,
+                            builder: (c) => AlertDialog(
+                              title: const Text('Delete product?'),
+                              content: Text('Delete ${d['name'] ?? 'this product'} from the store?'),
+                              actions: [
+                                TextButton(
+                                  onPressed: () => Navigator.pop(c, false),
+                                  child: const Text('Cancel'),
+                                ),
+                                FilledButton(
+                                  onPressed: () => Navigator.pop(c, true),
+                                  child: const Text('Delete'),
+                                ),
+                              ],
+                            ),
+                          );
+                          if (yes == true) {
+                            try {
+                              await doc.reference.delete();
+                              if (context.mounted) _message(context, 'Product deleted.');
+                            } catch (e) {
+                              if (context.mounted) _message(context, 'Delete failed: $e');
+                            }
+                          }
+                        }
+                      },
+                      itemBuilder: (_) => [
+                        if (widget.canUpdate)
+                          const PopupMenuItem(value: 'edit', child: Text('Edit')),
+                        if (widget.canDelete)
+                          const PopupMenuItem(value: 'delete', child: Text('Delete')),
+                      ],
+                    )
+                  : null,
             ));
           });
         },
@@ -222,9 +352,6 @@ class _ProductEditorState extends State<_ProductEditor> {
         ? (widget.initial!['images'] as List).join(', ')
         : widget.initial?['image']?.toString() ?? '',
   );
-  late final category = TextEditingController(
-    text: widget.initial?['category']?.toString() ?? '',
-  );
   late final sizes = TextEditingController(
     text: widget.initial?['sizes'] is List
         ? (widget.initial!['sizes'] as List).join(', ')
@@ -240,7 +367,7 @@ class _ProductEditorState extends State<_ProductEditor> {
     selectedCategoryId = widget.initial?['categoryId']?.toString();
   }
 
-  Future<void> save() async {
+  Future<void> save(List<QueryDocumentSnapshot<Map<String, dynamic>>> categories) async {
     final parsedPrice = double.tryParse(price.text.trim());
     if (name.text.trim().isEmpty ||
         parsedPrice == null ||
@@ -250,67 +377,60 @@ class _ProductEditorState extends State<_ProductEditor> {
       return;
     }
 
-    if (category.text.trim().isEmpty) {
-      _message(context, 'Choose or enter a product category.');
+    QueryDocumentSnapshot<Map<String, dynamic>>? categoryDoc;
+    for (final doc in categories) {
+      final matchesSelectedId =
+          selectedCategoryId != null && doc.id == selectedCategoryId;
+      final matchesLegacyName = selectedCategoryId == null &&
+          (doc.data()['name'] ?? '').toString().trim().toLowerCase() ==
+              (widget.initial?['category'] ?? '').toString().trim().toLowerCase();
+      if (matchesSelectedId || matchesLegacyName) {
+        categoryDoc = doc;
+        break;
+      }
+    }
+    final selectedCategory = categoryDoc;
+    if (selectedCategory == null) {
+      _message(context, 'Select an existing category before saving this product.');
       return;
     }
 
+    final images = image.text
+        .split(',')
+        .map((value) => value.trim())
+        .where((value) => value.isNotEmpty)
+        .toList();
+    for (final value in images) {
+      final uri = Uri.tryParse(value);
+      if (uri == null ||
+          (uri.scheme != 'https' && uri.scheme != 'http') ||
+          uri.host.isEmpty) {
+        _message(context, 'Each product image must be a valid HTTP or HTTPS URL.');
+        return;
+      }
+    }
+
+    final productSizes = sizes.text
+        .split(',')
+        .map((value) => value.trim())
+        .where((value) => value.isNotEmpty)
+        .toSet()
+        .toList();
     setState(() => saving = true);
     try {
-      final images = image.text
-          .split(',')
-          .map((value) => value.trim())
-          .where((value) => value.isNotEmpty)
-          .toList();
-      final productSizes = sizes.text
-          .split(',')
-          .map((value) => value.trim())
-          .where((value) => value.isNotEmpty)
-          .toSet()
-          .toList();
-
-      String? categoryId = selectedCategoryId;
-      if (categoryId != null) {
-        final categoryDoc =
-            await _db.collection('categories').doc(categoryId).get();
-        if (!categoryDoc.exists) {
-          throw StateError('The selected category no longer exists.');
-        }
-        category.text = categoryDoc.data()?['name']?.toString() ??
-            category.text.trim();
-      } else {
-        final matchingCategories = await _db
-            .collection('categories')
-            .where('name', isEqualTo: category.text.trim())
-            .limit(1)
-            .get();
-        if (matchingCategories.docs.isNotEmpty) {
-          categoryId = matchingCategories.docs.first.id;
-        }
-      }
-
-      if (widget.initial == null && categoryId == null) {
-        throw StateError(
-          'Select an existing category before adding a new product.',
-        );
-      }
-
+      final categoryName = (selectedCategory.data()['name'] ?? '').toString().trim();
       final data = <String, dynamic>{
         'name': name.text.trim(),
-        // ProductModel reads price as a number, not a string.
         'price': parsedPrice,
         'description': description.text.trim(),
         'deliveryText': delivery.text.trim(),
-        'category': category.text.trim(),
+        'category': categoryName,
+        'categoryId': selectedCategory.id,
         'images': images,
-        // Keep the legacy singular image field used by ProductModel.
         'image': images.isEmpty ? '' : images.first,
         'sizes': productSizes,
         'updatedAt': FieldValue.serverTimestamp(),
       };
-      if (categoryId != null) {
-        data['categoryId'] = categoryId;
-      }
 
       if (widget.initial == null) {
         data['createdAt'] = FieldValue.serverTimestamp();
@@ -320,8 +440,8 @@ class _ProductEditorState extends State<_ProductEditor> {
       }
 
       if (mounted) Navigator.pop(context, true);
-    } catch (e) {
-      if (mounted) _message(context, 'Could not save product: $e');
+    } catch (error) {
+      if (mounted) _message(context, 'Could not save product: $error');
     } finally {
       if (mounted) setState(() => saving = false);
     }
@@ -334,155 +454,559 @@ class _ProductEditorState extends State<_ProductEditor> {
     description.dispose();
     delivery.dispose();
     image.dispose();
-    category.dispose();
     sizes.dispose();
     super.dispose();
   }
 
   @override
-  Widget build(BuildContext context) => AlertDialog(
-        title: Text(widget.initial == null ? 'Add Product' : 'Edit Product'),
-        content: SizedBox(
-          width: 520,
-          child: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextField(
-                  controller: name,
-                  decoration: const InputDecoration(labelText: 'Product name'),
-                ),
-                const SizedBox(height: 10),
-                TextField(
-                  controller: price,
-                  keyboardType:
-                      const TextInputType.numberWithOptions(decimal: true),
-                  decoration: const InputDecoration(labelText: 'Price (EGP)'),
-                ),
-                const SizedBox(height: 10),
-                StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-                  stream: _db.collection('categories').snapshots(),
-                  builder: (context, snapshot) {
-                    final docs = snapshot.data?.docs ?? [];
-                    final hasSelected =
-                        docs.any((doc) => doc.id == selectedCategoryId);
-                    return Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        DropdownButtonFormField<String>(
-                          value: hasSelected ? selectedCategoryId : null,
-                          decoration: const InputDecoration(
-                            labelText: 'Choose existing category',
-                          ),
-                          items: docs
-                              .map(
-                                (doc) => DropdownMenuItem<String>(
-                                  value: doc.id,
-                                  child: Text(
-                                    (doc.data()['name'] ?? 'Unnamed').toString(),
-                                  ),
-                                ),
-                              )
-                              .toList(),
-                          onChanged: saving
-                              ? null
-                              : (value) {
-                                  if (value == null) return;
-                                  final selected =
-                                      docs.firstWhere((doc) => doc.id == value);
-                                  setState(() {
-                                    selectedCategoryId = value;
-                                    category.text =
-                                        (selected.data()['name'] ?? '')
-                                            .toString();
-                                  });
-                                },
+  Widget build(BuildContext context) => StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+        stream: _db.collection('categories').snapshots(),
+        builder: (context, snapshot) {
+          final categories = snapshot.data?.docs ?? [];
+          String? dropdownValue = selectedCategoryId;
+          if (dropdownValue == null) {
+            for (final doc in categories) {
+              if ((doc.data()['name'] ?? '').toString().trim().toLowerCase() ==
+                  (widget.initial?['category'] ?? '').toString().trim().toLowerCase()) {
+                dropdownValue = doc.id;
+                break;
+              }
+            }
+          }
+          if (dropdownValue != null &&
+              !categories.any((doc) => doc.id == dropdownValue)) {
+            dropdownValue = null;
+          }
+
+          return AlertDialog(
+            title: Text(widget.initial == null ? 'Add Product' : 'Edit Product'),
+            content: SizedBox(
+              width: 520,
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    TextField(
+                      controller: name,
+                      enabled: !saving,
+                      decoration: const InputDecoration(labelText: 'Product name'),
+                    ),
+                    const SizedBox(height: 10),
+                    TextField(
+                      controller: price,
+                      enabled: !saving,
+                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                      decoration: const InputDecoration(
+                        labelText: 'Price (EGP)',
+                        prefixText: 'EGP ',
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    if (snapshot.hasError)
+                      const Align(
+                        alignment: Alignment.centerLeft,
+                        child: Text('Could not load categories. Check your access and connection.'),
+                      )
+                    else if (!snapshot.hasData)
+                      const LinearProgressIndicator()
+                    else if (categories.isEmpty)
+                      const Align(
+                        alignment: Alignment.centerLeft,
+                        child: Text('Create a category first from the Categories page.'),
+                      )
+                    else
+                      DropdownButtonFormField<String>(
+                        value: dropdownValue,
+                        decoration: const InputDecoration(
+                          labelText: 'Product category',
+                          helperText: 'Choose one of the categories managed in the Categories page.',
                         ),
-                        const SizedBox(height: 8),
-                        TextField(
-                          controller: category,
-                          decoration: const InputDecoration(
-                            labelText: 'Category name',
-                            helperText:
-                                'Selecting a category above also saves its category ID.',
+                        items: categories.map((doc) => DropdownMenuItem<String>(
+                          value: doc.id,
+                          child: Text((doc.data()['name'] ?? 'Unnamed').toString()),
+                        )).toList(),
+                        onChanged: saving ? null : (value) {
+                          setState(() => selectedCategoryId = value);
+                        },
+                      ),
+                    const SizedBox(height: 10),
+                    TextField(
+                      controller: sizes,
+                      enabled: !saving,
+                      decoration: const InputDecoration(
+                        labelText: 'Available sizes',
+                        helperText: 'Separate sizes with commas, e.g. S, M, L, XL.',
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    TextField(
+                      controller: description,
+                      enabled: !saving,
+                      maxLines: 3,
+                      decoration: const InputDecoration(labelText: 'Description'),
+                    ),
+                    const SizedBox(height: 10),
+                    TextField(
+                      controller: delivery,
+                      enabled: !saving,
+                      decoration: const InputDecoration(labelText: 'Delivery text'),
+                    ),
+                    const SizedBox(height: 10),
+                    TextField(
+                      controller: image,
+                      enabled: !saving,
+                      maxLines: 3,
+                      decoration: const InputDecoration(
+                        labelText: 'Product image URL(s)',
+                        helperText: 'Use full HTTP/HTTPS URLs. Separate multiple images with commas.',
+                      ),
+                    ),
+                    if (image.text.trim().startsWith('https://')) ...[
+                      const SizedBox(height: 10),
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          'Image preview is shown in the product list after saving.',
+                          style: Theme.of(context).textTheme.bodySmall,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: saving ? null : () => Navigator.pop(context, false),
+                child: const Text('Cancel'),
+              ),
+              FilledButton(
+                onPressed: saving || !snapshot.hasData || categories.isEmpty
+                    ? null
+                    : () => save(categories),
+                child: Text(saving ? 'Saving…' : 'Save Product'),
+              ),
+            ],
+          );
+        },
+      );
+}
+class CategoriesAdminPage extends StatefulWidget {
+  const CategoriesAdminPage({super.key});
+
+  @override
+  State<CategoriesAdminPage> createState() => _CategoriesAdminPageState();
+}
+
+class _CategoriesAdminPageState extends State<CategoriesAdminPage> {
+  static const List<IconData> _categoryIcons = [
+    Icons.category_outlined,
+    Icons.checkroom_rounded,
+    Icons.medical_services_outlined,
+    Icons.medical_information_outlined,
+    Icons.construction_rounded,
+    Icons.shopping_bag_outlined,
+    Icons.sell_outlined,
+    Icons.health_and_safety_outlined,
+    Icons.science_outlined,
+    Icons.workspace_premium_outlined,
+    Icons.local_hospital_outlined,
+    Icons.inventory_2_outlined,
+    Icons.cleaning_services_outlined,
+    Icons.biotech_outlined,
+    Icons.assignment_outlined,
+    Icons.medication_outlined,
+  ];
+
+  Future<void> _edit(
+    BuildContext context, {
+    QueryDocumentSnapshot<Map<String, dynamic>>? doc,
+  }) async {
+    final data = doc?.data() ?? <String, dynamic>{};
+    final name = TextEditingController(text: data['name']?.toString() ?? '');
+    final imageUrl = TextEditingController(
+      text: data['imageUrl']?.toString() ?? '',
+    );
+    var iconCodePoint = data['iconCodePoint'] is num
+        ? (data['iconCodePoint'] as num).toInt()
+        : Icons.category_outlined.codePoint;
+    var saving = false;
+
+    final saved = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (dialogContext, setDialogState) => AlertDialog(
+          title: Text(doc == null ? 'Add Category' : 'Edit Category'),
+          content: SizedBox(
+            width: 480,
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  TextField(
+                    controller: name,
+                    autofocus: true,
+                    textCapitalization: TextCapitalization.words,
+                    decoration: const InputDecoration(
+                      labelText: 'Category name',
+                      hintText: 'e.g. Scrubs',
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  const Text('Category icon'),
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: _categoryIcons.map((icon) {
+                      final selected = icon.codePoint == iconCodePoint;
+                      return InkWell(
+                        borderRadius: BorderRadius.circular(10),
+                        onTap: () => setDialogState(
+                          () => iconCodePoint = icon.codePoint,
+                        ),
+                        child: Container(
+                          width: 42,
+                          height: 42,
+                          decoration: BoxDecoration(
+                            color: selected
+                                ? _blue.withValues(alpha: .14)
+                                : Theme.of(dialogContext).colorScheme.surface,
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(
+                              color: selected
+                                  ? _blue
+                                  : Theme.of(dialogContext).dividerColor,
+                            ),
+                          ),
+                          child: Icon(
+                            icon,
+                            color: selected ? _blue : null,
                           ),
                         ),
-                      ],
-                    );
-                  },
-                ),
-                const SizedBox(height: 10),
-                TextField(
-                  controller: sizes,
-                  decoration: const InputDecoration(
-                    labelText: 'Available sizes',
-                    helperText: 'Separate sizes with commas, e.g. S, M, L, XL.',
+                      );
+                    }).toList(),
                   ),
-                ),
-                const SizedBox(height: 10),
-                TextField(
-                  controller: description,
-                  maxLines: 3,
-                  decoration: const InputDecoration(labelText: 'Description'),
-                ),
-                const SizedBox(height: 10),
-                TextField(
-                  controller: delivery,
-                  decoration: const InputDecoration(labelText: 'Delivery text'),
-                ),
-                const SizedBox(height: 10),
-                TextField(
-                  controller: image,
-                  maxLines: 2,
-                  decoration: const InputDecoration(
-                    labelText: 'Image URL(s)',
-                    helperText:
-                        'Separate multiple image URLs with commas. The first URL is also saved to the legacy image field.',
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: imageUrl,
+                    keyboardType: TextInputType.url,
+                    decoration: const InputDecoration(
+                      labelText: 'Image URL (optional)',
+                      hintText: 'https://...',
+                      helperText:
+                          'When provided, the storefront displays this image instead of the icon.',
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
+          actions: [
+            TextButton(
+              onPressed: saving
+                  ? null
+                  : () => Navigator.pop(dialogContext, false),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: saving
+                  ? null
+                  : () async {
+                      final categoryName = name.text.trim();
+                      if (categoryName.isEmpty) {
+                        _message(dialogContext, 'Enter a category name.');
+                        return;
+                      }
+                      setDialogState(() => saving = true);
+                      try {
+                        final collection = _db.collection('categories');
+                        final duplicate = await collection
+                            .where('name', isEqualTo: categoryName)
+                            .get();
+                        if (duplicate.docs.any((item) => item.id != doc?.id)) {
+                          throw StateError(
+                            'A category with this name already exists.',
+                          );
+                        }
+
+                        final payload = <String, dynamic>{
+                          'name': categoryName,
+                          'iconCodePoint': iconCodePoint,
+                          'iconFontFamily': 'MaterialIcons',
+                          'imageUrl': imageUrl.text.trim(),
+                          'updatedAt': FieldValue.serverTimestamp(),
+                        };
+
+                        if (doc == null) {
+                          final existing = await collection.get();
+                          var highestOrder = -1;
+                          for (final item in existing.docs) {
+                            final value = item.data()['sortOrder'];
+                            if (value is num && value.toInt() > highestOrder) {
+                              highestOrder = value.toInt();
+                            }
+                          }
+                          payload['sortOrder'] = highestOrder + 1;
+                          payload['createdAt'] = FieldValue.serverTimestamp();
+                          await collection.add(payload);
+                        } else {
+                          await doc.reference.update(payload);
+                        }
+
+                        if (dialogContext.mounted) {
+                          Navigator.pop(dialogContext, true);
+                        }
+                      } catch (error) {
+                        if (dialogContext.mounted) {
+                          _message(
+                            dialogContext,
+                            'Could not save category: ' + error.toString(),
+                          );
+                          setDialogState(() => saving = false);
+                        }
+                      }
+                    },
+              child: saving
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Text('Save Category'),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    name.dispose();
+    imageUrl.dispose();
+    if (saved == true && context.mounted) {
+      _message(context, doc == null ? 'Category added.' : 'Category updated.');
+    }
+  }
+
+  Future<void> _move(
+    BuildContext context,
+    List<QueryDocumentSnapshot<Map<String, dynamic>>> docs,
+    int index,
+    int direction,
+  ) async {
+    final target = index + direction;
+    if (target < 0 || target >= docs.length) return;
+
+    final reordered = List<QueryDocumentSnapshot<Map<String, dynamic>>>.from(
+      docs,
+    );
+    final moved = reordered.removeAt(index);
+    reordered.insert(target, moved);
+
+    try {
+      final batch = _db.batch();
+      for (var i = 0; i < reordered.length; i++) {
+        batch.update(reordered[i].reference, {'sortOrder': i});
+      }
+      await batch.commit();
+      if (context.mounted) _message(context, 'Category order updated.');
+    } catch (error) {
+      if (context.mounted) {
+        _message(context, 'Could not reorder categories: ' + error.toString());
+      }
+    }
+  }
+
+  Future<void> _delete(
+    BuildContext context,
+    QueryDocumentSnapshot<Map<String, dynamic>> doc,
+  ) async {
+    final categoryName = (doc.data()['name'] ?? 'this category').toString();
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Delete category?'),
+        content: Text(
+          'Delete "' + categoryName + '"? Existing products will not be deleted. '
+          'Their saved category text may remain until those products are edited.',
         ),
         actions: [
           TextButton(
-            onPressed: saving ? null : () => Navigator.pop(context, false),
+            onPressed: () => Navigator.pop(dialogContext, false),
             child: const Text('Cancel'),
           ),
           FilledButton(
-            onPressed: saving ? null : save,
-            child: Text(saving ? 'Saving…' : 'Save Product'),
+            style: FilledButton.styleFrom(backgroundColor: Colors.red),
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('Delete'),
           ),
         ],
+      ),
+    );
+    if (confirmed != true) return;
+
+    try {
+      await doc.reference.delete();
+      if (context.mounted) _message(context, 'Category deleted.');
+    } catch (error) {
+      if (context.mounted) {
+        _message(context, 'Could not delete category: ' + error.toString());
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) => _PageFrame(
+        title: 'Categories',
+        subtitle:
+            'Manage the same categories used by the MedLife storefront, including icons, images and display order.',
+        action: FilledButton.icon(
+          onPressed: () => _edit(context),
+          icon: const Icon(Icons.add),
+          label: const Text('Add Category'),
+        ),
+        child: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+          stream: _db.collection('categories').snapshots(),
+          builder: (context, snapshot) {
+            if (snapshot.hasError) {
+              return const Center(child: Text('Could not load categories.'));
+            }
+            if (!snapshot.hasData) {
+              return const Center(child: CircularProgressIndicator());
+            }
+
+            final docs = snapshot.data!.docs.toList()
+              ..sort((a, b) {
+                final orderA = (a.data()['sortOrder'] as num?)?.toInt() ??
+                    1 << 30;
+                final orderB = (b.data()['sortOrder'] as num?)?.toInt() ??
+                    1 << 30;
+                final byOrder = orderA.compareTo(orderB);
+                if (byOrder != 0) return byOrder;
+                return (a.data()['name'] ?? '')
+                    .toString()
+                    .toLowerCase()
+                    .compareTo(
+                      (b.data()['name'] ?? '').toString().toLowerCase(),
+                    );
+              });
+
+            if (docs.isEmpty) {
+              return Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.category_outlined,
+                      size: 52,
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
+                    const SizedBox(height: 12),
+                    const Text('No categories yet.'),
+                    const SizedBox(height: 12),
+                    FilledButton.icon(
+                      onPressed: () => _edit(context),
+                      icon: const Icon(Icons.add),
+                      label: const Text('Create first category'),
+                    ),
+                  ],
+                ),
+              );
+            }
+
+            return ListView.separated(
+              padding: const EdgeInsets.all(24),
+              itemCount: docs.length,
+              separatorBuilder: (_, __) => const SizedBox(height: 8),
+              itemBuilder: (context, index) {
+                final doc = docs[index];
+                final data = doc.data();
+                final image = (data['imageUrl'] ?? '').toString();
+                final iconCodePoint =
+                    (data['iconCodePoint'] as num?)?.toInt() ??
+                        Icons.category_outlined.codePoint;
+                final icon = _categoryIcons.firstWhere(
+                  (candidate) => candidate.codePoint == iconCodePoint,
+                  orElse: () => Icons.category_outlined,
+                );
+
+                return Card(
+                  child: ListTile(
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 6,
+                    ),
+                    leading: ClipRRect(
+                      borderRadius: BorderRadius.circular(10),
+                      child: SizedBox(
+                        width: 52,
+                        height: 52,
+                        child: image.startsWith('http')
+                            ? Image.network(
+                                image,
+                                fit: BoxFit.cover,
+                                errorBuilder: (_, __, ___) => Icon(
+                                  icon,
+                                  color: _blue,
+                                  size: 30,
+                                ),
+                              )
+                            : Icon(icon, color: _blue, size: 30),
+                      ),
+                    ),
+                    title: Text(
+                      (data['name'] ?? 'Unnamed category').toString(),
+                      style: const TextStyle(fontWeight: FontWeight.w700),
+                    ),
+                    subtitle: Text(
+                      'Order: ' +
+                          (data['sortOrder'] ?? '—').toString() +
+                          '  •  ID: ' +
+                          doc.id,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    trailing: Wrap(
+                      spacing: 2,
+                      children: [
+                        IconButton(
+                          tooltip: 'Move up',
+                          onPressed: index == 0
+                              ? null
+                              : () => _move(context, docs, index, -1),
+                          icon: const Icon(Icons.arrow_upward),
+                        ),
+                        IconButton(
+                          tooltip: 'Move down',
+                          onPressed: index == docs.length - 1
+                              ? null
+                              : () => _move(context, docs, index, 1),
+                          icon: const Icon(Icons.arrow_downward),
+                        ),
+                        IconButton(
+                          tooltip: 'Edit category',
+                          onPressed: () => _edit(context, doc: doc),
+                          icon: const Icon(Icons.edit_outlined),
+                        ),
+                        IconButton(
+                          tooltip: 'Delete category',
+                          onPressed: () => _delete(context, doc),
+                          icon: const Icon(
+                            Icons.delete_outline,
+                            color: Colors.red,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            );
+          },
+        ),
       );
 }
-
-class CategoriesAdminPage extends StatelessWidget {
-  const CategoriesAdminPage({super.key});
-  Future<void> _edit(BuildContext context, [QueryDocumentSnapshot<Map<String, dynamic>>? doc]) async {
-    final c = TextEditingController(text: doc?.data()['name']?.toString() ?? '');
-    final ok = await showDialog<bool>(context: context, builder: (ctx) => AlertDialog(title: Text(doc == null ? 'Add Category' : 'Edit Category'), content: TextField(controller: c, autofocus: true, decoration: const InputDecoration(labelText: 'Category name')), actions: [TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')), FilledButton(onPressed: () => Navigator.pop(ctx, c.text.trim().isNotEmpty), child: const Text('Save'))]));
-    if (ok == true) {
-      try {
-        if (doc == null) { await _db.collection('categories').add({'name': c.text.trim(), 'createdAt': FieldValue.serverTimestamp(), 'updatedAt': FieldValue.serverTimestamp()}); }
-        else { await doc.reference.update({'name': c.text.trim(), 'updatedAt': FieldValue.serverTimestamp()}); }
-        if (context.mounted) _message(context, 'Category saved.');
-      } catch (e) { if (context.mounted) _message(context, 'Could not save category: $e'); }
-    }
-    c.dispose();
-  }
-  @override
-  Widget build(BuildContext context) => _PageFrame(title: 'Categories', subtitle: 'Manage the categories shared with the MedLife storefront.', action: FilledButton.icon(onPressed: () => _edit(context), icon: const Icon(Icons.add), label: const Text('Add Category')), child: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(stream: _db.collection('categories').snapshots(), builder: (context, snap) {
-    if (snap.hasError) return const Center(child: Text('Could not load categories.'));
-    if (!snap.hasData) return const Center(child: CircularProgressIndicator());
-    if (snap.data!.docs.isEmpty) return const Center(child: Text('No categories yet.'));
-    return ListView(padding: const EdgeInsets.all(24), children: snap.data!.docs.map((doc) => Card(child: ListTile(leading: const CircleAvatar(child: Icon(Icons.category_outlined)), title: Text((doc.data()['name'] ?? 'Unnamed').toString()), subtitle: Text('ID: ${doc.id}'), trailing: Wrap(children: [
-      IconButton(onPressed: () => _edit(context, doc), icon: const Icon(Icons.edit_outlined)),
-      IconButton(onPressed: () async { final yes = await showDialog<bool>(context: context, builder: (c) => AlertDialog(title: const Text('Delete category?'), content: const Text('Products already assigned to this category will not be deleted, but may retain the old category name.'), actions: [TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('Cancel')), FilledButton(onPressed: () => Navigator.pop(c, true), child: const Text('Delete'))])); if (yes == true) { try { await doc.reference.delete(); if (context.mounted) _message(context, 'Category deleted.'); } catch (e) { if (context.mounted) _message(context, 'Delete failed: $e'); } } }, icon: const Icon(Icons.delete_outline, color: Colors.red)),
-    ])))).toList());
-  }));
-}
-
 class CustomersAdminPage extends StatefulWidget {
   const CustomersAdminPage({super.key});
   @override
@@ -504,8 +1028,46 @@ class _CustomersAdminPageState extends State<CustomersAdminPage> {
   ]));
 }
 
-class InventoryAdminPage extends StatelessWidget {
-  const InventoryAdminPage({super.key});
+class InventoryAdminPage extends StatefulWidget {
+  const InventoryAdminPage({super.key, required this.canManage});
+
+  final bool canManage;
+
+  @override
+  State<InventoryAdminPage> createState() => _InventoryAdminPageState();
+}
+
+class _InventoryAdminPageState extends State<InventoryAdminPage> {
+  String search = '';
+  String filter = 'all';
+
+  bool _matchesFilter(Map<String, dynamic> data) {
+    final sizes = data['sizes'] is List
+        ? (data['sizes'] as List).map((value) => value.toString()).toList()
+        : <String>[];
+    final stock = data['stockBySize'] is Map
+        ? Map<String, dynamic>.from(data['stockBySize'] as Map)
+        : <String, dynamic>{};
+    final threshold = (data['lowStockThreshold'] as num?)?.toInt() ?? 5;
+    final counts = sizes.map((size) => stock[size] is num
+        ? (stock[size] as num).toInt()
+        : null).toList();
+    final unconfigured = sizes.isEmpty || counts.any((count) => count == null);
+    final hasLow = counts.any((count) =>
+        count != null && count > 0 && count <= threshold);
+    final hasOut = counts.any((count) => count == 0);
+
+    switch (filter) {
+      case 'low':
+        return hasLow;
+      case 'out':
+        return hasOut;
+      case 'unconfigured':
+        return unconfigured;
+      default:
+        return true;
+    }
+  }
 
   @override
   Widget build(BuildContext context) => _PageFrame(
@@ -514,8 +1076,13 @@ class InventoryAdminPage extends StatelessWidget {
         child: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
           stream: _db.collection('Products').snapshots(),
           builder: (context, snapshot) {
-            if (snapshot.hasError) return const Center(child: Text('Could not load products.'));
-            if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
+            if (snapshot.hasError) {
+              return const Center(child: Text('Could not load products.'));
+            }
+            if (!snapshot.hasData) {
+              return const Center(child: CircularProgressIndicator());
+            }
+
             final docs = snapshot.data!.docs;
             var configured = 0;
             var units = 0;
@@ -524,13 +1091,15 @@ class InventoryAdminPage extends StatelessWidget {
             for (final doc in docs) {
               final data = doc.data();
               final sizes = data['sizes'] is List
-                  ? (data['sizes'] as List).map((e) => e.toString()).toList()
+                  ? (data['sizes'] as List).map((value) => value.toString()).toList()
                   : <String>[];
               final stock = data['stockBySize'] is Map
                   ? Map<String, dynamic>.from(data['stockBySize'] as Map)
                   : <String, dynamic>{};
               final limit = (data['lowStockThreshold'] as num?)?.toInt() ?? 5;
-              if (sizes.isNotEmpty && sizes.every((s) => stock[s] is num)) configured++;
+              if (sizes.isNotEmpty && sizes.every((size) => stock[size] is num)) {
+                configured++;
+              }
               for (final size in sizes) {
                 final count = (stock[size] as num?)?.toInt();
                 if (count == null) continue;
@@ -542,53 +1111,131 @@ class InventoryAdminPage extends StatelessWidget {
                 }
               }
             }
-            return ListView(
-              padding: const EdgeInsets.fromLTRB(24, 4, 24, 24),
+
+            final visibleDocs = docs.where((doc) {
+              final data = doc.data();
+              final searchable = [
+                data['name'] ?? '',
+                data['category'] ?? '',
+                doc.id,
+              ].join(' ').toLowerCase();
+              return searchable.contains(search) && _matchesFilter(data);
+            }).toList()
+              ..sort((a, b) {
+                final aName = (a.data()['name'] ?? '').toString().toLowerCase();
+                final bName = (b.data()['name'] ?? '').toString().toLowerCase();
+                return aName.compareTo(bName);
+              });
+
+            return Column(
               children: [
-                Wrap(
-                  spacing: 12,
-                  runSpacing: 12,
-                  children: [
-                    _Kpi(title: 'Products', value: docs.length.toString(), icon: Icons.inventory_2_outlined),
-                    _Kpi(title: 'Configured', value: configured.toString(), icon: Icons.fact_check_outlined),
-                    _Kpi(title: 'Total units', value: units.toString(), icon: Icons.stacked_bar_chart),
-                    _Kpi(title: 'Low / out sizes', value: '$low / $out', icon: Icons.warning_amber_outlined),
-                  ],
-                ),
-                const SizedBox(height: 14),
-                const Card(
-                  child: Padding(
-                    padding: EdgeInsets.all(16),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Icon(Icons.info_outline, color: _blue),
-                        SizedBox(width: 12),
-                        Expanded(
-                          child: Text(
-                            'Stock is stored in Products.stockBySize. Existing quantities are not guessed; products begin as Not configured. This milestone adds admin stock entry and monitoring only. Checkout blocking and automatic deduction require a separate trusted server-side order workflow.',
-                          ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(24, 16, 24, 8),
+                  child: LayoutBuilder(
+                    builder: (context, constraints) {
+                      final compact = constraints.maxWidth < 620;
+                      final searchField = TextField(
+                        onChanged: (value) => setState(() => search = value.trim().toLowerCase()),
+                        decoration: const InputDecoration(
+                          prefixIcon: Icon(Icons.search),
+                          hintText: 'Search product, category or ID',
                         ),
-                      ],
-                    ),
+                      );
+                      final filterField = DropdownButtonFormField<String>(
+                        value: filter,
+                        decoration: const InputDecoration(labelText: 'Stock status'),
+                        items: const [
+                          DropdownMenuItem(value: 'all', child: Text('All products')),
+                          DropdownMenuItem(value: 'low', child: Text('Low stock')),
+                          DropdownMenuItem(value: 'out', child: Text('Out of stock')),
+                          DropdownMenuItem(value: 'unconfigured', child: Text('Not configured')),
+                        ],
+                        onChanged: (value) => setState(() => filter = value ?? 'all'),
+                      );
+                      if (compact) {
+                        return Column(
+                          children: [
+                            searchField,
+                            const SizedBox(height: 10),
+                            filterField,
+                          ],
+                        );
+                      }
+                      return Row(
+                        children: [
+                          Expanded(flex: 3, child: searchField),
+                          const SizedBox(width: 12),
+                          Expanded(flex: 2, child: filterField),
+                        ],
+                      );
+                    },
                   ),
                 ),
-                const SizedBox(height: 12),
-                if (docs.isEmpty)
-                  const Center(child: Padding(padding: EdgeInsets.all(32), child: Text('No products found.')))
-                else
-                  ...docs.map((doc) => _InventoryProductCard(productId: doc.id, data: doc.data())),
+                Expanded(
+                  child: ListView(
+                    padding: const EdgeInsets.fromLTRB(24, 8, 24, 24),
+                    children: [
+                      Wrap(
+                        spacing: 12,
+                        runSpacing: 12,
+                        children: [
+                          _Kpi(title: 'Products', value: docs.length.toString(), icon: Icons.inventory_2_outlined),
+                          _Kpi(title: 'Configured', value: configured.toString(), icon: Icons.fact_check_outlined),
+                          _Kpi(title: 'Total units', value: units.toString(), icon: Icons.stacked_bar_chart),
+                          _Kpi(title: 'Low / out sizes', value: '$low / $out', icon: Icons.warning_amber_outlined),
+                        ],
+                      ),
+                      const SizedBox(height: 14),
+                      const Card(
+                        child: Padding(
+                          padding: EdgeInsets.all(16),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Icon(Icons.info_outline, color: _blue),
+                              SizedBox(width: 12),
+                              Expanded(
+                                child: Text(
+                                  'Stock is stored in Products.stockBySize. Existing quantities are not guessed; products begin as Not configured. Checkout blocking and automatic deduction require a separate trusted server-side order workflow.',
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      if (visibleDocs.isEmpty)
+                        const Center(
+                          child: Padding(
+                            padding: EdgeInsets.all(32),
+                            child: Text('No products match this search or stock filter.'),
+                          ),
+                        )
+                      else
+                        ...visibleDocs.map((doc) => _InventoryProductCard(
+                              productId: doc.id,
+                              data: doc.data(),
+                              canManage: widget.canManage,
+                            )),
+                    ],
+                  ),
+                ),
               ],
             );
           },
         ),
       );
 }
-
 class _InventoryProductCard extends StatelessWidget {
-  const _InventoryProductCard({required this.productId, required this.data});
+  const _InventoryProductCard({
+    required this.productId,
+    required this.data,
+    required this.canManage,
+  });
+
   final String productId;
   final Map<String, dynamic> data;
+  final bool canManage;
 
   @override
   Widget build(BuildContext context) {
@@ -601,7 +1248,10 @@ class _InventoryProductCard extends StatelessWidget {
     final threshold = (data['lowStockThreshold'] as num?)?.toInt() ?? 5;
     final configured = sizes.isNotEmpty && sizes.every((s) => stock[s] is num);
     final total = sizes.fold<int>(0, (sum, s) => sum + ((stock[s] as num?)?.toInt() ?? 0));
-    final imageUrl = (data['image'] ?? '').toString();
+    final gallery = data['images'] is List ? data['images'] as List : const [];
+    final imageUrl = gallery.isNotEmpty
+        ? gallery.first.toString()
+        : (data['image'] ?? '').toString();
 
     return Card(
       margin: const EdgeInsets.only(bottom: 10),
@@ -661,8 +1311,9 @@ class _InventoryProductCard extends StatelessWidget {
                   child: Text(configured ? 'Low-stock alert: $threshold per size' : 'Enter the real quantity for each size',
                       style: Theme.of(context).textTheme.bodySmall),
                 ),
-                FilledButton.tonalIcon(
-                  onPressed: sizes.isEmpty ? null : () async {
+                if (canManage)
+                  FilledButton.tonalIcon(
+                    onPressed: sizes.isEmpty ? null : () async {
                     final result = await showDialog<Map<String, dynamic>>(
                       context: context,
                       builder: (_) => _InventoryEditorDialog(
@@ -807,27 +1458,386 @@ class BannersAdminPage extends StatelessWidget {
 
 class AnalyticsAdminPage extends StatelessWidget {
   const AnalyticsAdminPage({super.key});
-  @override
-  Widget build(BuildContext context) => _PageFrame(title: 'Analytics', subtitle: 'Live order-based business indicators.', child: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(stream: _db.collection('orders').snapshots(), builder: (context, snap) {
-    if (snap.hasError) return const Center(child: Text('Could not load analytics.'));
-    if (!snap.hasData) return const Center(child: CircularProgressIndicator());
-    final docs = snap.data!.docs;
-    final revenue = docs.where((d) => (d.data()['status'] ?? '') != 'cancelled').fold<double>(0, (sum, d) => sum + (double.tryParse(d.data()['total']?.toString() ?? '') ?? 0));
-    final delivered = docs.where((d) => d.data()['status'] == 'delivered').length;
-    final pending = docs.where((d) => d.data()['status'] == 'pending').length;
-    return ListView(padding: const EdgeInsets.all(24), children: [
-      Wrap(spacing: 12, runSpacing: 12, children: [
-        _Kpi(title: 'All Orders', value: docs.length.toString(), icon: Icons.shopping_bag_outlined),
-        _Kpi(title: 'Gross Order Value*', value: _money(revenue), icon: Icons.payments_outlined),
-        _Kpi(title: 'Delivered', value: delivered.toString(), icon: Icons.check_circle_outline),
-        _Kpi(title: 'Pending', value: pending.toString(), icon: Icons.pending_actions),
-      ]),
-      const SizedBox(height: 14),
-      const Text('*Sum of non-cancelled order totals; this is not accounting net revenue and may include shipping.'),
-    ]);
-  }));
-}
 
+  double _amount(dynamic value) {
+    if (value is num) return value.toDouble();
+    return double.tryParse(value?.toString() ?? '') ?? 0;
+  }
+
+  DateTime? _orderDate(dynamic value) {
+    if (value is Timestamp) return value.toDate();
+    if (value is DateTime) return value;
+    return null;
+  }
+
+  @override
+  Widget build(BuildContext context) => _PageFrame(
+        title: 'Analytics',
+        subtitle: 'Live order, sales trend and product performance indicators.',
+        child: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+          stream: _db.collection('orders').snapshots(),
+          builder: (context, snap) {
+            if (snap.hasError) {
+              return Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: SelectableText('Could not load analytics: ${snap.error}'),
+                ),
+              );
+            }
+            if (!snap.hasData) {
+              return const Center(child: CircularProgressIndicator());
+            }
+
+            final docs = snap.data!.docs;
+            final activeDocs = docs.where((doc) =>
+                (doc.data()['status'] ?? 'pending').toString().toLowerCase() !=
+                'cancelled').toList();
+            final orderValue = activeDocs.fold<double>(
+              0,
+              (sum, doc) => sum + _amount(doc.data()['total']),
+            );
+            final delivered = docs.where((doc) =>
+                (doc.data()['status'] ?? '').toString().toLowerCase() ==
+                'delivered').length;
+            final pending = docs.where((doc) =>
+                (doc.data()['status'] ?? 'pending').toString().toLowerCase() ==
+                'pending').length;
+            final averageOrder = activeDocs.isEmpty ? 0.0 : orderValue / activeDocs.length;
+
+            const statusNames = [
+              'pending',
+              'processing',
+              'shipped',
+              'delivered',
+              'cancelled',
+            ];
+            const statusColors = [
+              Color(0xFFF59E0B),
+              Color(0xFF8B5CF6),
+              Color(0xFF3B82F6),
+              Color(0xFF16A34A),
+              Color(0xFFDC2626),
+            ];
+            final statusCounts = <String, int>{
+              for (final status in statusNames)
+                status: docs.where((doc) =>
+                    (doc.data()['status'] ?? 'pending')
+                        .toString()
+                        .toLowerCase() == status).length,
+            };
+
+            final now = DateTime.now();
+            final firstMonth = DateTime(now.year, now.month - 5, 1);
+            final monthlyTotals = List<double>.filled(6, 0);
+            for (final doc in activeDocs) {
+              final date = _orderDate(doc.data()['orderedAt']);
+              if (date == null) continue;
+              final index = (date.year - firstMonth.year) * 12 +
+                  date.month - firstMonth.month;
+              if (index >= 0 && index < monthlyTotals.length) {
+                monthlyTotals[index] += _amount(doc.data()['total']);
+              }
+            }
+            final maxMonthly = monthlyTotals.fold<double>(
+              0,
+              (largest, value) => value > largest ? value : largest,
+            );
+            final monthLabels = List<String>.generate(6, (index) {
+              final month = DateTime(firstMonth.year, firstMonth.month + index, 1);
+              return DateFormat('MMM').format(month);
+            });
+
+            final productTotals = <String, double>{};
+            for (final doc in activeDocs) {
+              final items = doc.data()['items'];
+              if (items is! List) continue;
+              for (final rawItem in items) {
+                if (rawItem is! Map) continue;
+                final item = Map<String, dynamic>.from(rawItem);
+                final name = (item['name'] ?? 'Unnamed product').toString();
+                final quantity = _amount(item['quantity'] ?? 1);
+                productTotals[name] = (productTotals[name] ?? 0) +
+                    _amount(item['price']) * quantity;
+              }
+            }
+            final topProducts = productTotals.entries.toList()
+              ..sort((a, b) => b.value.compareTo(a.value));
+            final visibleProducts = topProducts.take(5).toList();
+            final maxProductValue = visibleProducts.isEmpty
+                ? 0.0
+                : visibleProducts.first.value;
+
+            return ListView(
+              padding: const EdgeInsets.all(24),
+              children: [
+                Wrap(
+                  spacing: 12,
+                  runSpacing: 12,
+                  children: [
+                    _Kpi(
+                      title: 'All Orders',
+                      value: docs.length.toString(),
+                      icon: Icons.shopping_bag_outlined,
+                    ),
+                    _Kpi(
+                      title: 'Gross Order Value*',
+                      value: _money(orderValue),
+                      icon: Icons.payments_outlined,
+                    ),
+                    _Kpi(
+                      title: 'Delivered',
+                      value: delivered.toString(),
+                      icon: Icons.check_circle_outline,
+                    ),
+                    _Kpi(
+                      title: 'Pending',
+                      value: pending.toString(),
+                      icon: Icons.pending_actions,
+                    ),
+                    _Kpi(
+                      title: 'Average Active Order',
+                      value: _money(averageOrder),
+                      icon: Icons.receipt_long_outlined,
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 18),
+                Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(18),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Monthly order value',
+                          style: Theme.of(context).textTheme.titleMedium
+                              ?.copyWith(fontWeight: FontWeight.w800),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'Last six calendar months, excluding cancelled orders.',
+                          style: Theme.of(context).textTheme.bodySmall,
+                        ),
+                        const SizedBox(height: 18),
+                        SizedBox(
+                          height: 230,
+                          child: BarChart(
+                            BarChartData(
+                              alignment: BarChartAlignment.spaceAround,
+                              maxY: maxMonthly <= 0 ? 10 : maxMonthly * 1.2,
+                              barTouchData: BarTouchData(enabled: true),
+                              gridData: const FlGridData(
+                                show: true,
+                                drawVerticalLine: false,
+                              ),
+                              borderData: FlBorderData(show: false),
+                              titlesData: FlTitlesData(
+                                topTitles: const AxisTitles(
+                                  sideTitles: SideTitles(showTitles: false),
+                                ),
+                                rightTitles: const AxisTitles(
+                                  sideTitles: SideTitles(showTitles: false),
+                                ),
+                                leftTitles: AxisTitles(
+                                  sideTitles: SideTitles(
+                                    showTitles: true,
+                                    reservedSize: 54,
+                                    getTitlesWidget: (value, meta) => Text(
+                                      NumberFormat.compact().format(value),
+                                      style: Theme.of(context).textTheme.bodySmall,
+                                    ),
+                                  ),
+                                ),
+                                bottomTitles: AxisTitles(
+                                  sideTitles: SideTitles(
+                                    showTitles: true,
+                                    getTitlesWidget: (value, meta) {
+                                      final index = value.toInt();
+                                      if (index < 0 || index >= monthLabels.length) {
+                                        return const SizedBox.shrink();
+                                      }
+                                      return Padding(
+                                        padding: const EdgeInsets.only(top: 8),
+                                        child: Text(
+                                          monthLabels[index],
+                                          style: Theme.of(context).textTheme.bodySmall,
+                                        ),
+                                      );
+                                    },
+                                  ),
+                                ),
+                              ),
+                              barGroups: [
+                                for (var index = 0; index < monthlyTotals.length; index++)
+                                  BarChartGroupData(
+                                    x: index,
+                                    barRods: [
+                                      BarChartRodData(
+                                        toY: monthlyTotals[index],
+                                        width: 20,
+                                        borderRadius: BorderRadius.circular(5),
+                                        color: _blue,
+                                      ),
+                                    ],
+                                  ),
+                              ],
+                            ),
+                          ),
+                        ),
+                        if (activeDocs.isEmpty)
+                          const Center(child: Text('Monthly sales data will appear when orders arrive.')),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 14),
+                Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(18),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Order status breakdown',
+                          style: Theme.of(context).textTheme.titleMedium
+                              ?.copyWith(fontWeight: FontWeight.w800),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'Distribution of all orders by their current status.',
+                          style: Theme.of(context).textTheme.bodySmall,
+                        ),
+                        const SizedBox(height: 12),
+                        if (docs.isEmpty)
+                          const Padding(
+                            padding: EdgeInsets.all(24),
+                            child: Center(child: Text('No order status data yet.')),
+                          )
+                        else
+                          Column(
+                            children: [
+                              SizedBox(
+                                width: 170,
+                                height: 170,
+                                child: PieChart(
+                                  PieChartData(
+                                    sectionsSpace: 2,
+                                    centerSpaceRadius: 34,
+                                    sections: [
+                                      for (var index = 0; index < statusNames.length; index++)
+                                        if (statusCounts[statusNames[index]]! > 0)
+                                          PieChartSectionData(
+                                            value: statusCounts[statusNames[index]]!.toDouble(),
+                                            color: statusColors[index],
+                                            title: statusCounts[statusNames[index]].toString(),
+                                            radius: 42,
+                                            titleStyle: const TextStyle(
+                                              color: Colors.white,
+                                              fontSize: 11,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 14),
+                              Wrap(
+                                spacing: 14,
+                                runSpacing: 10,
+                                children: [
+                                  for (var index = 0; index < statusNames.length; index++)
+                                    Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Container(
+                                          width: 10,
+                                          height: 10,
+                                          decoration: BoxDecoration(
+                                            color: statusColors[index],
+                                            shape: BoxShape.circle,
+                                          ),
+                                        ),
+                                        const SizedBox(width: 6),
+                                        Text(
+                                          '${toBeginningOfSentenceCase(statusNames[index])}: ${statusCounts[statusNames[index]]}',
+                                          style: Theme.of(context).textTheme.bodySmall,
+                                        ),
+                                      ],
+                                    ),
+                                ],
+                              ),
+                            ],
+                          ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 14),
+                Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(18),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Top products by order value',
+                          style: Theme.of(context).textTheme.titleMedium
+                              ?.copyWith(fontWeight: FontWeight.w800),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'Based on item price multiplied by quantity in non-cancelled orders.',
+                          style: Theme.of(context).textTheme.bodySmall,
+                        ),
+                        const SizedBox(height: 14),
+                        if (visibleProducts.isEmpty)
+                          const Text('Product performance will appear when orders include item details.')
+                        else
+                          ...visibleProducts.map((entry) {
+                            final progress = maxProductValue <= 0
+                                ? 0.0
+                                : (entry.value / maxProductValue).clamp(0.0, 1.0).toDouble();
+                            return Padding(
+                              padding: const EdgeInsets.only(bottom: 14),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    children: [
+                                      Expanded(
+                                        child: Text(
+                                          entry.key,
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: const TextStyle(fontWeight: FontWeight.w600),
+                                        ),
+                                      ),
+                                      const SizedBox(width: 12),
+                                      Text(_money(entry.value)),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 6),
+                                  LinearProgressIndicator(value: progress),
+                                ],
+                              ),
+                            );
+                          }),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 10),
+                const Text(
+                  '*Gross order value is the sum of non-cancelled order totals. It may include shipping and is not accounting net revenue.',
+                ),
+              ],
+            );
+          },
+        ),
+      );
+}
 class ReportsAdminPage extends StatelessWidget {
   const ReportsAdminPage({super.key});
   @override
@@ -864,220 +1874,493 @@ class StaffAdminPage extends StatefulWidget {
 class _StaffAdminPageState extends State<StaffAdminPage> {
   String search = '';
   late Future<List<Map<String, dynamic>>> accountsFuture = _loadAccounts();
+  bool saving = false;
 
   Future<List<Map<String, dynamic>>> _loadAccounts() async {
-    final result = await FirebaseFunctions.instance
-        .httpsCallable('listMedLifeAccounts')
-        .call();
+    final result = await FirebaseFunctions.instance.httpsCallable('listMedLifeAccounts').call();
     final data = Map<String, dynamic>.from(result.data as Map);
     final rows = (data['accounts'] as List? ?? const [])
-        .map((item) => Map<String, dynamic>.from(item as Map))
-        .toList();
-    rows.sort((a, b) {
-      final aName = (a['name'] ?? a['email'] ?? a['uid'] ?? '').toString();
-      final bName = (b['name'] ?? b['email'] ?? b['uid'] ?? '').toString();
-      return aName.toLowerCase().compareTo(bName.toLowerCase());
-    });
+        .map((item) => Map<String, dynamic>.from(item as Map)).toList();
+    rows.sort((a, b) => (a['name'] ?? a['email'] ?? a['uid'] ?? '')
+        .toString().toLowerCase().compareTo(
+          (b['name'] ?? b['email'] ?? b['uid'] ?? '').toString().toLowerCase()));
     return rows;
   }
 
-  void _refresh() {
-    setState(() => accountsFuture = _loadAccounts());
+  void _refresh() => setState(() => accountsFuture = _loadAccounts());
+
+  Future<void> _manageAccount(Map<String, dynamic> data) async {
+    if (saving) return;
+    final uid = (data['uid'] ?? '').toString();
+    if (uid.isEmpty) {
+      _message(context, 'This account has no valid ID.');
+      return;
+    }
+    final existing = (data['permissions'] as List? ?? const []).whereType<String>().toSet();
+    final initialActive = data['role'] == 'staff' && data['active'] == true;
+    final result = await showDialog<Map<String, dynamic>>(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) {
+        final selected = {...existing};
+        var active = initialActive || data['role'] != 'staff';
+        return StatefulBuilder(builder: (context, setDialogState) => AlertDialog(
+          title: Text(data['role'] == 'staff' ? 'Manage staff access' : 'Grant staff access'),
+          content: SizedBox(
+            width: 560,
+            child: SingleChildScrollView(child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text((data['name'] ?? data['displayName'] ?? data['email'] ?? uid).toString(),
+                    style: Theme.of(context).textTheme.titleMedium),
+                Text((data['email'] ?? uid).toString(), style: Theme.of(context).textTheme.bodySmall),
+                const SizedBox(height: 12),
+                SwitchListTile.adaptive(
+                  contentPadding: EdgeInsets.zero,
+                  title: const Text('Staff account active'),
+                  subtitle: const Text('Access changes take effect after the staff member refreshes their sign-in session.'),
+                  value: active,
+                  onChanged: (value) => setDialogState(() {
+                    active = value;
+                    if (!active) selected.clear();
+                  }),
+                ),
+                const Divider(),
+                Text('Assign permissions', style: Theme.of(context).textTheme.titleSmall),
+                const SizedBox(height: 4),
+                const Text('Grant only the access required for this person’s job. Firebase security rules and server functions enforce these permissions.',
+                    style: TextStyle(color: Colors.grey, fontSize: 12)),
+                const SizedBox(height: 8),
+                ..._staffPermissionGroups.entries.map((group) => ExpansionTile(
+                  initiallyExpanded: true,
+                  tilePadding: EdgeInsets.zero,
+                  title: Text(group.key, style: const TextStyle(fontWeight: FontWeight.w700)),
+                  children: group.value.map((permission) {
+                    final key = permission['key']!;
+                    return CheckboxListTile(
+                      dense: true,
+                      contentPadding: EdgeInsets.zero,
+                      controlAffinity: ListTileControlAffinity.leading,
+                      title: Text(permission['label']!),
+                      subtitle: Text(key, style: const TextStyle(fontSize: 11, color: Colors.grey)),
+                      value: selected.contains(key),
+                      onChanged: !active ? null : (checked) => setDialogState(() {
+                        if (checked == true) { selected.add(key); } else { selected.remove(key); }
+                      }),
+                    );
+                  }).toList(),
+                )),
+                if (!active) const Padding(
+                  padding: EdgeInsets.only(top: 8),
+                  child: Text('Enable the account to select permissions.', style: TextStyle(color: Colors.orange)),
+                ),
+              ],
+            )),
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(dialogContext),
+                child: const Text('Cancel')),
+            FilledButton.icon(
+              onPressed: () => Navigator.pop(dialogContext, {
+                'active': active, 'permissions': active ? selected.toList() : <String>[],
+              }),
+              icon: const Icon(Icons.save_outlined), label: const Text('Save access')),
+          ],
+        ));
+      },
+    );
+    if (result == null || !mounted) return;
+    setState(() => saving = true);
+    try {
+      await FirebaseFunctions.instance.httpsCallable('setMedLifeStaffPermissions').call({
+        'targetUid': uid,
+        'active': result['active'] == true,
+        'permissions': result['permissions'] as List<String>,
+      });
+      if (!mounted) return;
+      _message(context, result['active'] == true
+          ? 'Staff permissions saved. The user must sign in again or refresh their session.'
+          : 'Staff access deactivated and permissions cleared.');
+      _refresh();
+    } on FirebaseFunctionsException catch (e) {
+      if (mounted) _message(context, 'Could not update staff access (' + e.code + '): ' + (e.message ?? 'Unknown error'));
+    } catch (e) {
+      if (mounted) _message(context, 'Could not update staff access: ' + e.toString());
+    } finally {
+      if (mounted) setState(() => saving = false);
+    }
   }
 
   void _showAccountDetails(Map<String, dynamic> data) {
     final name = (data['name'] ?? data['displayName'] ?? data['email'] ?? 'Account').toString();
-    showDialog<void>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: Text(name),
-        content: SizedBox(
-          width: 440,
-          child: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _staffDetail('Email', data['email'] ?? '—'),
-                _staffDetail('Phone', data['phoneNumber'] ?? '—'),
-                _staffDetail('Account ID', data['uid'] ?? '—'),
-                _staffDetail('Role', data['role'] ?? 'user'),
-                _staffDetail('Status', data['disabled'] == true ? 'Authentication disabled' : (data['active'] == true ? 'Active staff' : 'Registered account')),
-                _staffDetail('Permissions', (data['permissions'] as List? ?? const []).join(', ').isEmpty ? 'None assigned' : (data['permissions'] as List).join(', ')),
-              ],
-            ),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext),
-            child: const Text('Close'),
-          ),
+    final permissions = (data['permissions'] as List? ?? const []).join(', ');
+    showDialog<void>(context: context, builder: (dialogContext) => AlertDialog(
+      title: Text(name),
+      content: SizedBox(width: 440, child: SingleChildScrollView(child: Column(
+        mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _staffDetail('Email', data['email'] ?? '—'),
+          _staffDetail('Phone', data['phoneNumber'] ?? '—'),
+          _staffDetail('Account ID', data['uid'] ?? '—'),
+          _staffDetail('Role', data['role'] ?? 'user'),
+          _staffDetail('Status', data['disabled'] == true ? 'Authentication disabled' :
+            (data['active'] == true ? 'Active staff' : (data['role'] == 'staff' ? 'Inactive staff' : 'Customer'))),
+          _staffDetail('Permissions', permissions.isEmpty ? 'None assigned' : permissions),
         ],
-      ),
-    );
+      ))),
+      actions: [TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('Close'))],
+    ));
   }
 
   Widget _staffDetail(String label, dynamic value) => Padding(
     padding: const EdgeInsets.only(bottom: 12),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(label, style: const TextStyle(color: Colors.grey, fontSize: 12)),
-        const SizedBox(height: 3),
-        SelectableText(value.toString()),
-      ],
-    ),
+    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Text(label, style: const TextStyle(color: Colors.grey, fontSize: 12)),
+      const SizedBox(height: 3), SelectableText(value.toString()),
+    ]),
   );
 
   @override
   Widget build(BuildContext context) => _PageFrame(
     title: 'Staff & Permissions',
-    subtitle: 'Registered MedLife accounts. Select an account to inspect its current staff status and permissions.',
-    action: IconButton(
-      tooltip: 'Refresh accounts',
-      onPressed: _refresh,
-      icon: const Icon(Icons.refresh),
-    ),
+    subtitle: 'Manage account access, assign least-privilege permissions and deactivate staff.',
+    action: IconButton(tooltip: 'Refresh accounts', onPressed: saving ? null : _refresh,
+        icon: const Icon(Icons.refresh)),
     child: FutureBuilder<List<Map<String, dynamic>>>(
       future: accountsFuture,
       builder: (context, snap) {
-        if (snap.hasError) {
-          return Center(
-            child: Padding(
-              padding: const EdgeInsets.all(24),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Icon(Icons.cloud_off_outlined, size: 40, color: Colors.grey),
-                  const SizedBox(height: 12),
-                  const Text('Could not load accounts from the secure admin service.'),
-                  const SizedBox(height: 8),
-                  SelectableText(snap.error.toString(), textAlign: TextAlign.center),
-                  const SizedBox(height: 12),
-                  FilledButton.icon(onPressed: _refresh, icon: const Icon(Icons.refresh), label: const Text('Try again')),
-                ],
-              ),
-            ),
-          );
-        }
-        if (!snap.hasData) {
-          return const Center(child: CircularProgressIndicator());
-        }
-
+        if (snap.hasError) return Center(child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+            const Icon(Icons.cloud_off_outlined, size: 40, color: Colors.grey),
+            const SizedBox(height: 12),
+            const Text('Could not load accounts from the secure admin service.'),
+            const SizedBox(height: 8),
+            SelectableText(snap.error.toString(), textAlign: TextAlign.center),
+            const SizedBox(height: 12),
+            FilledButton.icon(onPressed: _refresh, icon: const Icon(Icons.refresh), label: const Text('Try again')),
+          ]),
+        ));
+        if (!snap.hasData) return const Center(child: CircularProgressIndicator());
         final allAccounts = snap.data!;
         final filtered = allAccounts.where((data) {
-          final searchable = [
-            data['name'],
-            data['displayName'],
-            data['email'],
-            data['phoneNumber'],
-            data['uid'],
-            data['role'],
-          ].where((value) => value != null).join(' ').toLowerCase();
+          final searchable = [data['name'], data['displayName'], data['email'],
+            data['phoneNumber'], data['uid'], data['role']]
+            .where((value) => value != null).join(' ').toLowerCase();
           return searchable.contains(search.trim().toLowerCase());
         }).toList();
-        final staffCount = allAccounts.where((account) => account['role'] == 'staff').length;
-        final activeCount = allAccounts.where((account) => account['role'] == 'staff' && account['active'] == true).length;
-
-        return Column(
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(24, 8, 24, 12),
-              child: Wrap(
-                spacing: 12,
-                runSpacing: 8,
-                children: [
-                  _Kpi(title: 'Registered Accounts', value: allAccounts.length.toString(), icon: Icons.people_outline),
-                  _Kpi(title: 'Staff Accounts', value: staffCount.toString(), icon: Icons.badge_outlined),
-                  _Kpi(title: 'Active Staff', value: activeCount.toString(), icon: Icons.verified_user_outlined),
-                  _Kpi(title: 'Search Results', value: filtered.length.toString(), icon: Icons.manage_search),
-                ],
-              ),
+        final staffCount = allAccounts.where((a) => a['role'] == 'staff').length;
+        final activeCount = allAccounts.where((a) => a['role'] == 'staff' && a['active'] == true).length;
+        return Column(children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(24, 8, 24, 12),
+            child: Wrap(spacing: 12, runSpacing: 8, children: [
+              _Kpi(title: 'Registered Accounts', value: allAccounts.length.toString(), icon: Icons.people_outline),
+              _Kpi(title: 'Staff Accounts', value: staffCount.toString(), icon: Icons.badge_outlined),
+              _Kpi(title: 'Active Staff', value: activeCount.toString(), icon: Icons.verified_user_outlined),
+              _Kpi(title: 'Search Results', value: filtered.length.toString(), icon: Icons.manage_search),
+            ]),
+          ),
+          Padding(padding: const EdgeInsets.symmetric(horizontal: 24), child: TextField(
+            onChanged: (value) => setState(() => search = value),
+            decoration: InputDecoration(
+              prefixIcon: const Icon(Icons.search),
+              hintText: 'Search by name, email, phone or account ID',
+              suffixIcon: search.isEmpty ? null : IconButton(
+                tooltip: 'Clear search', onPressed: () => setState(() => search = ''),
+                icon: const Icon(Icons.close)),
             ),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24),
-              child: TextField(
-                onChanged: (value) => setState(() => search = value),
-                decoration: InputDecoration(
-                  prefixIcon: const Icon(Icons.search),
-                  hintText: 'Search by name, email, phone or account ID',
-                  suffixIcon: search.isEmpty
-                    ? null
-                    : IconButton(
-                        tooltip: 'Clear search',
-                        onPressed: () => setState(() => search = ''),
-                        icon: const Icon(Icons.close),
-                      ),
-                ),
-              ),
+          )),
+          const SizedBox(height: 8),
+          Expanded(child: filtered.isEmpty
+            ? Center(child: Text(allAccounts.isEmpty ? 'No registered accounts found.' : 'No accounts match your search.'))
+            : ListView.separated(
+              padding: const EdgeInsets.all(24), itemCount: filtered.length,
+              separatorBuilder: (_, __) => const SizedBox(height: 8),
+              itemBuilder: (context, index) {
+                final data = filtered[index];
+                final name = (data['name'] ?? data['displayName'] ?? data['email'] ?? 'Unnamed account').toString();
+                final email = (data['email'] ?? 'No email recorded').toString();
+                final phone = (data['phoneNumber'] ?? 'No phone recorded').toString();
+                final isStaff = data['role'] == 'staff', isActive = data['active'] == true;
+                return Card(child: ListTile(
+                  leading: CircleAvatar(child: Icon(isStaff ? Icons.badge_outlined : Icons.person_outline)),
+                  title: Text(name, maxLines: 1, overflow: TextOverflow.ellipsis),
+                  subtitle: Text(email + '\n' + phone, maxLines: 2, overflow: TextOverflow.ellipsis),
+                  isThreeLine: true,
+                  trailing: Wrap(crossAxisAlignment: WrapCrossAlignment.center, spacing: 4, children: [
+                    Chip(label: Text(isStaff ? (isActive ? 'Active staff' : 'Inactive staff') : 'Customer')),
+                    IconButton(tooltip: 'View account details', onPressed: () => _showAccountDetails(data),
+                        icon: const Icon(Icons.info_outline)),
+                    OutlinedButton(
+                      onPressed: saving || data['disabled'] == true ? null : () => _manageAccount(data),
+                      child: Text(isStaff ? 'Manage' : 'Grant access')),
+                  ]),
+                ));
+              },
             ),
-            const SizedBox(height: 8),
-            Expanded(
-              child: filtered.isEmpty
-                ? Center(child: Text(allAccounts.isEmpty ? 'No registered accounts found.' : 'No accounts match your search.'))
-                : ListView.separated(
-                    padding: const EdgeInsets.all(24),
-                    itemCount: filtered.length,
-                    separatorBuilder: (_, __) => const SizedBox(height: 8),
-                    itemBuilder: (context, index) {
-                      final data = filtered[index];
-                      final name = (data['name'] ?? data['displayName'] ?? data['email'] ?? 'Unnamed account').toString();
-                      final email = (data['email'] ?? 'No email recorded').toString();
-                      final phone = (data['phoneNumber'] ?? 'No phone recorded').toString();
-                      final isStaff = data['role'] == 'staff';
-                      final isActive = data['active'] == true;
-                      return Card(
-                        child: ListTile(
-                          leading: CircleAvatar(
-                            child: Icon(isStaff ? Icons.badge_outlined : Icons.person_outline),
-                          ),
-                          title: Text(name, maxLines: 1, overflow: TextOverflow.ellipsis),
-                          subtitle: Text('$email\\n$phone', maxLines: 2, overflow: TextOverflow.ellipsis),
-                          isThreeLine: true,
-                          trailing: Chip(label: Text(isStaff ? (isActive ? 'Active staff' : 'Inactive staff') : 'Customer')),
-                          onTap: () => _showAccountDetails(data),
-                        ),
-                      );
-                    },
-                  ),
+          ),
+          Padding(padding: const EdgeInsets.fromLTRB(24, 0, 24, 16), child: Card(
+            child: ListTile(
+              leading: const Icon(Icons.security_outlined, color: _blue),
+              title: const Text('Protected staff administration'),
+              subtitle: Text(saving ? 'Saving access changes…' :
+                'Only the Super Admin can assign permissions. Users must refresh their authentication session after a change.'),
             ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(24, 0, 24, 16),
-              child: const Card(
-                child: ListTile(
-                  leading: Icon(Icons.info_outline, color: _blue),
-                  title: Text('Secure account directory'),
-                  subtitle: Text('Accounts are loaded through a Super Admin-only server function. Permission assignment controls will be added after this directory is verified on the emulator.'),
-                ),
-              ),
-            ),
-          ],
-        );
+          )),
+        ]);
       },
     ),
   );
 }
 
-class NotificationsAdminPage extends StatelessWidget {
+const Map<String, List<Map<String, String>>> _staffPermissionGroups = {
+  'Dashboard': [{'key': 'dashboard.view', 'label': 'View dashboard'}],
+  'Orders & Customers': [
+    {'key': 'orders.view', 'label': 'View orders'},
+    {'key': 'orders.update', 'label': 'Update order fulfillment status'},
+    {'key': 'customers.view', 'label': 'View customer profiles'},
+  ],
+  'Products & Inventory': [
+    {'key': 'products.view', 'label': 'View products'},
+    {'key': 'products.create', 'label': 'Create products'},
+    {'key': 'products.update', 'label': 'Edit products'},
+    {'key': 'products.delete', 'label': 'Delete products'},
+    {'key': 'inventory.view', 'label': 'View inventory'},
+    {'key': 'inventory.manage', 'label': 'Manage stock levels'},
+  ],
+  'Store Content': [
+    {'key': 'categories.manage', 'label': 'Manage categories'},
+    {'key': 'marketing.manage', 'label': 'Manage banners and promotions'},
+  ],
+  'Reports': [{'key': 'reports_finance.view', 'label': 'View analytics and finance reports'}],
+  'Operations': [
+    {'key': 'notifications.manage', 'label': 'Manage notifications'},
+    {'key': 'settings.manage', 'label': 'Manage system settings'},
+    {'key': 'activity_log.view', 'label': 'View activity log'},
+    {'key': 'backup.manage', 'label': 'Manage backups'},
+  ],
+};
+
+class NotificationsAdminPage extends StatefulWidget {
   const NotificationsAdminPage({super.key});
+
   @override
-  Widget build(BuildContext context) => _PageFrame(title: 'Notifications', subtitle: 'Notification records currently stored in Firestore.', child: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(stream: _db.collection('notifications').snapshots(), builder: (context, snap) {
-    if (snap.hasError) return const Center(child: Text('Could not load notifications.'));
-    if (!snap.hasData) return const Center(child: CircularProgressIndicator());
-    if (snap.data!.docs.isEmpty) return const Center(child: Text('No notification records found.'));
-    return ListView(
-      padding: const EdgeInsets.all(24),
-      children: snap.data!.docs.map((d) => Card(
-        child: ListTile(
-          leading: const Icon(Icons.notifications_none),
-          title: Text((d.data()['title'] ?? 'Notification').toString()),
-          subtitle: Text((d.data()['body'] ?? d.data()['message'] ?? '').toString()),
-          trailing: Text(_date(d.data()['createdAt'])),
+  State<NotificationsAdminPage> createState() => _NotificationsAdminPageState();
+}
+
+class _NotificationsAdminPageState extends State<NotificationsAdminPage> {
+  final titleController = TextEditingController();
+  final bodyController = TextEditingController();
+  final formKey = GlobalKey<FormState>();
+  bool sending = false;
+
+  @override
+  void dispose() {
+    titleController.dispose();
+    bodyController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _sendBroadcast() async {
+    if (sending || !(formKey.currentState?.validate() ?? false)) return;
+    final title = titleController.text.trim();
+    final body = bodyController.text.trim();
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Confirm notification broadcast'),
+        content: const Text(
+          'This will send a push notification to every registered device with a saved notification token. Continue?',
         ),
-      )).toList(),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton.icon(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            icon: const Icon(Icons.send_outlined),
+            label: const Text('Send to all'),
+          ),
+        ],
+      ),
     );
-  }));
+
+    if (confirmed != true || !mounted) return;
+    setState(() => sending = true);
+    try {
+      final response = await FirebaseFunctions.instance
+          .httpsCallable('sendMedLifeNotification')
+          .call({'title': title, 'body': body});
+      final data = Map<String, dynamic>.from(response.data as Map);
+      if (!mounted) return;
+      final sent = data['sent'] ?? 0;
+      final failed = data['failed'] ?? 0;
+      final recipients = data['recipientCount'] ?? 0;
+      _message(
+        context,
+        'Broadcast processed: $sent sent, $failed failed, $recipients device token(s) found.',
+      );
+      titleController.clear();
+      bodyController.clear();
+    } on FirebaseFunctionsException catch (error) {
+      if (mounted) {
+        _message(
+          context,
+          'Notification failed (${error.code}): ${error.message ?? 'Unknown error'}',
+        );
+      }
+    } catch (error) {
+      if (mounted) _message(context, 'Notification failed: $error');
+    } finally {
+      if (mounted) setState(() => sending = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) => _PageFrame(
+    title: 'Notifications',
+    subtitle: 'Compose and send a push notification, then review broadcast history.',
+    child: Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(24, 0, 24, 16),
+          child: Card(
+            child: Padding(
+              padding: const EdgeInsets.all(20),
+              child: Form(
+                key: formKey,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'New broadcast',
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    const Text(
+                      'The message is sent to devices that have a registered push token. It does not create an in-app inbox message.',
+                      style: TextStyle(color: Colors.grey),
+                    ),
+                    const SizedBox(height: 16),
+                    TextFormField(
+                      controller: titleController,
+                      maxLength: 80,
+                      textCapitalization: TextCapitalization.sentences,
+                      decoration: const InputDecoration(
+                        labelText: 'Notification title',
+                        hintText: 'e.g. New collection available',
+                        border: OutlineInputBorder(),
+                      ),
+                      validator: (value) {
+                        final text = value?.trim() ?? '';
+                        if (text.isEmpty) return 'Enter a notification title.';
+                        if (text.length > 80) return 'Use 80 characters or fewer.';
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 8),
+                    TextFormField(
+                      controller: bodyController,
+                      maxLength: 240,
+                      minLines: 2,
+                      maxLines: 4,
+                      textCapitalization: TextCapitalization.sentences,
+                      decoration: const InputDecoration(
+                        labelText: 'Message',
+                        hintText: 'Write the message customers will receive',
+                        alignLabelWithHint: true,
+                        border: OutlineInputBorder(),
+                      ),
+                      validator: (value) {
+                        final text = value?.trim() ?? '';
+                        if (text.isEmpty) return 'Enter a message.';
+                        if (text.length > 240) return 'Use 240 characters or fewer.';
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 8),
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: FilledButton.icon(
+                        onPressed: sending ? null : _sendBroadcast,
+                        icon: sending
+                            ? const SizedBox(
+                                width: 16,
+                                height: 16,
+                                child: CircularProgressIndicator(strokeWidth: 2),
+                              )
+                            : const Icon(Icons.send_outlined),
+                        label: Text(sending ? 'Sending…' : 'Review and send'),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+        const Divider(height: 1),
+        Expanded(
+          child: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+            stream: _db.collection('notificationBroadcasts')
+                .orderBy('createdAt', descending: true)
+                .limit(50)
+                .snapshots(),
+            builder: (context, snap) {
+              if (snap.hasError) {
+                return const Center(child: Text('Could not load notification history.'));
+              }
+              if (!snap.hasData) {
+                return const Center(child: CircularProgressIndicator());
+              }
+              if (snap.data!.docs.isEmpty) {
+                return const Center(child: Text('No notification records found.'));
+              }
+              return ListView.separated(
+                padding: const EdgeInsets.all(24),
+                itemCount: snap.data!.docs.length,
+                separatorBuilder: (_, __) => const SizedBox(height: 8),
+                itemBuilder: (context, index) {
+                  final data = snap.data!.docs[index].data();
+                  final sent = data['sent'];
+                  final failed = data['failed'];
+                  final recipients = data['recipientCount'];
+                  return Card(
+                    child: ListTile(
+                      leading: const Icon(Icons.notifications_active_outlined),
+                      title: Text((data['title'] ?? 'Notification').toString()),
+                      subtitle: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text((data['body'] ?? data['message'] ?? '').toString()),
+                          if (sent is num || failed is num || recipients is num)
+                            Padding(
+                              padding: const EdgeInsets.only(top: 6),
+                              child: Text(
+                                '${sent ?? 0} sent • ${failed ?? 0} failed • ${recipients ?? 0} token(s)',
+                                style: Theme.of(context).textTheme.bodySmall,
+                              ),
+                            ),
+                        ],
+                      ),
+                      trailing: Text(_date(data['createdAt'])),
+                      isThreeLine: true,
+                    ),
+                  );
+                },
+              );
+            },
+          ),
+        ),
+      ],
+    ),
+  );
 }
 
 class AssistantAdminPage extends StatelessWidget {
@@ -1097,8 +2380,74 @@ class SettingsAdminPage extends StatelessWidget {
 }
 class ActivityAdminPage extends StatelessWidget {
   const ActivityAdminPage({super.key});
+
   @override
-  Widget build(BuildContext context) => const _PageFrame(title: 'Activity Log', subtitle: 'Audit trail will be connected after a trusted server-side writer is implemented.', child: Center(child: Text('No audit events have been generated by this admin app yet.')));
+  Widget build(BuildContext context) => _PageFrame(
+    title: 'Activity Log',
+    subtitle: 'Trusted server-recorded administrative events. Coverage is limited to actions currently logged by Cloud Functions.',
+    child: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+      stream: _db.collection('activityLogs')
+          .orderBy('createdAt', descending: true)
+          .limit(100)
+          .snapshots(),
+      builder: (context, snapshot) {
+        if (snapshot.hasError) {
+          return const Center(
+            child: Text('Unable to load activity. Check the activity_log.view permission.'),
+          );
+        }
+        if (!snapshot.hasData) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        final events = snapshot.data!.docs;
+        if (events.isEmpty) {
+          return const Center(
+            child: Text('No recorded administrative events yet. Only supported server-side actions appear here.'),
+          );
+        }
+        return ListView.separated(
+          padding: const EdgeInsets.all(20),
+          itemCount: events.length,
+          separatorBuilder: (_, __) => const SizedBox(height: 8),
+          itemBuilder: (context, index) {
+            final data = events[index].data();
+            final action = (data['action'] ?? 'unknown').toString();
+            final actorUid = (data['actorUid'] ?? 'Unknown').toString();
+            final targetUid = (data['targetUid'] ?? '').toString();
+            final details = data['details'] is Map
+                ? Map<String, dynamic>.from(data['details'] as Map)
+                : <String, dynamic>{};
+            final active = details['active'];
+            final permissions = details['permissions'] is List
+                ? (details['permissions'] as List).whereType<String>().join(', ')
+                : '';
+            return Card(
+              child: ListTile(
+                leading: const CircleAvatar(
+                  child: Icon(Icons.admin_panel_settings_outlined),
+                ),
+                title: Text(action.replaceAll('.', ' ').replaceAll('_', ' '),
+                  style: const TextStyle(fontWeight: FontWeight.w700)),
+                subtitle: Padding(
+                  padding: const EdgeInsets.only(top: 6),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('By: $actorUid'),
+                      if (targetUid.isNotEmpty) Text('Target: $targetUid'),
+                      if (active is bool) Text('Active: ${active ? 'Yes' : 'No'}'),
+                      if (permissions.isNotEmpty) Text('Permissions: $permissions'),
+                      Text('Time: ${_date(data['createdAt'])}'),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          },
+        );
+      },
+    ),
+  );
 }
 class BackupAdminPage extends StatelessWidget {
   const BackupAdminPage({super.key});

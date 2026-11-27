@@ -134,7 +134,11 @@ service cloud.firestore {
     // ORDERS. Staff may update only fulfillment fields; financial and
     // ownership fields remain immutable to staff.
     match /orders/{orderId} {
+      // Customer managers may read order records to display each
+      // customer's purchase history. This does not grant order update rights.
       allow get, list: if hasPermission('orders.view')
+        || hasPermission('customers.view')
+        || hasPermission('reports_finance.view')
         || (
           signedIn()
           && resource.data.userId == request.auth.uid
@@ -148,7 +152,18 @@ service cloud.firestore {
       allow update: if hasPermission('orders.update')
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
           'status', 'deliveredAt', 'updatedAt'
-        ]);
+        ])
+        && request.resource.data.status in [
+          'pending', 'processing', 'shipped', 'delivered', 'cancelled'
+        ]
+        && (
+          !('deliveredAt' in request.resource.data)
+          || request.resource.data.deliveredAt is timestamp
+        )
+        && (
+          !('updatedAt' in request.resource.data)
+          || request.resource.data.updatedAt is timestamp
+        );
 
       allow update: if isAdmin();
 
@@ -200,10 +215,23 @@ service cloud.firestore {
       allow create, update, delete: if hasPermission('notifications.manage');
     }
 
+    // ADMIN-ONLY BROADCAST HISTORY. Customer-facing notification records
+    // remain separate in /notifications.
+    match /notificationBroadcasts/{broadcastId} {
+      allow get, list: if hasPermission('notifications.manage');
+      allow create, update, delete: if false;
+    }
+
     // DELIVERY FEES
     match /deliveryFees/{governorate} {
       allow read: if signedIn();
       allow create, update, delete: if hasPermission('settings.manage');
+    }
+
+    // AUDIT LOGS. Only trusted Cloud Functions write through Admin SDK.
+    match /activityLogs/{activityId} {
+      allow get, list: if hasPermission('activity_log.view');
+      allow create, update, delete: if false;
     }
 
     // Deny every collection not explicitly listed above.

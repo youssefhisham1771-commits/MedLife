@@ -171,9 +171,15 @@ class _FinanceReportsPageState extends State<FinanceReportsPage> {
           start: currentRange.start.subtract(Duration(days: periodDays)),
           end: currentRange.start.subtract(const Duration(days: 1)),
         );
+        bool matchesReportStatus(String status) =>
+            selectedStatus == 'All'
+                ? status != 'cancelled'
+                : status == selectedStatus;
+
         double rangeValue(DateTimeRange range) => allDocs.fold<double>(0, (sum, doc) {
           final data = doc.data();
-          if ((data['status'] ?? 'pending').toString().toLowerCase() == 'cancelled' ||
+          final status = (data['status'] ?? 'pending').toString().toLowerCase();
+          if (!matchesReportStatus(status) ||
               !inRange(orderDate(data['orderedAt']), range)) return sum;
           return sum + amount(data['total']);
         });
@@ -190,7 +196,8 @@ class _FinanceReportsPageState extends State<FinanceReportsPage> {
         }
         for (final doc in allDocs) {
           final data = doc.data();
-          if ((data['status'] ?? 'pending').toString().toLowerCase() == 'cancelled') continue;
+          final status = (data['status'] ?? 'pending').toString().toLowerCase();
+          if (!matchesReportStatus(status)) continue;
           final date = orderDate(data['orderedAt']);
           if (date == null) continue;
           final key = DateTime(date.year, date.month, 1);
@@ -304,7 +311,9 @@ class _FinanceReportsPageState extends State<FinanceReportsPage> {
                   _sectionCard(
                     context,
                     title: 'Monthly order value',
-                    subtitle: 'Last six calendar months, excluding cancelled orders.',
+                    subtitle: selectedStatus == 'All'
+                        ? 'Last six calendar months, excluding cancelled orders.'
+                        : 'Last six calendar months, showing ${selectedStatus.toLowerCase()} orders only.',
                     child: SizedBox(
                       height: 230,
                       child: BarChart(BarChartData(
